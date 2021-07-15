@@ -1831,14 +1831,16 @@ function brush(dim) {
   }
 
   function emitter(that, args, clean) {
-    return (!clean && that.__brush.emitter) || new Emitter(that, args);
+    var emit = that.__brush.emitter;
+    return emit && (!clean || !emit.clean) ? emit : new Emitter(that, args, clean);
   }
 
-  function Emitter(that, args) {
+  function Emitter(that, args, clean) {
     this.that = that;
     this.args = args;
     this.state = that.__brush;
     this.active = 0;
+    this.clean = clean;
   }
 
   Emitter.prototype = {
@@ -3076,8 +3078,8 @@ function color(format) {
   format = (format + "").trim().toLowerCase();
   return (m = reHex.exec(format)) ? (l = m[1].length, m = parseInt(m[1], 16), l === 6 ? rgbn(m) // #ff0000
       : l === 3 ? new Rgb((m >> 8 & 0xf) | (m >> 4 & 0xf0), (m >> 4 & 0xf) | (m & 0xf0), ((m & 0xf) << 4) | (m & 0xf), 1) // #f00
-      : l === 8 ? new Rgb(m >> 24 & 0xff, m >> 16 & 0xff, m >> 8 & 0xff, (m & 0xff) / 0xff) // #ff000000
-      : l === 4 ? new Rgb((m >> 12 & 0xf) | (m >> 8 & 0xf0), (m >> 8 & 0xf) | (m >> 4 & 0xf0), (m >> 4 & 0xf) | (m & 0xf0), (((m & 0xf) << 4) | (m & 0xf)) / 0xff) // #f000
+      : l === 8 ? rgba(m >> 24 & 0xff, m >> 16 & 0xff, m >> 8 & 0xff, (m & 0xff) / 0xff) // #ff000000
+      : l === 4 ? rgba((m >> 12 & 0xf) | (m >> 8 & 0xf0), (m >> 8 & 0xf) | (m >> 4 & 0xf0), (m >> 4 & 0xf) | (m & 0xf0), (((m & 0xf) << 4) | (m & 0xf)) / 0xff) // #f000
       : null) // invalid hex
       : (m = reRgbInteger.exec(format)) ? new Rgb(m[1], m[2], m[3], 1) // rgb(255, 0, 0)
       : (m = reRgbPercent.exec(format)) ? new Rgb(m[1] * 255 / 100, m[2] * 255 / 100, m[3] * 255 / 100, 1) // rgb(100%, 0%, 0%)
@@ -4913,7 +4915,7 @@ var backIn = (function custom(s) {
   s = +s;
 
   function backIn(t) {
-    return t * t * ((s + 1) * t - s);
+    return (t = +t) * t * (s * (t - 1) + t);
   }
 
   backIn.overshoot = custom;
@@ -4925,7 +4927,7 @@ var backOut = (function custom(s) {
   s = +s;
 
   function backOut(t) {
-    return --t * t * ((s + 1) * t + s) + 1;
+    return --t * t * ((t + 1) * s + t) + 1;
   }
 
   backOut.overshoot = custom;
@@ -5052,6 +5054,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "elasticIn", function() { return elasticIn; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "elasticOut", function() { return elasticOut; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "elasticInOut", function() { return elasticInOut; });
+/* harmony import */ var _math_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./math.js */ "./node_modules/d3-ease/src/math.js");
+
+
 var tau = 2 * Math.PI,
     amplitude = 1,
     period = 0.3;
@@ -5060,7 +5065,7 @@ var elasticIn = (function custom(a, p) {
   var s = Math.asin(1 / (a = Math.max(1, a))) * (p /= tau);
 
   function elasticIn(t) {
-    return a * Math.pow(2, 10 * --t) * Math.sin((s - t) / p);
+    return a * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["tpmt"])(-(--t)) * Math.sin((s - t) / p);
   }
 
   elasticIn.amplitude = function(a) { return custom(a, p * tau); };
@@ -5073,7 +5078,7 @@ var elasticOut = (function custom(a, p) {
   var s = Math.asin(1 / (a = Math.max(1, a))) * (p /= tau);
 
   function elasticOut(t) {
-    return 1 - a * Math.pow(2, -10 * (t = +t)) * Math.sin((t + s) / p);
+    return 1 - a * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["tpmt"])(t = +t) * Math.sin((t + s) / p);
   }
 
   elasticOut.amplitude = function(a) { return custom(a, p * tau); };
@@ -5087,8 +5092,8 @@ var elasticInOut = (function custom(a, p) {
 
   function elasticInOut(t) {
     return ((t = t * 2 - 1) < 0
-        ? a * Math.pow(2, 10 * t) * Math.sin((s - t) / p)
-        : 2 - a * Math.pow(2, -10 * t) * Math.sin((s + t) / p)) / 2;
+        ? a * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["tpmt"])(-t) * Math.sin((s - t) / p)
+        : 2 - a * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["tpmt"])(t) * Math.sin((s + t) / p)) / 2;
   }
 
   elasticInOut.amplitude = function(a) { return custom(a, p * tau); };
@@ -5112,16 +5117,19 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "expIn", function() { return expIn; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "expOut", function() { return expOut; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "expInOut", function() { return expInOut; });
+/* harmony import */ var _math_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./math.js */ "./node_modules/d3-ease/src/math.js");
+
+
 function expIn(t) {
-  return Math.pow(2, 10 * t - 10);
+  return Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["tpmt"])(1 - +t);
 }
 
 function expOut(t) {
-  return 1 - Math.pow(2, -10 * t);
+  return 1 - Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["tpmt"])(t);
 }
 
 function expInOut(t) {
-  return ((t *= 2) <= 1 ? Math.pow(2, 10 * t - 10) : 2 - Math.pow(2, 10 - 10 * t)) / 2;
+  return ((t *= 2) <= 1 ? Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["tpmt"])(1 - t) : 2 - Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["tpmt"])(t - 1)) / 2;
 }
 
 
@@ -5260,6 +5268,24 @@ function linear(t) {
 
 /***/ }),
 
+/***/ "./node_modules/d3-ease/src/math.js":
+/*!******************************************!*\
+  !*** ./node_modules/d3-ease/src/math.js ***!
+  \******************************************/
+/*! exports provided: tpmt */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "tpmt", function() { return tpmt; });
+// tpmt is two power minus ten times t scaled to [0,1]
+function tpmt(x) {
+  return (Math.pow(2, -10 * x) - 0.0009765625) * 1.0009775171065494;
+}
+
+
+/***/ }),
+
 /***/ "./node_modules/d3-ease/src/poly.js":
 /*!******************************************!*\
   !*** ./node_modules/d3-ease/src/poly.js ***!
@@ -5356,7 +5382,7 @@ var pi = Math.PI,
     halfPi = pi / 2;
 
 function sinIn(t) {
-  return 1 - Math.cos(t * halfPi);
+  return (+t === 1) ? 1 : 1 - Math.cos(t * halfPi);
 }
 
 function sinOut(t) {
@@ -5425,14 +5451,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "csv", function() { return csv; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "tsv", function() { return tsv; });
 /* harmony import */ var d3_dsv__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! d3-dsv */ "./node_modules/d3-dsv/src/index.js");
-/* harmony import */ var _text__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./text */ "./node_modules/d3-fetch/src/text.js");
+/* harmony import */ var _text_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./text.js */ "./node_modules/d3-fetch/src/text.js");
 
 
 
 function dsvParse(parse) {
   return function(input, init, row) {
     if (arguments.length === 2 && typeof init === "function") row = init, init = undefined;
-    return Object(_text__WEBPACK_IMPORTED_MODULE_1__["default"])(input, init).then(function(response) {
+    return Object(_text_js__WEBPACK_IMPORTED_MODULE_1__["default"])(input, init).then(function(response) {
       return parse(response, row);
     });
   };
@@ -5441,7 +5467,7 @@ function dsvParse(parse) {
 function dsv(delimiter, input, init, row) {
   if (arguments.length === 3 && typeof init === "function") row = init, init = undefined;
   var format = Object(d3_dsv__WEBPACK_IMPORTED_MODULE_0__["dsvFormat"])(delimiter);
-  return Object(_text__WEBPACK_IMPORTED_MODULE_1__["default"])(input, init).then(function(response) {
+  return Object(_text_js__WEBPACK_IMPORTED_MODULE_1__["default"])(input, init).then(function(response) {
     return format.parse(response, row);
   });
 }
@@ -5483,34 +5509,34 @@ __webpack_require__.r(__webpack_exports__);
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _blob__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./blob */ "./node_modules/d3-fetch/src/blob.js");
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "blob", function() { return _blob__WEBPACK_IMPORTED_MODULE_0__["default"]; });
+/* harmony import */ var _blob_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./blob.js */ "./node_modules/d3-fetch/src/blob.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "blob", function() { return _blob_js__WEBPACK_IMPORTED_MODULE_0__["default"]; });
 
-/* harmony import */ var _buffer__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./buffer */ "./node_modules/d3-fetch/src/buffer.js");
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "buffer", function() { return _buffer__WEBPACK_IMPORTED_MODULE_1__["default"]; });
+/* harmony import */ var _buffer_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./buffer.js */ "./node_modules/d3-fetch/src/buffer.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "buffer", function() { return _buffer_js__WEBPACK_IMPORTED_MODULE_1__["default"]; });
 
-/* harmony import */ var _dsv__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./dsv */ "./node_modules/d3-fetch/src/dsv.js");
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "dsv", function() { return _dsv__WEBPACK_IMPORTED_MODULE_2__["default"]; });
+/* harmony import */ var _dsv_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./dsv.js */ "./node_modules/d3-fetch/src/dsv.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "dsv", function() { return _dsv_js__WEBPACK_IMPORTED_MODULE_2__["default"]; });
 
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "csv", function() { return _dsv__WEBPACK_IMPORTED_MODULE_2__["csv"]; });
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "csv", function() { return _dsv_js__WEBPACK_IMPORTED_MODULE_2__["csv"]; });
 
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "tsv", function() { return _dsv__WEBPACK_IMPORTED_MODULE_2__["tsv"]; });
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "tsv", function() { return _dsv_js__WEBPACK_IMPORTED_MODULE_2__["tsv"]; });
 
-/* harmony import */ var _image__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./image */ "./node_modules/d3-fetch/src/image.js");
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "image", function() { return _image__WEBPACK_IMPORTED_MODULE_3__["default"]; });
+/* harmony import */ var _image_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./image.js */ "./node_modules/d3-fetch/src/image.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "image", function() { return _image_js__WEBPACK_IMPORTED_MODULE_3__["default"]; });
 
-/* harmony import */ var _json__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./json */ "./node_modules/d3-fetch/src/json.js");
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "json", function() { return _json__WEBPACK_IMPORTED_MODULE_4__["default"]; });
+/* harmony import */ var _json_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./json.js */ "./node_modules/d3-fetch/src/json.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "json", function() { return _json_js__WEBPACK_IMPORTED_MODULE_4__["default"]; });
 
-/* harmony import */ var _text__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./text */ "./node_modules/d3-fetch/src/text.js");
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "text", function() { return _text__WEBPACK_IMPORTED_MODULE_5__["default"]; });
+/* harmony import */ var _text_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./text.js */ "./node_modules/d3-fetch/src/text.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "text", function() { return _text_js__WEBPACK_IMPORTED_MODULE_5__["default"]; });
 
-/* harmony import */ var _xml__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./xml */ "./node_modules/d3-fetch/src/xml.js");
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "xml", function() { return _xml__WEBPACK_IMPORTED_MODULE_6__["default"]; });
+/* harmony import */ var _xml_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./xml.js */ "./node_modules/d3-fetch/src/xml.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "xml", function() { return _xml_js__WEBPACK_IMPORTED_MODULE_6__["default"]; });
 
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "html", function() { return _xml__WEBPACK_IMPORTED_MODULE_6__["html"]; });
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "html", function() { return _xml_js__WEBPACK_IMPORTED_MODULE_6__["html"]; });
 
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "svg", function() { return _xml__WEBPACK_IMPORTED_MODULE_6__["svg"]; });
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "svg", function() { return _xml_js__WEBPACK_IMPORTED_MODULE_6__["svg"]; });
 
 
 
@@ -5534,6 +5560,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.r(__webpack_exports__);
 function responseJson(response) {
   if (!response.ok) throw new Error(response.status + " " + response.statusText);
+  if (response.status === 204 || response.status === 205) return;
   return response.json();
 }
 
@@ -5576,12 +5603,12 @@ function responseText(response) {
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "html", function() { return html; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "svg", function() { return svg; });
-/* harmony import */ var _text__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./text */ "./node_modules/d3-fetch/src/text.js");
+/* harmony import */ var _text_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./text.js */ "./node_modules/d3-fetch/src/text.js");
 
 
 function parser(type) {
   return function(input, init)  {
-    return Object(_text__WEBPACK_IMPORTED_MODULE_0__["default"])(input, init).then(function(text) {
+    return Object(_text_js__WEBPACK_IMPORTED_MODULE_0__["default"])(input, init).then(function(text) {
       return (new DOMParser).parseFromString(text, type);
     });
   };
@@ -6501,7 +6528,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 /* harmony default export */ __webpack_exports__["default"] = (function(x) {
-  return x = Object(_formatDecimal_js__WEBPACK_IMPORTED_MODULE_0__["default"])(Math.abs(x)), x ? x[1] : NaN;
+  return x = Object(_formatDecimal_js__WEBPACK_IMPORTED_MODULE_0__["formatDecimalParts"])(Math.abs(x)), x ? x[1] : NaN;
 });
 
 
@@ -6511,15 +6538,22 @@ __webpack_require__.r(__webpack_exports__);
 /*!*****************************************************!*\
   !*** ./node_modules/d3-format/src/formatDecimal.js ***!
   \*****************************************************/
-/*! exports provided: default */
+/*! exports provided: default, formatDecimalParts */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "formatDecimalParts", function() { return formatDecimalParts; });
+/* harmony default export */ __webpack_exports__["default"] = (function(x) {
+  return Math.abs(x = Math.round(x)) >= 1e21
+      ? x.toLocaleString("en").replace(/,/g, "")
+      : x.toString(10);
+});
+
 // Computes the decimal coefficient and exponent of the specified number x with
 // significant digits p, where x is positive and p is in [1, 21] or undefined.
-// For example, formatDecimal(1.23) returns ["123", 0].
-/* harmony default export */ __webpack_exports__["default"] = (function(x, p) {
+// For example, formatDecimalParts(1.23) returns ["123", 0].
+function formatDecimalParts(x, p) {
   if ((i = (x = p ? x.toExponential(p - 1) : x.toExponential()).indexOf("e")) < 0) return null; // NaN, ±Infinity
   var i, coefficient = x.slice(0, i);
 
@@ -6529,7 +6563,7 @@ __webpack_require__.r(__webpack_exports__);
     coefficient.length > 1 ? coefficient[0] + coefficient.slice(2) : coefficient,
     +x.slice(i + 1)
   ];
-});
+}
 
 
 /***/ }),
@@ -6601,7 +6635,7 @@ __webpack_require__.r(__webpack_exports__);
 var prefixExponent;
 
 /* harmony default export */ __webpack_exports__["default"] = (function(x, p) {
-  var d = Object(_formatDecimal_js__WEBPACK_IMPORTED_MODULE_0__["default"])(x, p);
+  var d = Object(_formatDecimal_js__WEBPACK_IMPORTED_MODULE_0__["formatDecimalParts"])(x, p);
   if (!d) return x + "";
   var coefficient = d[0],
       exponent = d[1],
@@ -6610,7 +6644,7 @@ var prefixExponent;
   return i === n ? coefficient
       : i > n ? coefficient + new Array(i - n + 1).join("0")
       : i > 0 ? coefficient.slice(0, i) + "." + coefficient.slice(i)
-      : "0." + new Array(1 - i).join("0") + Object(_formatDecimal_js__WEBPACK_IMPORTED_MODULE_0__["default"])(x, Math.max(0, p + i - 1))[0]; // less than 1y!
+      : "0." + new Array(1 - i).join("0") + Object(_formatDecimal_js__WEBPACK_IMPORTED_MODULE_0__["formatDecimalParts"])(x, Math.max(0, p + i - 1))[0]; // less than 1y!
 });
 
 
@@ -6629,7 +6663,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 /* harmony default export */ __webpack_exports__["default"] = (function(x, p) {
-  var d = Object(_formatDecimal_js__WEBPACK_IMPORTED_MODULE_0__["default"])(x, p);
+  var d = Object(_formatDecimal_js__WEBPACK_IMPORTED_MODULE_0__["formatDecimalParts"])(x, p);
   if (!d) return x + "";
   var coefficient = d[0],
       exponent = d[1];
@@ -6736,8 +6770,10 @@ __webpack_require__.r(__webpack_exports__);
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _formatPrefixAuto_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./formatPrefixAuto.js */ "./node_modules/d3-format/src/formatPrefixAuto.js");
-/* harmony import */ var _formatRounded_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./formatRounded.js */ "./node_modules/d3-format/src/formatRounded.js");
+/* harmony import */ var _formatDecimal_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./formatDecimal.js */ "./node_modules/d3-format/src/formatDecimal.js");
+/* harmony import */ var _formatPrefixAuto_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./formatPrefixAuto.js */ "./node_modules/d3-format/src/formatPrefixAuto.js");
+/* harmony import */ var _formatRounded_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./formatRounded.js */ "./node_modules/d3-format/src/formatRounded.js");
+
 
 
 
@@ -6745,14 +6781,14 @@ __webpack_require__.r(__webpack_exports__);
   "%": function(x, p) { return (x * 100).toFixed(p); },
   "b": function(x) { return Math.round(x).toString(2); },
   "c": function(x) { return x + ""; },
-  "d": function(x) { return Math.round(x).toString(10); },
+  "d": _formatDecimal_js__WEBPACK_IMPORTED_MODULE_0__["default"],
   "e": function(x, p) { return x.toExponential(p); },
   "f": function(x, p) { return x.toFixed(p); },
   "g": function(x, p) { return x.toPrecision(p); },
   "o": function(x) { return Math.round(x).toString(8); },
-  "p": function(x, p) { return Object(_formatRounded_js__WEBPACK_IMPORTED_MODULE_1__["default"])(x * 100, p); },
-  "r": _formatRounded_js__WEBPACK_IMPORTED_MODULE_1__["default"],
-  "s": _formatPrefixAuto_js__WEBPACK_IMPORTED_MODULE_0__["default"],
+  "p": function(x, p) { return Object(_formatRounded_js__WEBPACK_IMPORTED_MODULE_2__["default"])(x * 100, p); },
+  "r": _formatRounded_js__WEBPACK_IMPORTED_MODULE_2__["default"],
+  "s": _formatPrefixAuto_js__WEBPACK_IMPORTED_MODULE_1__["default"],
   "X": function(x) { return Math.round(x).toString(16).toUpperCase(); },
   "x": function(x) { return Math.round(x).toString(16); }
 });
@@ -6911,19 +6947,20 @@ var map = Array.prototype.map,
       } else {
         value = +value;
 
+        // Determine the sign. -0 is not less than 0, but 1 / -0 is!
+        var valueNegative = value < 0 || 1 / value < 0;
+
         // Perform the initial formatting.
-        var valueNegative = value < 0;
         value = isNaN(value) ? nan : formatType(Math.abs(value), precision);
 
         // Trim insignificant zeros.
         if (trim) value = Object(_formatTrim_js__WEBPACK_IMPORTED_MODULE_4__["default"])(value);
 
-        // If a negative value rounds to zero during formatting, treat as positive.
-        if (valueNegative && +value === 0) valueNegative = false;
+        // If a negative value rounds to zero after formatting, and no explicit positive sign is requested, hide the sign.
+        if (valueNegative && +value === 0 && sign !== "+") valueNegative = false;
 
         // Compute the prefix and suffix.
         valuePrefix = (valueNegative ? (sign === "(" ? sign : minus) : sign === "-" || sign === "(" ? "" : sign) + valuePrefix;
-
         valueSuffix = (type === "s" ? prefixes[8 + _formatPrefixAuto_js__WEBPACK_IMPORTED_MODULE_6__["prefixExponent"] / 3] : "") + valueSuffix + (valueNegative && sign === "(" ? ")" : "");
 
         // Break the formatted value into the integer “value” part that can be
@@ -7811,8 +7848,8 @@ __webpack_require__.r(__webpack_exports__);
   var lines = [],
       line;
   return {
-    point: function(x, y) {
-      line.push([x, y]);
+    point: function(x, y, m) {
+      line.push([x, y, m]);
     },
     lineStart: function() {
       lines.push(line = []);
@@ -7890,15 +7927,10 @@ __webpack_require__.r(__webpack_exports__);
               ? v ? 0 : code(lambda, phi)
               : v ? code(lambda + (lambda < 0 ? _math_js__WEBPACK_IMPORTED_MODULE_2__["pi"] : -_math_js__WEBPACK_IMPORTED_MODULE_2__["pi"]), phi) : 0;
         if (!point0 && (v00 = v0 = v)) stream.lineStart();
-        // Handle degeneracies.
-        // TODO ignore if not clipping polygons.
         if (v !== v0) {
           point2 = intersect(point0, point1);
-          if (!point2 || Object(_pointEqual_js__WEBPACK_IMPORTED_MODULE_3__["default"])(point0, point2) || Object(_pointEqual_js__WEBPACK_IMPORTED_MODULE_3__["default"])(point1, point2)) {
-            point1[0] += _math_js__WEBPACK_IMPORTED_MODULE_2__["epsilon"];
-            point1[1] += _math_js__WEBPACK_IMPORTED_MODULE_2__["epsilon"];
-            v = visible(point1[0], point1[1]);
-          }
+          if (!point2 || Object(_pointEqual_js__WEBPACK_IMPORTED_MODULE_3__["default"])(point0, point2) || Object(_pointEqual_js__WEBPACK_IMPORTED_MODULE_3__["default"])(point1, point2))
+            point1[2] = 1;
         }
         if (v !== v0) {
           clean = 0;
@@ -7910,7 +7942,7 @@ __webpack_require__.r(__webpack_exports__);
           } else {
             // inside going out
             point2 = intersect(point0, point1);
-            stream.point(point2[0], point2[1]);
+            stream.point(point2[0], point2[1], 2);
             stream.lineEnd();
           }
           point0 = point2;
@@ -7929,7 +7961,7 @@ __webpack_require__.r(__webpack_exports__);
               stream.point(t[1][0], t[1][1]);
               stream.lineEnd();
               stream.lineStart();
-              stream.point(t[0][0], t[0][1]);
+              stream.point(t[0][0], t[0][1], 3);
             }
           }
         }
@@ -8485,6 +8517,8 @@ function clipRectangle(x0, y0, x1, y1) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _pointEqual_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../pointEqual.js */ "./node_modules/d3-geo/src/pointEqual.js");
+/* harmony import */ var _math_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../math.js */ "./node_modules/d3-geo/src/math.js");
+
 
 
 function Intersection(point, points, other, entry) {
@@ -8509,14 +8543,15 @@ function Intersection(point, points, other, entry) {
     if ((n = segment.length - 1) <= 0) return;
     var n, p0 = segment[0], p1 = segment[n], x;
 
-    // If the first and last points of a segment are coincident, then treat as a
-    // closed ring. TODO if all rings are closed, then the winding order of the
-    // exterior ring should be checked.
     if (Object(_pointEqual_js__WEBPACK_IMPORTED_MODULE_0__["default"])(p0, p1)) {
-      stream.lineStart();
-      for (i = 0; i < n; ++i) stream.point((p0 = segment[i])[0], p0[1]);
-      stream.lineEnd();
-      return;
+      if (!p0[2] && !p1[2]) {
+        stream.lineStart();
+        for (i = 0; i < n; ++i) stream.point((p0 = segment[i])[0], p0[1]);
+        stream.lineEnd();
+        return;
+      }
+      // handle degenerate cases by moving the point
+      p1[0] += 2 * _math_js__WEBPACK_IMPORTED_MODULE_1__["epsilon"];
     }
 
     subject.push(x = new Intersection(p0, segment, null, true));
@@ -10236,8 +10271,11 @@ function conicConformalRaw(y0, y1) {
   }
 
   project.invert = function(x, y) {
-    var fy = f - y, r = Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(n) * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sqrt"])(x * x + fy * fy);
-    return [Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["atan2"])(x, Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["abs"])(fy)) / n * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(fy), 2 * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["atan"])(Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["pow"])(f / r, 1 / n)) - _math_js__WEBPACK_IMPORTED_MODULE_0__["halfPi"]];
+    var fy = f - y, r = Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(n) * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sqrt"])(x * x + fy * fy),
+      l = Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["atan2"])(x, Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["abs"])(fy)) * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(fy);
+    if (fy * n < 0)
+      l -= _math_js__WEBPACK_IMPORTED_MODULE_0__["pi"] * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(x) * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(fy);
+    return [l / n, 2 * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["atan"])(Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["pow"])(f / r, 1 / n)) - _math_js__WEBPACK_IMPORTED_MODULE_0__["halfPi"]];
   };
 
   return project;
@@ -10283,8 +10321,11 @@ function conicEqualAreaRaw(y0, y1) {
   }
 
   project.invert = function(x, y) {
-    var r0y = r0 - y;
-    return [Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["atan2"])(x, Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["abs"])(r0y)) / n * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(r0y), Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["asin"])((c - (x * x + r0y * r0y) * n * n) / (2 * n))];
+    var r0y = r0 - y,
+        l = Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["atan2"])(x, Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["abs"])(r0y)) * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(r0y);
+    if (r0y * n < 0)
+      l -= _math_js__WEBPACK_IMPORTED_MODULE_0__["pi"] * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(x) * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(r0y);
+    return [l / n, Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["asin"])((c - (x * x + r0y * r0y) * n * n) / (2 * n))];
   };
 
   return project;
@@ -10329,8 +10370,11 @@ function conicEquidistantRaw(y0, y1) {
   }
 
   project.invert = function(x, y) {
-    var gy = g - y;
-    return [Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["atan2"])(x, Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["abs"])(gy)) / n * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(gy), g - Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(n) * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sqrt"])(x * x + gy * gy)];
+    var gy = g - y,
+        l = Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["atan2"])(x, Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["abs"])(gy)) * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(gy);
+    if (gy * n < 0)
+      l -= _math_js__WEBPACK_IMPORTED_MODULE_0__["pi"] * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(x) * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(gy);
+    return [l / n, g - Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sign"])(n) * Object(_math_js__WEBPACK_IMPORTED_MODULE_0__["sqrt"])(x * x + gy * gy)];
   };
 
   return project;
@@ -10566,67 +10610,91 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _identity_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../identity.js */ "./node_modules/d3-geo/src/identity.js");
 /* harmony import */ var _transform_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../transform.js */ "./node_modules/d3-geo/src/transform.js");
 /* harmony import */ var _fit_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./fit.js */ "./node_modules/d3-geo/src/projection/fit.js");
+/* harmony import */ var _math_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../math.js */ "./node_modules/d3-geo/src/math.js");
 
 
 
 
 
-function scaleTranslate(kx, ky, tx, ty) {
-  return kx === 1 && ky === 1 && tx === 0 && ty === 0 ? _identity_js__WEBPACK_IMPORTED_MODULE_1__["default"] : Object(_transform_js__WEBPACK_IMPORTED_MODULE_2__["transformer"])({
-    point: function(x, y) {
-      this.stream.point(x * kx + tx, y * ky + ty);
-    }
-  });
-}
 
 /* harmony default export */ __webpack_exports__["default"] = (function() {
-  var k = 1, tx = 0, ty = 0, sx = 1, sy = 1, transform = _identity_js__WEBPACK_IMPORTED_MODULE_1__["default"], // scale, translate and reflect
+  var k = 1, tx = 0, ty = 0, sx = 1, sy = 1, // scale, translate and reflect
+      alpha = 0, ca, sa, // angle
       x0 = null, y0, x1, y1, // clip extent
+      kx = 1, ky = 1,
+      transform = Object(_transform_js__WEBPACK_IMPORTED_MODULE_2__["transformer"])({
+        point: function(x, y) {
+          var p = projection([x, y])
+          this.stream.point(p[0], p[1]);
+        }
+      }),
       postclip = _identity_js__WEBPACK_IMPORTED_MODULE_1__["default"],
       cache,
-      cacheStream,
-      projection;
+      cacheStream;
 
   function reset() {
+    kx = k * sx;
+    ky = k * sy;
     cache = cacheStream = null;
     return projection;
   }
 
-  return projection = {
-    stream: function(stream) {
-      return cache && cacheStream === stream ? cache : cache = transform(postclip(cacheStream = stream));
-    },
-    postclip: function(_) {
-      return arguments.length ? (postclip = _, x0 = y0 = x1 = y1 = null, reset()) : postclip;
-    },
-    clipExtent: function(_) {
-      return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, _identity_js__WEBPACK_IMPORTED_MODULE_1__["default"]) : Object(_clip_rectangle_js__WEBPACK_IMPORTED_MODULE_0__["default"])(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
-    },
-    scale: function(_) {
-      return arguments.length ? (transform = scaleTranslate((k = +_) * sx, k * sy, tx, ty), reset()) : k;
-    },
-    translate: function(_) {
-      return arguments.length ? (transform = scaleTranslate(k * sx, k * sy, tx = +_[0], ty = +_[1]), reset()) : [tx, ty];
-    },
-    reflectX: function(_) {
-      return arguments.length ? (transform = scaleTranslate(k * (sx = _ ? -1 : 1), k * sy, tx, ty), reset()) : sx < 0;
-    },
-    reflectY: function(_) {
-      return arguments.length ? (transform = scaleTranslate(k * sx, k * (sy = _ ? -1 : 1), tx, ty), reset()) : sy < 0;
-    },
-    fitExtent: function(extent, object) {
-      return Object(_fit_js__WEBPACK_IMPORTED_MODULE_3__["fitExtent"])(projection, extent, object);
-    },
-    fitSize: function(size, object) {
-      return Object(_fit_js__WEBPACK_IMPORTED_MODULE_3__["fitSize"])(projection, size, object);
-    },
-    fitWidth: function(width, object) {
-      return Object(_fit_js__WEBPACK_IMPORTED_MODULE_3__["fitWidth"])(projection, width, object);
-    },
-    fitHeight: function(height, object) {
-      return Object(_fit_js__WEBPACK_IMPORTED_MODULE_3__["fitHeight"])(projection, height, object);
+  function projection (p) {
+    var x = p[0] * kx, y = p[1] * ky;
+    if (alpha) {
+      var t = y * ca - x * sa;
+      x = x * ca + y * sa;
+      y = t;
+    }    
+    return [x + tx, y + ty];
+  }
+  projection.invert = function(p) {
+    var x = p[0] - tx, y = p[1] - ty;
+    if (alpha) {
+      var t = y * ca + x * sa;
+      x = x * ca - y * sa;
+      y = t;
     }
+    return [x / kx, y / ky];
   };
+  projection.stream = function(stream) {
+    return cache && cacheStream === stream ? cache : cache = transform(postclip(cacheStream = stream));
+  };
+  projection.postclip = function(_) {
+    return arguments.length ? (postclip = _, x0 = y0 = x1 = y1 = null, reset()) : postclip;
+  };
+  projection.clipExtent = function(_) {
+    return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, _identity_js__WEBPACK_IMPORTED_MODULE_1__["default"]) : Object(_clip_rectangle_js__WEBPACK_IMPORTED_MODULE_0__["default"])(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
+  };
+  projection.scale = function(_) {
+    return arguments.length ? (k = +_, reset()) : k;
+  };
+  projection.translate = function(_) {
+    return arguments.length ? (tx = +_[0], ty = +_[1], reset()) : [tx, ty];
+  }
+  projection.angle = function(_) {
+    return arguments.length ? (alpha = _ % 360 * _math_js__WEBPACK_IMPORTED_MODULE_4__["radians"], sa = Object(_math_js__WEBPACK_IMPORTED_MODULE_4__["sin"])(alpha), ca = Object(_math_js__WEBPACK_IMPORTED_MODULE_4__["cos"])(alpha), reset()) : alpha * _math_js__WEBPACK_IMPORTED_MODULE_4__["degrees"];
+  };
+  projection.reflectX = function(_) {
+    return arguments.length ? (sx = _ ? -1 : 1, reset()) : sx < 0;
+  };
+  projection.reflectY = function(_) {
+    return arguments.length ? (sy = _ ? -1 : 1, reset()) : sy < 0;
+  };
+  projection.fitExtent = function(extent, object) {
+    return Object(_fit_js__WEBPACK_IMPORTED_MODULE_3__["fitExtent"])(projection, extent, object);
+  };
+  projection.fitSize = function(size, object) {
+    return Object(_fit_js__WEBPACK_IMPORTED_MODULE_3__["fitSize"])(projection, size, object);
+  };
+  projection.fitWidth = function(width, object) {
+    return Object(_fit_js__WEBPACK_IMPORTED_MODULE_3__["fitWidth"])(projection, width, object);
+  };
+  projection.fitHeight = function(height, object) {
+    return Object(_fit_js__WEBPACK_IMPORTED_MODULE_3__["fitHeight"])(projection, height, object);
+  };
+
+  return projection;
 });
 
 
@@ -10679,17 +10747,18 @@ function transformRotate(rotate) {
   });
 }
 
-function scaleTranslate(k, dx, dy) {
+function scaleTranslate(k, dx, dy, sx, sy) {
   function transform(x, y) {
+    x *= sx; y *= sy;
     return [dx + k * x, dy - k * y];
   }
   transform.invert = function(x, y) {
-    return [(x - dx) / k, (dy - y) / k];
+    return [(x - dx) / k * sx, (dy - y) / k * sy];
   };
   return transform;
 }
 
-function scaleTranslateRotate(k, dx, dy, alpha) {
+function scaleTranslateRotate(k, dx, dy, sx, sy, alpha) {
   var cosAlpha = Object(_math_js__WEBPACK_IMPORTED_MODULE_5__["cos"])(alpha),
       sinAlpha = Object(_math_js__WEBPACK_IMPORTED_MODULE_5__["sin"])(alpha),
       a = cosAlpha * k,
@@ -10699,10 +10768,11 @@ function scaleTranslateRotate(k, dx, dy, alpha) {
       ci = (sinAlpha * dy - cosAlpha * dx) / k,
       fi = (sinAlpha * dx + cosAlpha * dy) / k;
   function transform(x, y) {
+    x *= sx; y *= sy;
     return [a * x - b * y + dx, dy - b * x - a * y];
   }
   transform.invert = function(x, y) {
-    return [ai * x - bi * y + ci, fi - bi * x - ai * y];
+    return [sx * (ai * x - bi * y + ci), sy * (fi - bi * x - ai * y)];
   };
   return transform;
 }
@@ -10717,7 +10787,9 @@ function projectionMutator(projectAt) {
       x = 480, y = 250, // translate
       lambda = 0, phi = 0, // center
       deltaLambda = 0, deltaPhi = 0, deltaGamma = 0, rotate, // pre-rotate
-      alpha = 0, // post-rotate
+      alpha = 0, // post-rotate angle
+      sx = 1, // reflectX
+      sy = 1, // reflectX
       theta = null, preclip = _clip_antimeridian_js__WEBPACK_IMPORTED_MODULE_0__["default"], // pre-clip angle
       x0 = null, y0, x1, y1, postclip = _identity_js__WEBPACK_IMPORTED_MODULE_4__["default"], // post-clip extent
       delta2 = 0.5, // precision
@@ -10776,6 +10848,14 @@ function projectionMutator(projectAt) {
     return arguments.length ? (alpha = _ % 360 * _math_js__WEBPACK_IMPORTED_MODULE_5__["radians"], recenter()) : alpha * _math_js__WEBPACK_IMPORTED_MODULE_5__["degrees"];
   };
 
+  projection.reflectX = function(_) {
+    return arguments.length ? (sx = _ ? -1 : 1, recenter()) : sx < 0;
+  };
+
+  projection.reflectY = function(_) {
+    return arguments.length ? (sy = _ ? -1 : 1, recenter()) : sy < 0;
+  };
+
   projection.precision = function(_) {
     return arguments.length ? (projectResample = Object(_resample_js__WEBPACK_IMPORTED_MODULE_9__["default"])(projectTransform, delta2 = _ * _), reset()) : Object(_math_js__WEBPACK_IMPORTED_MODULE_5__["sqrt"])(delta2);
   };
@@ -10797,8 +10877,8 @@ function projectionMutator(projectAt) {
   };
 
   function recenter() {
-    var center = scaleTranslateRotate(k, 0, 0, alpha).apply(null, project(lambda, phi)),
-        transform = (alpha ? scaleTranslateRotate : scaleTranslate)(k, x - center[0], y - center[1], alpha);
+    var center = scaleTranslateRotate(k, 0, 0, sx, sy, alpha).apply(null, project(lambda, phi)),
+        transform = (alpha ? scaleTranslateRotate : scaleTranslate)(k, x - center[0], y - center[1], sx, sy, alpha);
     rotate = Object(_rotation_js__WEBPACK_IMPORTED_MODULE_6__["rotateRadians"])(deltaLambda, deltaPhi, deltaGamma);
     projectTransform = Object(_compose_js__WEBPACK_IMPORTED_MODULE_3__["default"])(project, transform);
     projectRotateTransform = Object(_compose_js__WEBPACK_IMPORTED_MODULE_3__["default"])(rotate, projectTransform);
@@ -23543,6 +23623,8 @@ function formatLocale(locale) {
     "d": formatDayOfMonth,
     "e": formatDayOfMonth,
     "f": formatMicroseconds,
+    "g": formatYearISO,
+    "G": formatFullYearISO,
     "H": formatHour24,
     "I": formatHour12,
     "j": formatDayOfYear,
@@ -23576,6 +23658,8 @@ function formatLocale(locale) {
     "d": formatUTCDayOfMonth,
     "e": formatUTCDayOfMonth,
     "f": formatUTCMicroseconds,
+    "g": formatUTCYearISO,
+    "G": formatUTCFullYearISO,
     "H": formatUTCHour24,
     "I": formatUTCHour12,
     "j": formatUTCDayOfYear,
@@ -23609,6 +23693,8 @@ function formatLocale(locale) {
     "d": parseDayOfMonth,
     "e": parseDayOfMonth,
     "f": parseMicroseconds,
+    "g": parseYear,
+    "G": parseFullYear,
     "H": parseHour24,
     "I": parseHour24,
     "j": parseDayOfYear,
@@ -24030,9 +24116,13 @@ function formatWeekNumberSunday(d, p) {
   return pad(d3_time__WEBPACK_IMPORTED_MODULE_0__["timeSunday"].count(Object(d3_time__WEBPACK_IMPORTED_MODULE_0__["timeYear"])(d) - 1, d), p, 2);
 }
 
-function formatWeekNumberISO(d, p) {
+function dISO(d) {
   var day = d.getDay();
-  d = (day >= 4 || day === 0) ? Object(d3_time__WEBPACK_IMPORTED_MODULE_0__["timeThursday"])(d) : d3_time__WEBPACK_IMPORTED_MODULE_0__["timeThursday"].ceil(d);
+  return (day >= 4 || day === 0) ? Object(d3_time__WEBPACK_IMPORTED_MODULE_0__["timeThursday"])(d) : d3_time__WEBPACK_IMPORTED_MODULE_0__["timeThursday"].ceil(d);
+}
+
+function formatWeekNumberISO(d, p) {
+  d = dISO(d);
   return pad(d3_time__WEBPACK_IMPORTED_MODULE_0__["timeThursday"].count(Object(d3_time__WEBPACK_IMPORTED_MODULE_0__["timeYear"])(d), d) + (Object(d3_time__WEBPACK_IMPORTED_MODULE_0__["timeYear"])(d).getDay() === 4), p, 2);
 }
 
@@ -24048,7 +24138,18 @@ function formatYear(d, p) {
   return pad(d.getFullYear() % 100, p, 2);
 }
 
+function formatYearISO(d, p) {
+  d = dISO(d);
+  return pad(d.getFullYear() % 100, p, 2);
+}
+
 function formatFullYear(d, p) {
+  return pad(d.getFullYear() % 10000, p, 4);
+}
+
+function formatFullYearISO(d, p) {
+  var day = d.getDay();
+  d = (day >= 4 || day === 0) ? Object(d3_time__WEBPACK_IMPORTED_MODULE_0__["timeThursday"])(d) : d3_time__WEBPACK_IMPORTED_MODULE_0__["timeThursday"].ceil(d);
   return pad(d.getFullYear() % 10000, p, 4);
 }
 
@@ -24104,9 +24205,13 @@ function formatUTCWeekNumberSunday(d, p) {
   return pad(d3_time__WEBPACK_IMPORTED_MODULE_0__["utcSunday"].count(Object(d3_time__WEBPACK_IMPORTED_MODULE_0__["utcYear"])(d) - 1, d), p, 2);
 }
 
-function formatUTCWeekNumberISO(d, p) {
+function UTCdISO(d) {
   var day = d.getUTCDay();
-  d = (day >= 4 || day === 0) ? Object(d3_time__WEBPACK_IMPORTED_MODULE_0__["utcThursday"])(d) : d3_time__WEBPACK_IMPORTED_MODULE_0__["utcThursday"].ceil(d);
+  return (day >= 4 || day === 0) ? Object(d3_time__WEBPACK_IMPORTED_MODULE_0__["utcThursday"])(d) : d3_time__WEBPACK_IMPORTED_MODULE_0__["utcThursday"].ceil(d);
+}
+
+function formatUTCWeekNumberISO(d, p) {
+  d = UTCdISO(d);
   return pad(d3_time__WEBPACK_IMPORTED_MODULE_0__["utcThursday"].count(Object(d3_time__WEBPACK_IMPORTED_MODULE_0__["utcYear"])(d), d) + (Object(d3_time__WEBPACK_IMPORTED_MODULE_0__["utcYear"])(d).getUTCDay() === 4), p, 2);
 }
 
@@ -24122,7 +24227,18 @@ function formatUTCYear(d, p) {
   return pad(d.getUTCFullYear() % 100, p, 2);
 }
 
+function formatUTCYearISO(d, p) {
+  d = UTCdISO(d);
+  return pad(d.getUTCFullYear() % 100, p, 2);
+}
+
 function formatUTCFullYear(d, p) {
+  return pad(d.getUTCFullYear() % 10000, p, 4);
+}
+
+function formatUTCFullYearISO(d, p) {
+  var day = d.getUTCDay();
+  d = (day >= 4 || day === 0) ? Object(d3_time__WEBPACK_IMPORTED_MODULE_0__["utcThursday"])(d) : d3_time__WEBPACK_IMPORTED_MODULE_0__["utcThursday"].ceil(d);
   return pad(d.getUTCFullYear() % 10000, p, 4);
 }
 
@@ -28339,7 +28455,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "devDependencies", function() { return devDependencies; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "dependencies", function() { return dependencies; });
 var name = "d3";
-var version = "5.15.0";
+var version = "5.16.0";
 var description = "Data-Driven Documents";
 var keywords = ["dom","visualization","svg","animation","canvas"];
 var homepage = "https://d3js.org";
@@ -30304,7 +30420,7 @@ function addHtmlLabel(root, node) {
   var client = div.node().getBoundingClientRect();
   fo
     .attr("width", client.width)
-    .attr("height", client.height);
+    .attr("height", client.height); 
 
   return fo;
 }
@@ -34178,32 +34294,1373 @@ module.exports = "0.8.5";
 
 /***/ }),
 
-/***/ "./node_modules/entity-decode/browser.js":
+/***/ "./node_modules/dompurify/dist/purify.js":
 /*!***********************************************!*\
-  !*** ./node_modules/entity-decode/browser.js ***!
+  !*** ./node_modules/dompurify/dist/purify.js ***!
   \***********************************************/
-/*! exports provided: default */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return decode; });
-/**
- * @see https://github.com/vuejs/vue/commit/a855dd0564a657a73b7249469490d39817f27cf7#diff-c0a2623ea5896a83e3b630f236b47b52
- * @see https://stackoverflow.com/a/13091266/4936667
- */
+/*! @license DOMPurify 2.3.0 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/2.3.0/LICENSE */
 
-var decoder;
+(function (global, factory) {
+   true ? module.exports = factory() :
+  undefined;
+}(this, function () { 'use strict';
 
-function decode(html) {
-    decoder = decoder || document.createElement('div');
-    // Escape HTML before decoding for HTML Entities
-    html = escape(html).replace(/%26/g,'&').replace(/%23/g,'#').replace(/%3B/g,';');
-    // decoding
-    decoder.innerHTML = html;
+  function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-    return unescape(decoder.textContent);
-}
+  var hasOwnProperty = Object.hasOwnProperty,
+      setPrototypeOf = Object.setPrototypeOf,
+      isFrozen = Object.isFrozen,
+      getPrototypeOf = Object.getPrototypeOf,
+      getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
+  var freeze = Object.freeze,
+      seal = Object.seal,
+      create = Object.create; // eslint-disable-line import/no-mutable-exports
+
+  var _ref = typeof Reflect !== 'undefined' && Reflect,
+      apply = _ref.apply,
+      construct = _ref.construct;
+
+  if (!apply) {
+    apply = function apply(fun, thisValue, args) {
+      return fun.apply(thisValue, args);
+    };
+  }
+
+  if (!freeze) {
+    freeze = function freeze(x) {
+      return x;
+    };
+  }
+
+  if (!seal) {
+    seal = function seal(x) {
+      return x;
+    };
+  }
+
+  if (!construct) {
+    construct = function construct(Func, args) {
+      return new (Function.prototype.bind.apply(Func, [null].concat(_toConsumableArray(args))))();
+    };
+  }
+
+  var arrayForEach = unapply(Array.prototype.forEach);
+  var arrayPop = unapply(Array.prototype.pop);
+  var arrayPush = unapply(Array.prototype.push);
+
+  var stringToLowerCase = unapply(String.prototype.toLowerCase);
+  var stringMatch = unapply(String.prototype.match);
+  var stringReplace = unapply(String.prototype.replace);
+  var stringIndexOf = unapply(String.prototype.indexOf);
+  var stringTrim = unapply(String.prototype.trim);
+
+  var regExpTest = unapply(RegExp.prototype.test);
+
+  var typeErrorCreate = unconstruct(TypeError);
+
+  function unapply(func) {
+    return function (thisArg) {
+      for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+        args[_key - 1] = arguments[_key];
+      }
+
+      return apply(func, thisArg, args);
+    };
+  }
+
+  function unconstruct(func) {
+    return function () {
+      for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+        args[_key2] = arguments[_key2];
+      }
+
+      return construct(func, args);
+    };
+  }
+
+  /* Add properties to a lookup table */
+  function addToSet(set, array) {
+    if (setPrototypeOf) {
+      // Make 'in' and truthy checks like Boolean(set.constructor)
+      // independent of any properties defined on Object.prototype.
+      // Prevent prototype setters from intercepting set as a this value.
+      setPrototypeOf(set, null);
+    }
+
+    var l = array.length;
+    while (l--) {
+      var element = array[l];
+      if (typeof element === 'string') {
+        var lcElement = stringToLowerCase(element);
+        if (lcElement !== element) {
+          // Config presets (e.g. tags.js, attrs.js) are immutable.
+          if (!isFrozen(array)) {
+            array[l] = lcElement;
+          }
+
+          element = lcElement;
+        }
+      }
+
+      set[element] = true;
+    }
+
+    return set;
+  }
+
+  /* Shallow clone an object */
+  function clone(object) {
+    var newObject = create(null);
+
+    var property = void 0;
+    for (property in object) {
+      if (apply(hasOwnProperty, object, [property])) {
+        newObject[property] = object[property];
+      }
+    }
+
+    return newObject;
+  }
+
+  /* IE10 doesn't support __lookupGetter__ so lets'
+   * simulate it. It also automatically checks
+   * if the prop is function or getter and behaves
+   * accordingly. */
+  function lookupGetter(object, prop) {
+    while (object !== null) {
+      var desc = getOwnPropertyDescriptor(object, prop);
+      if (desc) {
+        if (desc.get) {
+          return unapply(desc.get);
+        }
+
+        if (typeof desc.value === 'function') {
+          return unapply(desc.value);
+        }
+      }
+
+      object = getPrototypeOf(object);
+    }
+
+    function fallbackValue(element) {
+      console.warn('fallback value for', element);
+      return null;
+    }
+
+    return fallbackValue;
+  }
+
+  var html = freeze(['a', 'abbr', 'acronym', 'address', 'area', 'article', 'aside', 'audio', 'b', 'bdi', 'bdo', 'big', 'blink', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'center', 'cite', 'code', 'col', 'colgroup', 'content', 'data', 'datalist', 'dd', 'decorator', 'del', 'details', 'dfn', 'dialog', 'dir', 'div', 'dl', 'dt', 'element', 'em', 'fieldset', 'figcaption', 'figure', 'font', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'img', 'input', 'ins', 'kbd', 'label', 'legend', 'li', 'main', 'map', 'mark', 'marquee', 'menu', 'menuitem', 'meter', 'nav', 'nobr', 'ol', 'optgroup', 'option', 'output', 'p', 'picture', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'section', 'select', 'shadow', 'small', 'source', 'spacer', 'span', 'strike', 'strong', 'style', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'tr', 'track', 'tt', 'u', 'ul', 'var', 'video', 'wbr']);
+
+  // SVG
+  var svg = freeze(['svg', 'a', 'altglyph', 'altglyphdef', 'altglyphitem', 'animatecolor', 'animatemotion', 'animatetransform', 'circle', 'clippath', 'defs', 'desc', 'ellipse', 'filter', 'font', 'g', 'glyph', 'glyphref', 'hkern', 'image', 'line', 'lineargradient', 'marker', 'mask', 'metadata', 'mpath', 'path', 'pattern', 'polygon', 'polyline', 'radialgradient', 'rect', 'stop', 'style', 'switch', 'symbol', 'text', 'textpath', 'title', 'tref', 'tspan', 'view', 'vkern']);
+
+  var svgFilters = freeze(['feBlend', 'feColorMatrix', 'feComponentTransfer', 'feComposite', 'feConvolveMatrix', 'feDiffuseLighting', 'feDisplacementMap', 'feDistantLight', 'feFlood', 'feFuncA', 'feFuncB', 'feFuncG', 'feFuncR', 'feGaussianBlur', 'feMerge', 'feMergeNode', 'feMorphology', 'feOffset', 'fePointLight', 'feSpecularLighting', 'feSpotLight', 'feTile', 'feTurbulence']);
+
+  // List of SVG elements that are disallowed by default.
+  // We still need to know them so that we can do namespace
+  // checks properly in case one wants to add them to
+  // allow-list.
+  var svgDisallowed = freeze(['animate', 'color-profile', 'cursor', 'discard', 'fedropshadow', 'feimage', 'font-face', 'font-face-format', 'font-face-name', 'font-face-src', 'font-face-uri', 'foreignobject', 'hatch', 'hatchpath', 'mesh', 'meshgradient', 'meshpatch', 'meshrow', 'missing-glyph', 'script', 'set', 'solidcolor', 'unknown', 'use']);
+
+  var mathMl = freeze(['math', 'menclose', 'merror', 'mfenced', 'mfrac', 'mglyph', 'mi', 'mlabeledtr', 'mmultiscripts', 'mn', 'mo', 'mover', 'mpadded', 'mphantom', 'mroot', 'mrow', 'ms', 'mspace', 'msqrt', 'mstyle', 'msub', 'msup', 'msubsup', 'mtable', 'mtd', 'mtext', 'mtr', 'munder', 'munderover']);
+
+  // Similarly to SVG, we want to know all MathML elements,
+  // even those that we disallow by default.
+  var mathMlDisallowed = freeze(['maction', 'maligngroup', 'malignmark', 'mlongdiv', 'mscarries', 'mscarry', 'msgroup', 'mstack', 'msline', 'msrow', 'semantics', 'annotation', 'annotation-xml', 'mprescripts', 'none']);
+
+  var text = freeze(['#text']);
+
+  var html$1 = freeze(['accept', 'action', 'align', 'alt', 'autocapitalize', 'autocomplete', 'autopictureinpicture', 'autoplay', 'background', 'bgcolor', 'border', 'capture', 'cellpadding', 'cellspacing', 'checked', 'cite', 'class', 'clear', 'color', 'cols', 'colspan', 'controls', 'controlslist', 'coords', 'crossorigin', 'datetime', 'decoding', 'default', 'dir', 'disabled', 'disablepictureinpicture', 'disableremoteplayback', 'download', 'draggable', 'enctype', 'enterkeyhint', 'face', 'for', 'headers', 'height', 'hidden', 'high', 'href', 'hreflang', 'id', 'inputmode', 'integrity', 'ismap', 'kind', 'label', 'lang', 'list', 'loading', 'loop', 'low', 'max', 'maxlength', 'media', 'method', 'min', 'minlength', 'multiple', 'muted', 'name', 'noshade', 'novalidate', 'nowrap', 'open', 'optimum', 'pattern', 'placeholder', 'playsinline', 'poster', 'preload', 'pubdate', 'radiogroup', 'readonly', 'rel', 'required', 'rev', 'reversed', 'role', 'rows', 'rowspan', 'spellcheck', 'scope', 'selected', 'shape', 'size', 'sizes', 'span', 'srclang', 'start', 'src', 'srcset', 'step', 'style', 'summary', 'tabindex', 'title', 'translate', 'type', 'usemap', 'valign', 'value', 'width', 'xmlns', 'slot']);
+
+  var svg$1 = freeze(['accent-height', 'accumulate', 'additive', 'alignment-baseline', 'ascent', 'attributename', 'attributetype', 'azimuth', 'basefrequency', 'baseline-shift', 'begin', 'bias', 'by', 'class', 'clip', 'clippathunits', 'clip-path', 'clip-rule', 'color', 'color-interpolation', 'color-interpolation-filters', 'color-profile', 'color-rendering', 'cx', 'cy', 'd', 'dx', 'dy', 'diffuseconstant', 'direction', 'display', 'divisor', 'dur', 'edgemode', 'elevation', 'end', 'fill', 'fill-opacity', 'fill-rule', 'filter', 'filterunits', 'flood-color', 'flood-opacity', 'font-family', 'font-size', 'font-size-adjust', 'font-stretch', 'font-style', 'font-variant', 'font-weight', 'fx', 'fy', 'g1', 'g2', 'glyph-name', 'glyphref', 'gradientunits', 'gradienttransform', 'height', 'href', 'id', 'image-rendering', 'in', 'in2', 'k', 'k1', 'k2', 'k3', 'k4', 'kerning', 'keypoints', 'keysplines', 'keytimes', 'lang', 'lengthadjust', 'letter-spacing', 'kernelmatrix', 'kernelunitlength', 'lighting-color', 'local', 'marker-end', 'marker-mid', 'marker-start', 'markerheight', 'markerunits', 'markerwidth', 'maskcontentunits', 'maskunits', 'max', 'mask', 'media', 'method', 'mode', 'min', 'name', 'numoctaves', 'offset', 'operator', 'opacity', 'order', 'orient', 'orientation', 'origin', 'overflow', 'paint-order', 'path', 'pathlength', 'patterncontentunits', 'patterntransform', 'patternunits', 'points', 'preservealpha', 'preserveaspectratio', 'primitiveunits', 'r', 'rx', 'ry', 'radius', 'refx', 'refy', 'repeatcount', 'repeatdur', 'restart', 'result', 'rotate', 'scale', 'seed', 'shape-rendering', 'specularconstant', 'specularexponent', 'spreadmethod', 'startoffset', 'stddeviation', 'stitchtiles', 'stop-color', 'stop-opacity', 'stroke-dasharray', 'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit', 'stroke-opacity', 'stroke', 'stroke-width', 'style', 'surfacescale', 'systemlanguage', 'tabindex', 'targetx', 'targety', 'transform', 'text-anchor', 'text-decoration', 'text-rendering', 'textlength', 'type', 'u1', 'u2', 'unicode', 'values', 'viewbox', 'visibility', 'version', 'vert-adv-y', 'vert-origin-x', 'vert-origin-y', 'width', 'word-spacing', 'wrap', 'writing-mode', 'xchannelselector', 'ychannelselector', 'x', 'x1', 'x2', 'xmlns', 'y', 'y1', 'y2', 'z', 'zoomandpan']);
+
+  var mathMl$1 = freeze(['accent', 'accentunder', 'align', 'bevelled', 'close', 'columnsalign', 'columnlines', 'columnspan', 'denomalign', 'depth', 'dir', 'display', 'displaystyle', 'encoding', 'fence', 'frame', 'height', 'href', 'id', 'largeop', 'length', 'linethickness', 'lspace', 'lquote', 'mathbackground', 'mathcolor', 'mathsize', 'mathvariant', 'maxsize', 'minsize', 'movablelimits', 'notation', 'numalign', 'open', 'rowalign', 'rowlines', 'rowspacing', 'rowspan', 'rspace', 'rquote', 'scriptlevel', 'scriptminsize', 'scriptsizemultiplier', 'selection', 'separator', 'separators', 'stretchy', 'subscriptshift', 'supscriptshift', 'symmetric', 'voffset', 'width', 'xmlns']);
+
+  var xml = freeze(['xlink:href', 'xml:id', 'xlink:title', 'xml:space', 'xmlns:xlink']);
+
+  // eslint-disable-next-line unicorn/better-regex
+  var MUSTACHE_EXPR = seal(/\{\{[\s\S]*|[\s\S]*\}\}/gm); // Specify template detection regex for SAFE_FOR_TEMPLATES mode
+  var ERB_EXPR = seal(/<%[\s\S]*|[\s\S]*%>/gm);
+  var DATA_ATTR = seal(/^data-[\-\w.\u00B7-\uFFFF]/); // eslint-disable-line no-useless-escape
+  var ARIA_ATTR = seal(/^aria-[\-\w]+$/); // eslint-disable-line no-useless-escape
+  var IS_ALLOWED_URI = seal(/^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i // eslint-disable-line no-useless-escape
+  );
+  var IS_SCRIPT_OR_DATA = seal(/^(?:\w+script|data):/i);
+  var ATTR_WHITESPACE = seal(/[\u0000-\u0020\u00A0\u1680\u180E\u2000-\u2029\u205F\u3000]/g // eslint-disable-line no-control-regex
+  );
+
+  var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+  function _toConsumableArray$1(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+  var getGlobal = function getGlobal() {
+    return typeof window === 'undefined' ? null : window;
+  };
+
+  /**
+   * Creates a no-op policy for internal use only.
+   * Don't export this function outside this module!
+   * @param {?TrustedTypePolicyFactory} trustedTypes The policy factory.
+   * @param {Document} document The document object (to determine policy name suffix)
+   * @return {?TrustedTypePolicy} The policy created (or null, if Trusted Types
+   * are not supported).
+   */
+  var _createTrustedTypesPolicy = function _createTrustedTypesPolicy(trustedTypes, document) {
+    if ((typeof trustedTypes === 'undefined' ? 'undefined' : _typeof(trustedTypes)) !== 'object' || typeof trustedTypes.createPolicy !== 'function') {
+      return null;
+    }
+
+    // Allow the callers to control the unique policy name
+    // by adding a data-tt-policy-suffix to the script element with the DOMPurify.
+    // Policy creation with duplicate names throws in Trusted Types.
+    var suffix = null;
+    var ATTR_NAME = 'data-tt-policy-suffix';
+    if (document.currentScript && document.currentScript.hasAttribute(ATTR_NAME)) {
+      suffix = document.currentScript.getAttribute(ATTR_NAME);
+    }
+
+    var policyName = 'dompurify' + (suffix ? '#' + suffix : '');
+
+    try {
+      return trustedTypes.createPolicy(policyName, {
+        createHTML: function createHTML(html$$1) {
+          return html$$1;
+        }
+      });
+    } catch (_) {
+      // Policy creation failed (most likely another DOMPurify script has
+      // already run). Skip creating the policy, as this will only cause errors
+      // if TT are enforced.
+      console.warn('TrustedTypes policy ' + policyName + ' could not be created.');
+      return null;
+    }
+  };
+
+  function createDOMPurify() {
+    var window = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : getGlobal();
+
+    var DOMPurify = function DOMPurify(root) {
+      return createDOMPurify(root);
+    };
+
+    /**
+     * Version label, exposed for easier checks
+     * if DOMPurify is up to date or not
+     */
+    DOMPurify.version = '2.3.0';
+
+    /**
+     * Array of elements that DOMPurify removed during sanitation.
+     * Empty if nothing was removed.
+     */
+    DOMPurify.removed = [];
+
+    if (!window || !window.document || window.document.nodeType !== 9) {
+      // Not running in a browser, provide a factory function
+      // so that you can pass your own Window
+      DOMPurify.isSupported = false;
+
+      return DOMPurify;
+    }
+
+    var originalDocument = window.document;
+
+    var document = window.document;
+    var DocumentFragment = window.DocumentFragment,
+        HTMLTemplateElement = window.HTMLTemplateElement,
+        Node = window.Node,
+        Element = window.Element,
+        NodeFilter = window.NodeFilter,
+        _window$NamedNodeMap = window.NamedNodeMap,
+        NamedNodeMap = _window$NamedNodeMap === undefined ? window.NamedNodeMap || window.MozNamedAttrMap : _window$NamedNodeMap,
+        Text = window.Text,
+        Comment = window.Comment,
+        DOMParser = window.DOMParser,
+        trustedTypes = window.trustedTypes;
+
+
+    var ElementPrototype = Element.prototype;
+
+    var cloneNode = lookupGetter(ElementPrototype, 'cloneNode');
+    var getNextSibling = lookupGetter(ElementPrototype, 'nextSibling');
+    var getChildNodes = lookupGetter(ElementPrototype, 'childNodes');
+    var getParentNode = lookupGetter(ElementPrototype, 'parentNode');
+
+    // As per issue #47, the web-components registry is inherited by a
+    // new document created via createHTMLDocument. As per the spec
+    // (http://w3c.github.io/webcomponents/spec/custom/#creating-and-passing-registries)
+    // a new empty registry is used when creating a template contents owner
+    // document, so we use that as our parent document to ensure nothing
+    // is inherited.
+    if (typeof HTMLTemplateElement === 'function') {
+      var template = document.createElement('template');
+      if (template.content && template.content.ownerDocument) {
+        document = template.content.ownerDocument;
+      }
+    }
+
+    var trustedTypesPolicy = _createTrustedTypesPolicy(trustedTypes, originalDocument);
+    var emptyHTML = trustedTypesPolicy && RETURN_TRUSTED_TYPE ? trustedTypesPolicy.createHTML('') : '';
+
+    var _document = document,
+        implementation = _document.implementation,
+        createNodeIterator = _document.createNodeIterator,
+        createDocumentFragment = _document.createDocumentFragment,
+        getElementsByTagName = _document.getElementsByTagName;
+    var importNode = originalDocument.importNode;
+
+
+    var documentMode = {};
+    try {
+      documentMode = clone(document).documentMode ? document.documentMode : {};
+    } catch (_) {}
+
+    var hooks = {};
+
+    /**
+     * Expose whether this browser supports running the full DOMPurify.
+     */
+    DOMPurify.isSupported = typeof getParentNode === 'function' && implementation && typeof implementation.createHTMLDocument !== 'undefined' && documentMode !== 9;
+
+    var MUSTACHE_EXPR$$1 = MUSTACHE_EXPR,
+        ERB_EXPR$$1 = ERB_EXPR,
+        DATA_ATTR$$1 = DATA_ATTR,
+        ARIA_ATTR$$1 = ARIA_ATTR,
+        IS_SCRIPT_OR_DATA$$1 = IS_SCRIPT_OR_DATA,
+        ATTR_WHITESPACE$$1 = ATTR_WHITESPACE;
+    var IS_ALLOWED_URI$$1 = IS_ALLOWED_URI;
+
+    /**
+     * We consider the elements and attributes below to be safe. Ideally
+     * don't add any new ones but feel free to remove unwanted ones.
+     */
+
+    /* allowed element names */
+
+    var ALLOWED_TAGS = null;
+    var DEFAULT_ALLOWED_TAGS = addToSet({}, [].concat(_toConsumableArray$1(html), _toConsumableArray$1(svg), _toConsumableArray$1(svgFilters), _toConsumableArray$1(mathMl), _toConsumableArray$1(text)));
+
+    /* Allowed attribute names */
+    var ALLOWED_ATTR = null;
+    var DEFAULT_ALLOWED_ATTR = addToSet({}, [].concat(_toConsumableArray$1(html$1), _toConsumableArray$1(svg$1), _toConsumableArray$1(mathMl$1), _toConsumableArray$1(xml)));
+
+    /* Explicitly forbidden tags (overrides ALLOWED_TAGS/ADD_TAGS) */
+    var FORBID_TAGS = null;
+
+    /* Explicitly forbidden attributes (overrides ALLOWED_ATTR/ADD_ATTR) */
+    var FORBID_ATTR = null;
+
+    /* Decide if ARIA attributes are okay */
+    var ALLOW_ARIA_ATTR = true;
+
+    /* Decide if custom data attributes are okay */
+    var ALLOW_DATA_ATTR = true;
+
+    /* Decide if unknown protocols are okay */
+    var ALLOW_UNKNOWN_PROTOCOLS = false;
+
+    /* Output should be safe for common template engines.
+     * This means, DOMPurify removes data attributes, mustaches and ERB
+     */
+    var SAFE_FOR_TEMPLATES = false;
+
+    /* Decide if document with <html>... should be returned */
+    var WHOLE_DOCUMENT = false;
+
+    /* Track whether config is already set on this instance of DOMPurify. */
+    var SET_CONFIG = false;
+
+    /* Decide if all elements (e.g. style, script) must be children of
+     * document.body. By default, browsers might move them to document.head */
+    var FORCE_BODY = false;
+
+    /* Decide if a DOM `HTMLBodyElement` should be returned, instead of a html
+     * string (or a TrustedHTML object if Trusted Types are supported).
+     * If `WHOLE_DOCUMENT` is enabled a `HTMLHtmlElement` will be returned instead
+     */
+    var RETURN_DOM = false;
+
+    /* Decide if a DOM `DocumentFragment` should be returned, instead of a html
+     * string  (or a TrustedHTML object if Trusted Types are supported) */
+    var RETURN_DOM_FRAGMENT = false;
+
+    /* If `RETURN_DOM` or `RETURN_DOM_FRAGMENT` is enabled, decide if the returned DOM
+     * `Node` is imported into the current `Document`. If this flag is not enabled the
+     * `Node` will belong (its ownerDocument) to a fresh `HTMLDocument`, created by
+     * DOMPurify.
+     *
+     * This defaults to `true` starting DOMPurify 2.2.0. Note that setting it to `false`
+     * might cause XSS from attacks hidden in closed shadowroots in case the browser
+     * supports Declarative Shadow: DOM https://web.dev/declarative-shadow-dom/
+     */
+    var RETURN_DOM_IMPORT = true;
+
+    /* Try to return a Trusted Type object instead of a string, return a string in
+     * case Trusted Types are not supported  */
+    var RETURN_TRUSTED_TYPE = false;
+
+    /* Output should be free from DOM clobbering attacks? */
+    var SANITIZE_DOM = true;
+
+    /* Keep element content when removing element? */
+    var KEEP_CONTENT = true;
+
+    /* If a `Node` is passed to sanitize(), then performs sanitization in-place instead
+     * of importing it into a new Document and returning a sanitized copy */
+    var IN_PLACE = false;
+
+    /* Allow usage of profiles like html, svg and mathMl */
+    var USE_PROFILES = {};
+
+    /* Tags to ignore content of when KEEP_CONTENT is true */
+    var FORBID_CONTENTS = addToSet({}, ['annotation-xml', 'audio', 'colgroup', 'desc', 'foreignobject', 'head', 'iframe', 'math', 'mi', 'mn', 'mo', 'ms', 'mtext', 'noembed', 'noframes', 'noscript', 'plaintext', 'script', 'style', 'svg', 'template', 'thead', 'title', 'video', 'xmp']);
+
+    /* Tags that are safe for data: URIs */
+    var DATA_URI_TAGS = null;
+    var DEFAULT_DATA_URI_TAGS = addToSet({}, ['audio', 'video', 'img', 'source', 'image', 'track']);
+
+    /* Attributes safe for values like "javascript:" */
+    var URI_SAFE_ATTRIBUTES = null;
+    var DEFAULT_URI_SAFE_ATTRIBUTES = addToSet({}, ['alt', 'class', 'for', 'id', 'label', 'name', 'pattern', 'placeholder', 'summary', 'title', 'value', 'style', 'xmlns']);
+
+    var MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML';
+    var SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+    var HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
+    /* Document namespace */
+    var NAMESPACE = HTML_NAMESPACE;
+    var IS_EMPTY_INPUT = false;
+
+    /* Keep a reference to config to pass to hooks */
+    var CONFIG = null;
+
+    /* Ideally, do not touch anything below this line */
+    /* ______________________________________________ */
+
+    var formElement = document.createElement('form');
+
+    /**
+     * _parseConfig
+     *
+     * @param  {Object} cfg optional config literal
+     */
+    // eslint-disable-next-line complexity
+    var _parseConfig = function _parseConfig(cfg) {
+      if (CONFIG && CONFIG === cfg) {
+        return;
+      }
+
+      /* Shield configuration object from tampering */
+      if (!cfg || (typeof cfg === 'undefined' ? 'undefined' : _typeof(cfg)) !== 'object') {
+        cfg = {};
+      }
+
+      /* Shield configuration object from prototype pollution */
+      cfg = clone(cfg);
+
+      /* Set configuration parameters */
+      ALLOWED_TAGS = 'ALLOWED_TAGS' in cfg ? addToSet({}, cfg.ALLOWED_TAGS) : DEFAULT_ALLOWED_TAGS;
+      ALLOWED_ATTR = 'ALLOWED_ATTR' in cfg ? addToSet({}, cfg.ALLOWED_ATTR) : DEFAULT_ALLOWED_ATTR;
+      URI_SAFE_ATTRIBUTES = 'ADD_URI_SAFE_ATTR' in cfg ? addToSet(clone(DEFAULT_URI_SAFE_ATTRIBUTES), cfg.ADD_URI_SAFE_ATTR) : DEFAULT_URI_SAFE_ATTRIBUTES;
+      DATA_URI_TAGS = 'ADD_DATA_URI_TAGS' in cfg ? addToSet(clone(DEFAULT_DATA_URI_TAGS), cfg.ADD_DATA_URI_TAGS) : DEFAULT_DATA_URI_TAGS;
+      FORBID_TAGS = 'FORBID_TAGS' in cfg ? addToSet({}, cfg.FORBID_TAGS) : {};
+      FORBID_ATTR = 'FORBID_ATTR' in cfg ? addToSet({}, cfg.FORBID_ATTR) : {};
+      USE_PROFILES = 'USE_PROFILES' in cfg ? cfg.USE_PROFILES : false;
+      ALLOW_ARIA_ATTR = cfg.ALLOW_ARIA_ATTR !== false; // Default true
+      ALLOW_DATA_ATTR = cfg.ALLOW_DATA_ATTR !== false; // Default true
+      ALLOW_UNKNOWN_PROTOCOLS = cfg.ALLOW_UNKNOWN_PROTOCOLS || false; // Default false
+      SAFE_FOR_TEMPLATES = cfg.SAFE_FOR_TEMPLATES || false; // Default false
+      WHOLE_DOCUMENT = cfg.WHOLE_DOCUMENT || false; // Default false
+      RETURN_DOM = cfg.RETURN_DOM || false; // Default false
+      RETURN_DOM_FRAGMENT = cfg.RETURN_DOM_FRAGMENT || false; // Default false
+      RETURN_DOM_IMPORT = cfg.RETURN_DOM_IMPORT !== false; // Default true
+      RETURN_TRUSTED_TYPE = cfg.RETURN_TRUSTED_TYPE || false; // Default false
+      FORCE_BODY = cfg.FORCE_BODY || false; // Default false
+      SANITIZE_DOM = cfg.SANITIZE_DOM !== false; // Default true
+      KEEP_CONTENT = cfg.KEEP_CONTENT !== false; // Default true
+      IN_PLACE = cfg.IN_PLACE || false; // Default false
+      IS_ALLOWED_URI$$1 = cfg.ALLOWED_URI_REGEXP || IS_ALLOWED_URI$$1;
+      NAMESPACE = cfg.NAMESPACE || HTML_NAMESPACE;
+      if (SAFE_FOR_TEMPLATES) {
+        ALLOW_DATA_ATTR = false;
+      }
+
+      if (RETURN_DOM_FRAGMENT) {
+        RETURN_DOM = true;
+      }
+
+      /* Parse profile info */
+      if (USE_PROFILES) {
+        ALLOWED_TAGS = addToSet({}, [].concat(_toConsumableArray$1(text)));
+        ALLOWED_ATTR = [];
+        if (USE_PROFILES.html === true) {
+          addToSet(ALLOWED_TAGS, html);
+          addToSet(ALLOWED_ATTR, html$1);
+        }
+
+        if (USE_PROFILES.svg === true) {
+          addToSet(ALLOWED_TAGS, svg);
+          addToSet(ALLOWED_ATTR, svg$1);
+          addToSet(ALLOWED_ATTR, xml);
+        }
+
+        if (USE_PROFILES.svgFilters === true) {
+          addToSet(ALLOWED_TAGS, svgFilters);
+          addToSet(ALLOWED_ATTR, svg$1);
+          addToSet(ALLOWED_ATTR, xml);
+        }
+
+        if (USE_PROFILES.mathMl === true) {
+          addToSet(ALLOWED_TAGS, mathMl);
+          addToSet(ALLOWED_ATTR, mathMl$1);
+          addToSet(ALLOWED_ATTR, xml);
+        }
+      }
+
+      /* Merge configuration parameters */
+      if (cfg.ADD_TAGS) {
+        if (ALLOWED_TAGS === DEFAULT_ALLOWED_TAGS) {
+          ALLOWED_TAGS = clone(ALLOWED_TAGS);
+        }
+
+        addToSet(ALLOWED_TAGS, cfg.ADD_TAGS);
+      }
+
+      if (cfg.ADD_ATTR) {
+        if (ALLOWED_ATTR === DEFAULT_ALLOWED_ATTR) {
+          ALLOWED_ATTR = clone(ALLOWED_ATTR);
+        }
+
+        addToSet(ALLOWED_ATTR, cfg.ADD_ATTR);
+      }
+
+      if (cfg.ADD_URI_SAFE_ATTR) {
+        addToSet(URI_SAFE_ATTRIBUTES, cfg.ADD_URI_SAFE_ATTR);
+      }
+
+      /* Add #text in case KEEP_CONTENT is set to true */
+      if (KEEP_CONTENT) {
+        ALLOWED_TAGS['#text'] = true;
+      }
+
+      /* Add html, head and body to ALLOWED_TAGS in case WHOLE_DOCUMENT is true */
+      if (WHOLE_DOCUMENT) {
+        addToSet(ALLOWED_TAGS, ['html', 'head', 'body']);
+      }
+
+      /* Add tbody to ALLOWED_TAGS in case tables are permitted, see #286, #365 */
+      if (ALLOWED_TAGS.table) {
+        addToSet(ALLOWED_TAGS, ['tbody']);
+        delete FORBID_TAGS.tbody;
+      }
+
+      // Prevent further manipulation of configuration.
+      // Not available in IE8, Safari 5, etc.
+      if (freeze) {
+        freeze(cfg);
+      }
+
+      CONFIG = cfg;
+    };
+
+    var MATHML_TEXT_INTEGRATION_POINTS = addToSet({}, ['mi', 'mo', 'mn', 'ms', 'mtext']);
+
+    var HTML_INTEGRATION_POINTS = addToSet({}, ['foreignobject', 'desc', 'title', 'annotation-xml']);
+
+    /* Keep track of all possible SVG and MathML tags
+     * so that we can perform the namespace checks
+     * correctly. */
+    var ALL_SVG_TAGS = addToSet({}, svg);
+    addToSet(ALL_SVG_TAGS, svgFilters);
+    addToSet(ALL_SVG_TAGS, svgDisallowed);
+
+    var ALL_MATHML_TAGS = addToSet({}, mathMl);
+    addToSet(ALL_MATHML_TAGS, mathMlDisallowed);
+
+    /**
+     *
+     *
+     * @param  {Element} element a DOM element whose namespace is being checked
+     * @returns {boolean} Return false if the element has a
+     *  namespace that a spec-compliant parser would never
+     *  return. Return true otherwise.
+     */
+    var _checkValidNamespace = function _checkValidNamespace(element) {
+      var parent = getParentNode(element);
+
+      // In JSDOM, if we're inside shadow DOM, then parentNode
+      // can be null. We just simulate parent in this case.
+      if (!parent || !parent.tagName) {
+        parent = {
+          namespaceURI: HTML_NAMESPACE,
+          tagName: 'template'
+        };
+      }
+
+      var tagName = stringToLowerCase(element.tagName);
+      var parentTagName = stringToLowerCase(parent.tagName);
+
+      if (element.namespaceURI === SVG_NAMESPACE) {
+        // The only way to switch from HTML namespace to SVG
+        // is via <svg>. If it happens via any other tag, then
+        // it should be killed.
+        if (parent.namespaceURI === HTML_NAMESPACE) {
+          return tagName === 'svg';
+        }
+
+        // The only way to switch from MathML to SVG is via
+        // svg if parent is either <annotation-xml> or MathML
+        // text integration points.
+        if (parent.namespaceURI === MATHML_NAMESPACE) {
+          return tagName === 'svg' && (parentTagName === 'annotation-xml' || MATHML_TEXT_INTEGRATION_POINTS[parentTagName]);
+        }
+
+        // We only allow elements that are defined in SVG
+        // spec. All others are disallowed in SVG namespace.
+        return Boolean(ALL_SVG_TAGS[tagName]);
+      }
+
+      if (element.namespaceURI === MATHML_NAMESPACE) {
+        // The only way to switch from HTML namespace to MathML
+        // is via <math>. If it happens via any other tag, then
+        // it should be killed.
+        if (parent.namespaceURI === HTML_NAMESPACE) {
+          return tagName === 'math';
+        }
+
+        // The only way to switch from SVG to MathML is via
+        // <math> and HTML integration points
+        if (parent.namespaceURI === SVG_NAMESPACE) {
+          return tagName === 'math' && HTML_INTEGRATION_POINTS[parentTagName];
+        }
+
+        // We only allow elements that are defined in MathML
+        // spec. All others are disallowed in MathML namespace.
+        return Boolean(ALL_MATHML_TAGS[tagName]);
+      }
+
+      if (element.namespaceURI === HTML_NAMESPACE) {
+        // The only way to switch from SVG to HTML is via
+        // HTML integration points, and from MathML to HTML
+        // is via MathML text integration points
+        if (parent.namespaceURI === SVG_NAMESPACE && !HTML_INTEGRATION_POINTS[parentTagName]) {
+          return false;
+        }
+
+        if (parent.namespaceURI === MATHML_NAMESPACE && !MATHML_TEXT_INTEGRATION_POINTS[parentTagName]) {
+          return false;
+        }
+
+        // Certain elements are allowed in both SVG and HTML
+        // namespace. We need to specify them explicitly
+        // so that they don't get erronously deleted from
+        // HTML namespace.
+        var commonSvgAndHTMLElements = addToSet({}, ['title', 'style', 'font', 'a', 'script']);
+
+        // We disallow tags that are specific for MathML
+        // or SVG and should never appear in HTML namespace
+        return !ALL_MATHML_TAGS[tagName] && (commonSvgAndHTMLElements[tagName] || !ALL_SVG_TAGS[tagName]);
+      }
+
+      // The code should never reach this place (this means
+      // that the element somehow got namespace that is not
+      // HTML, SVG or MathML). Return false just in case.
+      return false;
+    };
+
+    /**
+     * _forceRemove
+     *
+     * @param  {Node} node a DOM node
+     */
+    var _forceRemove = function _forceRemove(node) {
+      arrayPush(DOMPurify.removed, { element: node });
+      try {
+        // eslint-disable-next-line unicorn/prefer-dom-node-remove
+        node.parentNode.removeChild(node);
+      } catch (_) {
+        try {
+          node.outerHTML = emptyHTML;
+        } catch (_) {
+          node.remove();
+        }
+      }
+    };
+
+    /**
+     * _removeAttribute
+     *
+     * @param  {String} name an Attribute name
+     * @param  {Node} node a DOM node
+     */
+    var _removeAttribute = function _removeAttribute(name, node) {
+      try {
+        arrayPush(DOMPurify.removed, {
+          attribute: node.getAttributeNode(name),
+          from: node
+        });
+      } catch (_) {
+        arrayPush(DOMPurify.removed, {
+          attribute: null,
+          from: node
+        });
+      }
+
+      node.removeAttribute(name);
+
+      // We void attribute values for unremovable "is"" attributes
+      if (name === 'is' && !ALLOWED_ATTR[name]) {
+        if (RETURN_DOM || RETURN_DOM_FRAGMENT) {
+          try {
+            _forceRemove(node);
+          } catch (_) {}
+        } else {
+          try {
+            node.setAttribute(name, '');
+          } catch (_) {}
+        }
+      }
+    };
+
+    /**
+     * _initDocument
+     *
+     * @param  {String} dirty a string of dirty markup
+     * @return {Document} a DOM, filled with the dirty markup
+     */
+    var _initDocument = function _initDocument(dirty) {
+      /* Create a HTML document */
+      var doc = void 0;
+      var leadingWhitespace = void 0;
+
+      if (FORCE_BODY) {
+        dirty = '<remove></remove>' + dirty;
+      } else {
+        /* If FORCE_BODY isn't used, leading whitespace needs to be preserved manually */
+        var matches = stringMatch(dirty, /^[\r\n\t ]+/);
+        leadingWhitespace = matches && matches[0];
+      }
+
+      var dirtyPayload = trustedTypesPolicy ? trustedTypesPolicy.createHTML(dirty) : dirty;
+      /*
+       * Use the DOMParser API by default, fallback later if needs be
+       * DOMParser not work for svg when has multiple root element.
+       */
+      if (NAMESPACE === HTML_NAMESPACE) {
+        try {
+          doc = new DOMParser().parseFromString(dirtyPayload, 'text/html');
+        } catch (_) {}
+      }
+
+      /* Use createHTMLDocument in case DOMParser is not available */
+      if (!doc || !doc.documentElement) {
+        doc = implementation.createDocument(NAMESPACE, 'template', null);
+        try {
+          doc.documentElement.innerHTML = IS_EMPTY_INPUT ? '' : dirtyPayload;
+        } catch (_) {
+          // Syntax error if dirtyPayload is invalid xml
+        }
+      }
+
+      var body = doc.body || doc.documentElement;
+
+      if (dirty && leadingWhitespace) {
+        body.insertBefore(document.createTextNode(leadingWhitespace), body.childNodes[0] || null);
+      }
+
+      /* Work on whole document or just its body */
+      if (NAMESPACE === HTML_NAMESPACE) {
+        return getElementsByTagName.call(doc, WHOLE_DOCUMENT ? 'html' : 'body')[0];
+      }
+
+      return WHOLE_DOCUMENT ? doc.documentElement : body;
+    };
+
+    /**
+     * _createIterator
+     *
+     * @param  {Document} root document/fragment to create iterator for
+     * @return {Iterator} iterator instance
+     */
+    var _createIterator = function _createIterator(root) {
+      return createNodeIterator.call(root.ownerDocument || root, root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_COMMENT | NodeFilter.SHOW_TEXT, null, false);
+    };
+
+    /**
+     * _isClobbered
+     *
+     * @param  {Node} elm element to check for clobbering attacks
+     * @return {Boolean} true if clobbered, false if safe
+     */
+    var _isClobbered = function _isClobbered(elm) {
+      if (elm instanceof Text || elm instanceof Comment) {
+        return false;
+      }
+
+      if (typeof elm.nodeName !== 'string' || typeof elm.textContent !== 'string' || typeof elm.removeChild !== 'function' || !(elm.attributes instanceof NamedNodeMap) || typeof elm.removeAttribute !== 'function' || typeof elm.setAttribute !== 'function' || typeof elm.namespaceURI !== 'string' || typeof elm.insertBefore !== 'function') {
+        return true;
+      }
+
+      return false;
+    };
+
+    /**
+     * _isNode
+     *
+     * @param  {Node} obj object to check whether it's a DOM node
+     * @return {Boolean} true is object is a DOM node
+     */
+    var _isNode = function _isNode(object) {
+      return (typeof Node === 'undefined' ? 'undefined' : _typeof(Node)) === 'object' ? object instanceof Node : object && (typeof object === 'undefined' ? 'undefined' : _typeof(object)) === 'object' && typeof object.nodeType === 'number' && typeof object.nodeName === 'string';
+    };
+
+    /**
+     * _executeHook
+     * Execute user configurable hooks
+     *
+     * @param  {String} entryPoint  Name of the hook's entry point
+     * @param  {Node} currentNode node to work on with the hook
+     * @param  {Object} data additional hook parameters
+     */
+    var _executeHook = function _executeHook(entryPoint, currentNode, data) {
+      if (!hooks[entryPoint]) {
+        return;
+      }
+
+      arrayForEach(hooks[entryPoint], function (hook) {
+        hook.call(DOMPurify, currentNode, data, CONFIG);
+      });
+    };
+
+    /**
+     * _sanitizeElements
+     *
+     * @protect nodeName
+     * @protect textContent
+     * @protect removeChild
+     *
+     * @param   {Node} currentNode to check for permission to exist
+     * @return  {Boolean} true if node was killed, false if left alive
+     */
+    var _sanitizeElements = function _sanitizeElements(currentNode) {
+      var content = void 0;
+
+      /* Execute a hook if present */
+      _executeHook('beforeSanitizeElements', currentNode, null);
+
+      /* Check if element is clobbered or can clobber */
+      if (_isClobbered(currentNode)) {
+        _forceRemove(currentNode);
+        return true;
+      }
+
+      /* Check if tagname contains Unicode */
+      if (stringMatch(currentNode.nodeName, /[\u0080-\uFFFF]/)) {
+        _forceRemove(currentNode);
+        return true;
+      }
+
+      /* Now let's check the element's type and name */
+      var tagName = stringToLowerCase(currentNode.nodeName);
+
+      /* Execute a hook if present */
+      _executeHook('uponSanitizeElement', currentNode, {
+        tagName: tagName,
+        allowedTags: ALLOWED_TAGS
+      });
+
+      /* Detect mXSS attempts abusing namespace confusion */
+      if (!_isNode(currentNode.firstElementChild) && (!_isNode(currentNode.content) || !_isNode(currentNode.content.firstElementChild)) && regExpTest(/<[/\w]/g, currentNode.innerHTML) && regExpTest(/<[/\w]/g, currentNode.textContent)) {
+        _forceRemove(currentNode);
+        return true;
+      }
+
+      /* Remove element if anything forbids its presence */
+      if (!ALLOWED_TAGS[tagName] || FORBID_TAGS[tagName]) {
+        /* Keep content except for bad-listed elements */
+        if (KEEP_CONTENT && !FORBID_CONTENTS[tagName]) {
+          var parentNode = getParentNode(currentNode) || currentNode.parentNode;
+          var childNodes = getChildNodes(currentNode) || currentNode.childNodes;
+
+          if (childNodes && parentNode) {
+            var childCount = childNodes.length;
+
+            for (var i = childCount - 1; i >= 0; --i) {
+              parentNode.insertBefore(cloneNode(childNodes[i], true), getNextSibling(currentNode));
+            }
+          }
+        }
+
+        _forceRemove(currentNode);
+        return true;
+      }
+
+      /* Check whether element has a valid namespace */
+      if (currentNode instanceof Element && !_checkValidNamespace(currentNode)) {
+        _forceRemove(currentNode);
+        return true;
+      }
+
+      if ((tagName === 'noscript' || tagName === 'noembed') && regExpTest(/<\/no(script|embed)/i, currentNode.innerHTML)) {
+        _forceRemove(currentNode);
+        return true;
+      }
+
+      /* Sanitize element content to be template-safe */
+      if (SAFE_FOR_TEMPLATES && currentNode.nodeType === 3) {
+        /* Get the element's text content */
+        content = currentNode.textContent;
+        content = stringReplace(content, MUSTACHE_EXPR$$1, ' ');
+        content = stringReplace(content, ERB_EXPR$$1, ' ');
+        if (currentNode.textContent !== content) {
+          arrayPush(DOMPurify.removed, { element: currentNode.cloneNode() });
+          currentNode.textContent = content;
+        }
+      }
+
+      /* Execute a hook if present */
+      _executeHook('afterSanitizeElements', currentNode, null);
+
+      return false;
+    };
+
+    /**
+     * _isValidAttribute
+     *
+     * @param  {string} lcTag Lowercase tag name of containing element.
+     * @param  {string} lcName Lowercase attribute name.
+     * @param  {string} value Attribute value.
+     * @return {Boolean} Returns true if `value` is valid, otherwise false.
+     */
+    // eslint-disable-next-line complexity
+    var _isValidAttribute = function _isValidAttribute(lcTag, lcName, value) {
+      /* Make sure attribute cannot clobber */
+      if (SANITIZE_DOM && (lcName === 'id' || lcName === 'name') && (value in document || value in formElement)) {
+        return false;
+      }
+
+      /* Allow valid data-* attributes: At least one character after "-"
+          (https://html.spec.whatwg.org/multipage/dom.html#embedding-custom-non-visible-data-with-the-data-*-attributes)
+          XML-compatible (https://html.spec.whatwg.org/multipage/infrastructure.html#xml-compatible and http://www.w3.org/TR/xml/#d0e804)
+          We don't need to check the value; it's always URI safe. */
+      if (ALLOW_DATA_ATTR && !FORBID_ATTR[lcName] && regExpTest(DATA_ATTR$$1, lcName)) ; else if (ALLOW_ARIA_ATTR && regExpTest(ARIA_ATTR$$1, lcName)) ; else if (!ALLOWED_ATTR[lcName] || FORBID_ATTR[lcName]) {
+        return false;
+
+        /* Check value is safe. First, is attr inert? If so, is safe */
+      } else if (URI_SAFE_ATTRIBUTES[lcName]) ; else if (regExpTest(IS_ALLOWED_URI$$1, stringReplace(value, ATTR_WHITESPACE$$1, ''))) ; else if ((lcName === 'src' || lcName === 'xlink:href' || lcName === 'href') && lcTag !== 'script' && stringIndexOf(value, 'data:') === 0 && DATA_URI_TAGS[lcTag]) ; else if (ALLOW_UNKNOWN_PROTOCOLS && !regExpTest(IS_SCRIPT_OR_DATA$$1, stringReplace(value, ATTR_WHITESPACE$$1, ''))) ; else if (!value) ; else {
+        return false;
+      }
+
+      return true;
+    };
+
+    /**
+     * _sanitizeAttributes
+     *
+     * @protect attributes
+     * @protect nodeName
+     * @protect removeAttribute
+     * @protect setAttribute
+     *
+     * @param  {Node} currentNode to sanitize
+     */
+    var _sanitizeAttributes = function _sanitizeAttributes(currentNode) {
+      var attr = void 0;
+      var value = void 0;
+      var lcName = void 0;
+      var l = void 0;
+      /* Execute a hook if present */
+      _executeHook('beforeSanitizeAttributes', currentNode, null);
+
+      var attributes = currentNode.attributes;
+
+      /* Check if we have attributes; if not we might have a text node */
+
+      if (!attributes) {
+        return;
+      }
+
+      var hookEvent = {
+        attrName: '',
+        attrValue: '',
+        keepAttr: true,
+        allowedAttributes: ALLOWED_ATTR
+      };
+      l = attributes.length;
+
+      /* Go backwards over all attributes; safely remove bad ones */
+      while (l--) {
+        attr = attributes[l];
+        var _attr = attr,
+            name = _attr.name,
+            namespaceURI = _attr.namespaceURI;
+
+        value = stringTrim(attr.value);
+        lcName = stringToLowerCase(name);
+
+        /* Execute a hook if present */
+        hookEvent.attrName = lcName;
+        hookEvent.attrValue = value;
+        hookEvent.keepAttr = true;
+        hookEvent.forceKeepAttr = undefined; // Allows developers to see this is a property they can set
+        _executeHook('uponSanitizeAttribute', currentNode, hookEvent);
+        value = hookEvent.attrValue;
+        /* Did the hooks approve of the attribute? */
+        if (hookEvent.forceKeepAttr) {
+          continue;
+        }
+
+        /* Remove attribute */
+        _removeAttribute(name, currentNode);
+
+        /* Did the hooks approve of the attribute? */
+        if (!hookEvent.keepAttr) {
+          continue;
+        }
+
+        /* Work around a security issue in jQuery 3.0 */
+        if (regExpTest(/\/>/i, value)) {
+          _removeAttribute(name, currentNode);
+          continue;
+        }
+
+        /* Sanitize attribute content to be template-safe */
+        if (SAFE_FOR_TEMPLATES) {
+          value = stringReplace(value, MUSTACHE_EXPR$$1, ' ');
+          value = stringReplace(value, ERB_EXPR$$1, ' ');
+        }
+
+        /* Is `value` valid for this attribute? */
+        var lcTag = currentNode.nodeName.toLowerCase();
+        if (!_isValidAttribute(lcTag, lcName, value)) {
+          continue;
+        }
+
+        /* Handle invalid data-* attribute set by try-catching it */
+        try {
+          if (namespaceURI) {
+            currentNode.setAttributeNS(namespaceURI, name, value);
+          } else {
+            /* Fallback to setAttribute() for browser-unrecognized namespaces e.g. "x-schema". */
+            currentNode.setAttribute(name, value);
+          }
+
+          arrayPop(DOMPurify.removed);
+        } catch (_) {}
+      }
+
+      /* Execute a hook if present */
+      _executeHook('afterSanitizeAttributes', currentNode, null);
+    };
+
+    /**
+     * _sanitizeShadowDOM
+     *
+     * @param  {DocumentFragment} fragment to iterate over recursively
+     */
+    var _sanitizeShadowDOM = function _sanitizeShadowDOM(fragment) {
+      var shadowNode = void 0;
+      var shadowIterator = _createIterator(fragment);
+
+      /* Execute a hook if present */
+      _executeHook('beforeSanitizeShadowDOM', fragment, null);
+
+      while (shadowNode = shadowIterator.nextNode()) {
+        /* Execute a hook if present */
+        _executeHook('uponSanitizeShadowNode', shadowNode, null);
+
+        /* Sanitize tags and elements */
+        if (_sanitizeElements(shadowNode)) {
+          continue;
+        }
+
+        /* Deep shadow DOM detected */
+        if (shadowNode.content instanceof DocumentFragment) {
+          _sanitizeShadowDOM(shadowNode.content);
+        }
+
+        /* Check attributes, sanitize if necessary */
+        _sanitizeAttributes(shadowNode);
+      }
+
+      /* Execute a hook if present */
+      _executeHook('afterSanitizeShadowDOM', fragment, null);
+    };
+
+    /**
+     * Sanitize
+     * Public method providing core sanitation functionality
+     *
+     * @param {String|Node} dirty string or DOM node
+     * @param {Object} configuration object
+     */
+    // eslint-disable-next-line complexity
+    DOMPurify.sanitize = function (dirty, cfg) {
+      var body = void 0;
+      var importedNode = void 0;
+      var currentNode = void 0;
+      var oldNode = void 0;
+      var returnNode = void 0;
+      /* Make sure we have a string to sanitize.
+        DO NOT return early, as this will return the wrong type if
+        the user has requested a DOM object rather than a string */
+      IS_EMPTY_INPUT = !dirty;
+      if (IS_EMPTY_INPUT) {
+        dirty = '<!-->';
+      }
+
+      /* Stringify, in case dirty is an object */
+      if (typeof dirty !== 'string' && !_isNode(dirty)) {
+        // eslint-disable-next-line no-negated-condition
+        if (typeof dirty.toString !== 'function') {
+          throw typeErrorCreate('toString is not a function');
+        } else {
+          dirty = dirty.toString();
+          if (typeof dirty !== 'string') {
+            throw typeErrorCreate('dirty is not a string, aborting');
+          }
+        }
+      }
+
+      /* Check we can run. Otherwise fall back or ignore */
+      if (!DOMPurify.isSupported) {
+        if (_typeof(window.toStaticHTML) === 'object' || typeof window.toStaticHTML === 'function') {
+          if (typeof dirty === 'string') {
+            return window.toStaticHTML(dirty);
+          }
+
+          if (_isNode(dirty)) {
+            return window.toStaticHTML(dirty.outerHTML);
+          }
+        }
+
+        return dirty;
+      }
+
+      /* Assign config vars */
+      if (!SET_CONFIG) {
+        _parseConfig(cfg);
+      }
+
+      /* Clean up removed elements */
+      DOMPurify.removed = [];
+
+      /* Check if dirty is correctly typed for IN_PLACE */
+      if (typeof dirty === 'string') {
+        IN_PLACE = false;
+      }
+
+      if (IN_PLACE) ; else if (dirty instanceof Node) {
+        /* If dirty is a DOM element, append to an empty document to avoid
+           elements being stripped by the parser */
+        body = _initDocument('<!---->');
+        importedNode = body.ownerDocument.importNode(dirty, true);
+        if (importedNode.nodeType === 1 && importedNode.nodeName === 'BODY') {
+          /* Node is already a body, use as is */
+          body = importedNode;
+        } else if (importedNode.nodeName === 'HTML') {
+          body = importedNode;
+        } else {
+          // eslint-disable-next-line unicorn/prefer-dom-node-append
+          body.appendChild(importedNode);
+        }
+      } else {
+        /* Exit directly if we have nothing to do */
+        if (!RETURN_DOM && !SAFE_FOR_TEMPLATES && !WHOLE_DOCUMENT &&
+        // eslint-disable-next-line unicorn/prefer-includes
+        dirty.indexOf('<') === -1) {
+          return trustedTypesPolicy && RETURN_TRUSTED_TYPE ? trustedTypesPolicy.createHTML(dirty) : dirty;
+        }
+
+        /* Initialize the document to work on */
+        body = _initDocument(dirty);
+
+        /* Check we have a DOM node from the data */
+        if (!body) {
+          return RETURN_DOM ? null : emptyHTML;
+        }
+      }
+
+      /* Remove first element node (ours) if FORCE_BODY is set */
+      if (body && FORCE_BODY) {
+        _forceRemove(body.firstChild);
+      }
+
+      /* Get node iterator */
+      var nodeIterator = _createIterator(IN_PLACE ? dirty : body);
+
+      /* Now start iterating over the created document */
+      while (currentNode = nodeIterator.nextNode()) {
+        /* Fix IE's strange behavior with manipulated textNodes #89 */
+        if (currentNode.nodeType === 3 && currentNode === oldNode) {
+          continue;
+        }
+
+        /* Sanitize tags and elements */
+        if (_sanitizeElements(currentNode)) {
+          continue;
+        }
+
+        /* Shadow DOM detected, sanitize it */
+        if (currentNode.content instanceof DocumentFragment) {
+          _sanitizeShadowDOM(currentNode.content);
+        }
+
+        /* Check attributes, sanitize if necessary */
+        _sanitizeAttributes(currentNode);
+
+        oldNode = currentNode;
+      }
+
+      oldNode = null;
+
+      /* If we sanitized `dirty` in-place, return it. */
+      if (IN_PLACE) {
+        return dirty;
+      }
+
+      /* Return sanitized string or DOM */
+      if (RETURN_DOM) {
+        if (RETURN_DOM_FRAGMENT) {
+          returnNode = createDocumentFragment.call(body.ownerDocument);
+
+          while (body.firstChild) {
+            // eslint-disable-next-line unicorn/prefer-dom-node-append
+            returnNode.appendChild(body.firstChild);
+          }
+        } else {
+          returnNode = body;
+        }
+
+        if (RETURN_DOM_IMPORT) {
+          /*
+            AdoptNode() is not used because internal state is not reset
+            (e.g. the past names map of a HTMLFormElement), this is safe
+            in theory but we would rather not risk another attack vector.
+            The state that is cloned by importNode() is explicitly defined
+            by the specs.
+          */
+          returnNode = importNode.call(originalDocument, returnNode, true);
+        }
+
+        return returnNode;
+      }
+
+      var serializedHTML = WHOLE_DOCUMENT ? body.outerHTML : body.innerHTML;
+
+      /* Sanitize final string template-safe */
+      if (SAFE_FOR_TEMPLATES) {
+        serializedHTML = stringReplace(serializedHTML, MUSTACHE_EXPR$$1, ' ');
+        serializedHTML = stringReplace(serializedHTML, ERB_EXPR$$1, ' ');
+      }
+
+      return trustedTypesPolicy && RETURN_TRUSTED_TYPE ? trustedTypesPolicy.createHTML(serializedHTML) : serializedHTML;
+    };
+
+    /**
+     * Public method to set the configuration once
+     * setConfig
+     *
+     * @param {Object} cfg configuration object
+     */
+    DOMPurify.setConfig = function (cfg) {
+      _parseConfig(cfg);
+      SET_CONFIG = true;
+    };
+
+    /**
+     * Public method to remove the configuration
+     * clearConfig
+     *
+     */
+    DOMPurify.clearConfig = function () {
+      CONFIG = null;
+      SET_CONFIG = false;
+    };
+
+    /**
+     * Public method to check if an attribute value is valid.
+     * Uses last set config, if any. Otherwise, uses config defaults.
+     * isValidAttribute
+     *
+     * @param  {string} tag Tag name of containing element.
+     * @param  {string} attr Attribute name.
+     * @param  {string} value Attribute value.
+     * @return {Boolean} Returns true if `value` is valid. Otherwise, returns false.
+     */
+    DOMPurify.isValidAttribute = function (tag, attr, value) {
+      /* Initialize shared config vars if necessary. */
+      if (!CONFIG) {
+        _parseConfig({});
+      }
+
+      var lcTag = stringToLowerCase(tag);
+      var lcName = stringToLowerCase(attr);
+      return _isValidAttribute(lcTag, lcName, value);
+    };
+
+    /**
+     * AddHook
+     * Public method to add DOMPurify hooks
+     *
+     * @param {String} entryPoint entry point for the hook to add
+     * @param {Function} hookFunction function to execute
+     */
+    DOMPurify.addHook = function (entryPoint, hookFunction) {
+      if (typeof hookFunction !== 'function') {
+        return;
+      }
+
+      hooks[entryPoint] = hooks[entryPoint] || [];
+      arrayPush(hooks[entryPoint], hookFunction);
+    };
+
+    /**
+     * RemoveHook
+     * Public method to remove a DOMPurify hook at a given entryPoint
+     * (pops it from the stack of hooks if more are present)
+     *
+     * @param {String} entryPoint entry point for the hook to remove
+     */
+    DOMPurify.removeHook = function (entryPoint) {
+      if (hooks[entryPoint]) {
+        arrayPop(hooks[entryPoint]);
+      }
+    };
+
+    /**
+     * RemoveHooks
+     * Public method to remove all DOMPurify hooks at a given entryPoint
+     *
+     * @param  {String} entryPoint entry point for the hooks to remove
+     */
+    DOMPurify.removeHooks = function (entryPoint) {
+      if (hooks[entryPoint]) {
+        hooks[entryPoint] = [];
+      }
+    };
+
+    /**
+     * RemoveAllHooks
+     * Public method to remove all DOMPurify hooks
+     *
+     */
+    DOMPurify.removeAllHooks = function () {
+      hooks = {};
+    };
+
+    return DOMPurify;
+  }
+
+  var purify = createDOMPurify();
+
+  return purify;
+
+}));
+//# sourceMappingURL=purify.js.map
 
 
 /***/ }),
@@ -35637,7 +37094,6 @@ module.exports = '2.1.8';
 /* IMPORT */
 Object.defineProperty(exports, "__esModule", { value: true });
 var utils_1 = __webpack_require__(/*! ../utils */ "./node_modules/khroma/dist/utils/index.js");
-var types_1 = __webpack_require__(/*! ../types */ "./node_modules/khroma/dist/types.js");
 var type_1 = __webpack_require__(/*! ./type */ "./node_modules/khroma/dist/channels/type.js");
 /* CHANNELS */
 var Channels = /** @class */ (function () {
@@ -35653,37 +37109,43 @@ var Channels = /** @class */ (function () {
         this.color = color;
         this.changed = false;
         this.data = data; //TSC
-        this.type.type = types_1.TYPE.ALL;
+        this.type.type = 0 /* ALL */;
         return this;
     };
     /* HELPERS */
     Channels.prototype._ensureHSL = function () {
-        if (this.data.h === undefined)
-            this.data.h = utils_1.default.channel.rgb2hsl(this.data, 'h');
-        if (this.data.s === undefined)
-            this.data.s = utils_1.default.channel.rgb2hsl(this.data, 's');
-        if (this.data.l === undefined)
-            this.data.l = utils_1.default.channel.rgb2hsl(this.data, 'l');
+        var data = this.data;
+        var h = data.h, s = data.s, l = data.l;
+        if (h === undefined)
+            data.h = utils_1.default.channel.rgb2hsl(data, 'h');
+        if (s === undefined)
+            data.s = utils_1.default.channel.rgb2hsl(data, 's');
+        if (l === undefined)
+            data.l = utils_1.default.channel.rgb2hsl(data, 'l');
     };
     Channels.prototype._ensureRGB = function () {
-        if (this.data.r === undefined)
-            this.data.r = utils_1.default.channel.hsl2rgb(this.data, 'r');
-        if (this.data.g === undefined)
-            this.data.g = utils_1.default.channel.hsl2rgb(this.data, 'g');
-        if (this.data.b === undefined)
-            this.data.b = utils_1.default.channel.hsl2rgb(this.data, 'b');
+        var data = this.data;
+        var r = data.r, g = data.g, b = data.b;
+        if (r === undefined)
+            data.r = utils_1.default.channel.hsl2rgb(data, 'r');
+        if (g === undefined)
+            data.g = utils_1.default.channel.hsl2rgb(data, 'g');
+        if (b === undefined)
+            data.b = utils_1.default.channel.hsl2rgb(data, 'b');
     };
     Object.defineProperty(Channels.prototype, "r", {
         /* GETTERS */
         get: function () {
-            if (!this.type.is(types_1.TYPE.HSL) && this.data.r !== undefined)
-                return this.data.r;
+            var data = this.data;
+            var r = data.r;
+            if (!this.type.is(2 /* HSL */) && r !== undefined)
+                return r;
             this._ensureHSL();
-            return utils_1.default.channel.hsl2rgb(this.data, 'r');
+            return utils_1.default.channel.hsl2rgb(data, 'r');
         },
         /* SETTERS */
         set: function (r) {
-            this.type.set(types_1.TYPE.RGB);
+            this.type.set(1 /* RGB */);
             this.changed = true;
             this.data.r = r;
         },
@@ -35692,13 +37154,15 @@ var Channels = /** @class */ (function () {
     });
     Object.defineProperty(Channels.prototype, "g", {
         get: function () {
-            if (!this.type.is(types_1.TYPE.HSL) && this.data.g !== undefined)
-                return this.data.g;
+            var data = this.data;
+            var g = data.g;
+            if (!this.type.is(2 /* HSL */) && g !== undefined)
+                return g;
             this._ensureHSL();
-            return utils_1.default.channel.hsl2rgb(this.data, 'g');
+            return utils_1.default.channel.hsl2rgb(data, 'g');
         },
         set: function (g) {
-            this.type.set(types_1.TYPE.RGB);
+            this.type.set(1 /* RGB */);
             this.changed = true;
             this.data.g = g;
         },
@@ -35707,13 +37171,15 @@ var Channels = /** @class */ (function () {
     });
     Object.defineProperty(Channels.prototype, "b", {
         get: function () {
-            if (!this.type.is(types_1.TYPE.HSL) && this.data.b !== undefined)
-                return this.data.b;
+            var data = this.data;
+            var b = data.b;
+            if (!this.type.is(2 /* HSL */) && b !== undefined)
+                return b;
             this._ensureHSL();
-            return utils_1.default.channel.hsl2rgb(this.data, 'b');
+            return utils_1.default.channel.hsl2rgb(data, 'b');
         },
         set: function (b) {
-            this.type.set(types_1.TYPE.RGB);
+            this.type.set(1 /* RGB */);
             this.changed = true;
             this.data.b = b;
         },
@@ -35722,13 +37188,15 @@ var Channels = /** @class */ (function () {
     });
     Object.defineProperty(Channels.prototype, "h", {
         get: function () {
-            if (!this.type.is(types_1.TYPE.RGB) && this.data.h !== undefined)
-                return this.data.h;
+            var data = this.data;
+            var h = data.h;
+            if (!this.type.is(1 /* RGB */) && h !== undefined)
+                return h;
             this._ensureRGB();
-            return utils_1.default.channel.rgb2hsl(this.data, 'h');
+            return utils_1.default.channel.rgb2hsl(data, 'h');
         },
         set: function (h) {
-            this.type.set(types_1.TYPE.HSL);
+            this.type.set(2 /* HSL */);
             this.changed = true;
             this.data.h = h;
         },
@@ -35737,13 +37205,15 @@ var Channels = /** @class */ (function () {
     });
     Object.defineProperty(Channels.prototype, "s", {
         get: function () {
-            if (!this.type.is(types_1.TYPE.RGB) && this.data.s !== undefined)
-                return this.data.s;
+            var data = this.data;
+            var s = data.s;
+            if (!this.type.is(1 /* RGB */) && s !== undefined)
+                return s;
             this._ensureRGB();
-            return utils_1.default.channel.rgb2hsl(this.data, 's');
+            return utils_1.default.channel.rgb2hsl(data, 's');
         },
         set: function (s) {
-            this.type.set(types_1.TYPE.HSL);
+            this.type.set(2 /* HSL */);
             this.changed = true;
             this.data.s = s;
         },
@@ -35752,13 +37222,15 @@ var Channels = /** @class */ (function () {
     });
     Object.defineProperty(Channels.prototype, "l", {
         get: function () {
-            if (!this.type.is(types_1.TYPE.RGB) && this.data.l !== undefined)
-                return this.data.l;
+            var data = this.data;
+            var l = data.l;
+            if (!this.type.is(1 /* RGB */) && l !== undefined)
+                return l;
             this._ensureRGB();
-            return utils_1.default.channel.rgb2hsl(this.data, 'l');
+            return utils_1.default.channel.rgb2hsl(data, 'l');
         },
         set: function (l) {
-            this.type.set(types_1.TYPE.HSL);
+            this.type.set(2 /* HSL */);
             this.changed = true;
             this.data.l = l;
         },
@@ -35815,11 +37287,10 @@ exports.default = channels;
 
 /* IMPORT */
 Object.defineProperty(exports, "__esModule", { value: true });
-var types_1 = __webpack_require__(/*! ../types */ "./node_modules/khroma/dist/types.js");
 /* TYPE */
 var Type = /** @class */ (function () {
     function Type() {
-        this.type = types_1.TYPE.ALL;
+        this.type = 0 /* ALL */;
     }
     Type.prototype.get = function () {
         return this.type;
@@ -35830,7 +37301,7 @@ var Type = /** @class */ (function () {
         this.type = type;
     };
     Type.prototype.reset = function () {
-        this.type = types_1.TYPE.ALL;
+        this.type = 0 /* ALL */;
     };
     Type.prototype.is = function (type) {
         return this.type === type;
@@ -35854,7 +37325,6 @@ exports.default = Type;
 
 /* IMPORT */
 Object.defineProperty(exports, "__esModule", { value: true });
-var utils_1 = __webpack_require__(/*! ../utils */ "./node_modules/khroma/dist/utils/index.js");
 var reusable_1 = __webpack_require__(/*! ../channels/reusable */ "./node_modules/khroma/dist/channels/reusable.js");
 var consts_1 = __webpack_require__(/*! ../consts */ "./node_modules/khroma/dist/consts.js");
 /* HEX */
@@ -35877,11 +37347,12 @@ var Hex = {
         }, color);
     },
     stringify: function (channels) {
-        if (channels.a < 1) { // #RRGGBBAA
-            return "#" + consts_1.DEC2HEX[Math.round(channels.r)] + consts_1.DEC2HEX[Math.round(channels.g)] + consts_1.DEC2HEX[Math.round(channels.b)] + utils_1.default.unit.frac2hex(channels.a);
+        var r = channels.r, g = channels.g, b = channels.b, a = channels.a;
+        if (a < 1) { // #RRGGBBAA
+            return "#" + consts_1.DEC2HEX[Math.round(r)] + consts_1.DEC2HEX[Math.round(g)] + consts_1.DEC2HEX[Math.round(b)] + consts_1.DEC2HEX[Math.round(a * 255)];
         }
         else { // #RRGGBB
-            return "#" + consts_1.DEC2HEX[Math.round(channels.r)] + consts_1.DEC2HEX[Math.round(channels.g)] + consts_1.DEC2HEX[Math.round(channels.b)];
+            return "#" + consts_1.DEC2HEX[Math.round(r)] + consts_1.DEC2HEX[Math.round(g)] + consts_1.DEC2HEX[Math.round(b)];
         }
     }
 };
@@ -35939,11 +37410,12 @@ var HSL = {
         }, color);
     },
     stringify: function (channels) {
-        if (channels.a < 1) { // HSLA
-            return "hsla(" + utils_1.default.lang.round(channels.h) + ", " + utils_1.default.lang.round(channels.s) + "%, " + utils_1.default.lang.round(channels.l) + "%, " + channels.a + ")";
+        var h = channels.h, s = channels.s, l = channels.l, a = channels.a;
+        if (a < 1) { // HSLA
+            return "hsla(" + utils_1.default.lang.round(h) + ", " + utils_1.default.lang.round(s) + "%, " + utils_1.default.lang.round(l) + "%, " + a + ")";
         }
         else { // HSL
-            return "hsl(" + utils_1.default.lang.round(channels.h) + ", " + utils_1.default.lang.round(channels.s) + "%, " + utils_1.default.lang.round(channels.l) + "%)";
+            return "hsl(" + utils_1.default.lang.round(h) + ", " + utils_1.default.lang.round(s) + "%, " + utils_1.default.lang.round(l) + "%)";
         }
     }
 };
@@ -35964,7 +37436,6 @@ exports.default = HSL;
 
 /* IMPORT */
 Object.defineProperty(exports, "__esModule", { value: true });
-var types_1 = __webpack_require__(/*! ../types */ "./node_modules/khroma/dist/types.js");
 var hex_1 = __webpack_require__(/*! ./hex */ "./node_modules/khroma/dist/color/hex.js");
 var keyword_1 = __webpack_require__(/*! ./keyword */ "./node_modules/khroma/dist/color/keyword.js");
 var rgb_1 = __webpack_require__(/*! ./rgb */ "./node_modules/khroma/dist/color/rgb.js");
@@ -35993,7 +37464,7 @@ var Color = {
         // SASS returns a keyword if possible, but we avoid doing that as it's slower and doesn't really add any value
         if (!channels.changed && channels.color)
             return channels.color;
-        if (channels.type.is(types_1.TYPE.HSL) || channels.data.r === undefined) {
+        if (channels.type.is(2 /* HSL */) || channels.data.r === undefined) {
             return hsl_1.default.stringify(channels);
         }
         else if (channels.a < 1 || !Number.isInteger(channels.r) || !Number.isInteger(channels.g) || !Number.isInteger(channels.b)) {
@@ -36230,11 +37701,12 @@ var RGB = {
         }, color);
     },
     stringify: function (channels) {
-        if (channels.a < 1) { // RGBA
-            return "rgba(" + utils_1.default.lang.round(channels.r) + ", " + utils_1.default.lang.round(channels.g) + ", " + utils_1.default.lang.round(channels.b) + ", " + utils_1.default.lang.round(channels.a) + ")";
+        var r = channels.r, g = channels.g, b = channels.b, a = channels.a;
+        if (a < 1) { // RGBA
+            return "rgba(" + utils_1.default.lang.round(r) + ", " + utils_1.default.lang.round(g) + ", " + utils_1.default.lang.round(b) + ", " + utils_1.default.lang.round(a) + ")";
         }
         else { // RGB
-            return "rgb(" + utils_1.default.lang.round(channels.r) + ", " + utils_1.default.lang.round(channels.g) + ", " + utils_1.default.lang.round(channels.b) + ")";
+            return "rgb(" + utils_1.default.lang.round(r) + ", " + utils_1.default.lang.round(g) + ", " + utils_1.default.lang.round(b) + ")";
         }
     }
 };
@@ -36455,6 +37927,30 @@ exports.default = complement;
 
 /***/ }),
 
+/***/ "./node_modules/khroma/dist/methods/contrast.js":
+/*!******************************************************!*\
+  !*** ./node_modules/khroma/dist/methods/contrast.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/* IMPORT */
+Object.defineProperty(exports, "__esModule", { value: true });
+var utils_1 = __webpack_require__(/*! ../utils */ "./node_modules/khroma/dist/utils/index.js");
+var luminance_1 = __webpack_require__(/*! ./luminance */ "./node_modules/khroma/dist/methods/luminance.js");
+/* CONTRAST */
+function contrast(color1, color2) {
+    var luminance1 = luminance_1.default(color1), luminance2 = luminance_1.default(color2), max = Math.max(luminance1, luminance2), min = Math.min(luminance1, luminance2), ratio = (max + Number.EPSILON) / (min + Number.EPSILON);
+    return utils_1.default.lang.round(utils_1.default.lang.clamp(ratio, 1, 10));
+}
+/* EXPORT */
+exports.default = contrast;
+
+
+/***/ }),
+
 /***/ "./node_modules/khroma/dist/methods/darken.js":
 /*!****************************************************!*\
   !*** ./node_modules/khroma/dist/methods/darken.js ***!
@@ -36617,6 +38113,14 @@ var hsla_1 = __webpack_require__(/*! ./hsla */ "./node_modules/khroma/dist/metho
 exports.hsl = hsla_1.default;
 var hsla_2 = __webpack_require__(/*! ./hsla */ "./node_modules/khroma/dist/methods/hsla.js");
 exports.hsla = hsla_2.default;
+var to_keyword_1 = __webpack_require__(/*! ./to_keyword */ "./node_modules/khroma/dist/methods/to_keyword.js");
+exports.toKeyword = to_keyword_1.default;
+var to_hex_1 = __webpack_require__(/*! ./to_hex */ "./node_modules/khroma/dist/methods/to_hex.js");
+exports.toHex = to_hex_1.default;
+var to_rgba_1 = __webpack_require__(/*! ./to_rgba */ "./node_modules/khroma/dist/methods/to_rgba.js");
+exports.toRgba = to_rgba_1.default;
+var to_hsla_1 = __webpack_require__(/*! ./to_hsla */ "./node_modules/khroma/dist/methods/to_hsla.js");
+exports.toHsla = to_hsla_1.default;
 var channel_1 = __webpack_require__(/*! ./channel */ "./node_modules/khroma/dist/methods/channel.js");
 exports.channel = channel_1.default;
 var red_1 = __webpack_require__(/*! ./red */ "./node_modules/khroma/dist/methods/red.js");
@@ -36635,6 +38139,8 @@ var alpha_1 = __webpack_require__(/*! ./alpha */ "./node_modules/khroma/dist/met
 exports.alpha = alpha_1.default;
 var alpha_2 = __webpack_require__(/*! ./alpha */ "./node_modules/khroma/dist/methods/alpha.js"); // Alias
 exports.opacity = alpha_2.default;
+var contrast_1 = __webpack_require__(/*! ./contrast */ "./node_modules/khroma/dist/methods/contrast.js");
+exports.contrast = contrast_1.default;
 var luminance_1 = __webpack_require__(/*! ./luminance */ "./node_modules/khroma/dist/methods/luminance.js");
 exports.luminance = luminance_1.default;
 var is_dark_1 = __webpack_require__(/*! ./is_dark */ "./node_modules/khroma/dist/methods/is_dark.js");
@@ -37022,6 +38528,94 @@ exports.default = scale;
 
 /***/ }),
 
+/***/ "./node_modules/khroma/dist/methods/to_hex.js":
+/*!****************************************************!*\
+  !*** ./node_modules/khroma/dist/methods/to_hex.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/* IMPORT */
+Object.defineProperty(exports, "__esModule", { value: true });
+var color_1 = __webpack_require__(/*! ../color */ "./node_modules/khroma/dist/color/index.js");
+/* TO HEX */
+function toHex(color) {
+    return color_1.default.format.hex.stringify(color_1.default.parse(color));
+}
+/* EXPORT */
+exports.default = toHex;
+
+
+/***/ }),
+
+/***/ "./node_modules/khroma/dist/methods/to_hsla.js":
+/*!*****************************************************!*\
+  !*** ./node_modules/khroma/dist/methods/to_hsla.js ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/* IMPORT */
+Object.defineProperty(exports, "__esModule", { value: true });
+var color_1 = __webpack_require__(/*! ../color */ "./node_modules/khroma/dist/color/index.js");
+/* TO HSLA */
+function toHsla(color) {
+    return color_1.default.format.hsla.stringify(color_1.default.parse(color));
+}
+/* EXPORT */
+exports.default = toHsla;
+
+
+/***/ }),
+
+/***/ "./node_modules/khroma/dist/methods/to_keyword.js":
+/*!********************************************************!*\
+  !*** ./node_modules/khroma/dist/methods/to_keyword.js ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/* IMPORT */
+Object.defineProperty(exports, "__esModule", { value: true });
+var color_1 = __webpack_require__(/*! ../color */ "./node_modules/khroma/dist/color/index.js");
+/* TO KEYWORD */
+function toKeyword(color) {
+    return color_1.default.format.keyword.stringify(color_1.default.parse(color));
+}
+/* EXPORT */
+exports.default = toKeyword;
+
+
+/***/ }),
+
+/***/ "./node_modules/khroma/dist/methods/to_rgba.js":
+/*!*****************************************************!*\
+  !*** ./node_modules/khroma/dist/methods/to_rgba.js ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/* IMPORT */
+Object.defineProperty(exports, "__esModule", { value: true });
+var color_1 = __webpack_require__(/*! ../color */ "./node_modules/khroma/dist/color/index.js");
+/* TO RGBA */
+function toRgba(color) {
+    return color_1.default.format.rgba.stringify(color_1.default.parse(color));
+}
+/* EXPORT */
+exports.default = toRgba;
+
+
+/***/ }),
+
 /***/ "./node_modules/khroma/dist/methods/transparentize.js":
 /*!************************************************************!*\
   !*** ./node_modules/khroma/dist/methods/transparentize.js ***!
@@ -37040,29 +38634,6 @@ function transparentize(color, amount) {
 }
 /* EXPORT */
 exports.default = transparentize;
-
-
-/***/ }),
-
-/***/ "./node_modules/khroma/dist/types.js":
-/*!*******************************************!*\
-  !*** ./node_modules/khroma/dist/types.js ***!
-  \*******************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-/* ENUMS */
-Object.defineProperty(exports, "__esModule", { value: true });
-var TYPE;
-(function (TYPE) {
-    TYPE[TYPE["ALL"] = 0] = "ALL";
-    TYPE[TYPE["RGB"] = 1] = "RGB";
-    TYPE[TYPE["HSL"] = 2] = "HSL";
-})(TYPE || (TYPE = {}));
-exports.TYPE = TYPE;
-;
 
 
 /***/ }),
@@ -37129,7 +38700,7 @@ var Channel = {
     },
     hsl2rgb: function (_a, channel) {
         var h = _a.h, s = _a.s, l = _a.l;
-        if (s === 100)
+        if (!s)
             return l * 2.55; // Achromatic
         h /= 360;
         s /= 100;
@@ -37206,6 +38777,11 @@ exports.default = Utils;
 /* LANG */
 Object.defineProperty(exports, "__esModule", { value: true });
 var Lang = {
+    clamp: function (number, lower, upper) {
+        if (lower > upper)
+            return Math.min(lower, Math.max(upper, number));
+        return Math.min(upper, Math.max(lower, number));
+    },
     round: function (number) {
         return Math.round(number * 10000000000) / 10000000000;
     }
@@ -37228,10 +38804,6 @@ exports.default = Lang;
 /* UNIT */
 Object.defineProperty(exports, "__esModule", { value: true });
 var Unit = {
-    frac2hex: function (frac) {
-        var hex = Math.round(frac * 255).toString(16);
-        return hex.length > 1 ? hex : "0" + hex;
-    },
     dec2hex: function (dec) {
         var hex = Math.round(dec).toString(16);
         return hex.length > 1 ? hex : "0" + hex;
@@ -38172,7 +39744,8 @@ var Stack = __webpack_require__(/*! ./_Stack */ "./node_modules/lodash/_Stack.js
     isMap = __webpack_require__(/*! ./isMap */ "./node_modules/lodash/isMap.js"),
     isObject = __webpack_require__(/*! ./isObject */ "./node_modules/lodash/isObject.js"),
     isSet = __webpack_require__(/*! ./isSet */ "./node_modules/lodash/isSet.js"),
-    keys = __webpack_require__(/*! ./keys */ "./node_modules/lodash/keys.js");
+    keys = __webpack_require__(/*! ./keys */ "./node_modules/lodash/keys.js"),
+    keysIn = __webpack_require__(/*! ./keysIn */ "./node_modules/lodash/keysIn.js");
 
 /** Used to compose bitmasks for cloning. */
 var CLONE_DEEP_FLAG = 1,
@@ -39688,12 +41261,14 @@ module.exports = baseMergeDeep;
 /***/ (function(module, exports, __webpack_require__) {
 
 var arrayMap = __webpack_require__(/*! ./_arrayMap */ "./node_modules/lodash/_arrayMap.js"),
+    baseGet = __webpack_require__(/*! ./_baseGet */ "./node_modules/lodash/_baseGet.js"),
     baseIteratee = __webpack_require__(/*! ./_baseIteratee */ "./node_modules/lodash/_baseIteratee.js"),
     baseMap = __webpack_require__(/*! ./_baseMap */ "./node_modules/lodash/_baseMap.js"),
     baseSortBy = __webpack_require__(/*! ./_baseSortBy */ "./node_modules/lodash/_baseSortBy.js"),
     baseUnary = __webpack_require__(/*! ./_baseUnary */ "./node_modules/lodash/_baseUnary.js"),
     compareMultiple = __webpack_require__(/*! ./_compareMultiple */ "./node_modules/lodash/_compareMultiple.js"),
-    identity = __webpack_require__(/*! ./identity */ "./node_modules/lodash/identity.js");
+    identity = __webpack_require__(/*! ./identity */ "./node_modules/lodash/identity.js"),
+    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js");
 
 /**
  * The base implementation of `_.orderBy` without param guards.
@@ -39705,8 +41280,21 @@ var arrayMap = __webpack_require__(/*! ./_arrayMap */ "./node_modules/lodash/_ar
  * @returns {Array} Returns the new sorted array.
  */
 function baseOrderBy(collection, iteratees, orders) {
+  if (iteratees.length) {
+    iteratees = arrayMap(iteratees, function(iteratee) {
+      if (isArray(iteratee)) {
+        return function(value) {
+          return baseGet(value, iteratee.length === 1 ? iteratee[0] : iteratee);
+        }
+      }
+      return iteratee;
+    });
+  } else {
+    iteratees = [identity];
+  }
+
   var index = -1;
-  iteratees = arrayMap(iteratees.length ? iteratees : [identity], baseUnary(baseIteratee));
+  iteratees = arrayMap(iteratees, baseUnary(baseIteratee));
 
   var result = baseMap(collection, function(value, key, collection) {
     var criteria = arrayMap(iteratees, function(iteratee) {
@@ -39987,6 +41575,10 @@ function baseSet(object, path, value, customizer) {
     var key = toKey(path[index]),
         newValue = value;
 
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      return object;
+    }
+
     if (index != lastIndex) {
       var objValue = nested[key];
       newValue = customizer ? customizer(objValue, key, nested) : undefined;
@@ -40147,6 +41739,36 @@ function baseToString(value) {
 }
 
 module.exports = baseToString;
+
+
+/***/ }),
+
+/***/ "./node_modules/lodash/_baseTrim.js":
+/*!******************************************!*\
+  !*** ./node_modules/lodash/_baseTrim.js ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var trimmedEndIndex = __webpack_require__(/*! ./_trimmedEndIndex */ "./node_modules/lodash/_trimmedEndIndex.js");
+
+/** Used to match leading whitespace. */
+var reTrimStart = /^\s+/;
+
+/**
+ * The base implementation of `_.trim`.
+ *
+ * @private
+ * @param {string} string The string to trim.
+ * @returns {string} Returns the trimmed string.
+ */
+function baseTrim(string) {
+  return string
+    ? string.slice(0, trimmedEndIndex(string) + 1).replace(reTrimStart, '')
+    : string;
+}
+
+module.exports = baseTrim;
 
 
 /***/ }),
@@ -41141,10 +42763,11 @@ function equalArrays(array, other, bitmask, customizer, equalFunc, stack) {
   if (arrLength != othLength && !(isPartial && othLength > arrLength)) {
     return false;
   }
-  // Assume cyclic values are equal.
-  var stacked = stack.get(array);
-  if (stacked && stack.get(other)) {
-    return stacked == other;
+  // Check that cyclic values are equal.
+  var arrStacked = stack.get(array);
+  var othStacked = stack.get(other);
+  if (arrStacked && othStacked) {
+    return arrStacked == other && othStacked == array;
   }
   var index = -1,
       result = true,
@@ -41370,10 +42993,11 @@ function equalObjects(object, other, bitmask, customizer, equalFunc, stack) {
       return false;
     }
   }
-  // Assume cyclic values are equal.
-  var stacked = stack.get(object);
-  if (stacked && stack.get(other)) {
-    return stacked == other;
+  // Check that cyclic values are equal.
+  var objStacked = stack.get(object);
+  var othStacked = stack.get(other);
+  if (objStacked && othStacked) {
+    return objStacked == other && othStacked == object;
   }
   var result = true;
   stack.set(object, other);
@@ -43671,6 +45295,36 @@ module.exports = toSource;
 
 /***/ }),
 
+/***/ "./node_modules/lodash/_trimmedEndIndex.js":
+/*!*************************************************!*\
+  !*** ./node_modules/lodash/_trimmedEndIndex.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+/** Used to match a single whitespace character. */
+var reWhitespace = /\s/;
+
+/**
+ * Used by `_.trim` and `_.trimEnd` to get the index of the last non-whitespace
+ * character of `string`.
+ *
+ * @private
+ * @param {string} string The string to inspect.
+ * @returns {number} Returns the index of the last non-whitespace character.
+ */
+function trimmedEndIndex(string) {
+  var index = string.length;
+
+  while (index-- && reWhitespace.test(string.charAt(index))) {}
+  return index;
+}
+
+module.exports = trimmedEndIndex;
+
+
+/***/ }),
+
 /***/ "./node_modules/lodash/_unicodeSize.js":
 /*!*********************************************!*\
   !*** ./node_modules/lodash/_unicodeSize.js ***!
@@ -44033,6 +45687,10 @@ var arrayFilter = __webpack_require__(/*! ./_arrayFilter */ "./node_modules/loda
  * // The `_.property` iteratee shorthand.
  * _.filter(users, 'active');
  * // => objects for ['barney']
+ *
+ * // Combining several predicates using `_.overEvery` or `_.overSome`.
+ * _.filter(users, _.overSome([{ 'age': 36 }, ['age', 40]]));
+ * // => objects for ['fred', 'barney']
  */
 function filter(collection, predicate) {
   var func = isArray(collection) ? arrayFilter : baseFilter;
@@ -46099,15 +47757,15 @@ var baseFlatten = __webpack_require__(/*! ./_baseFlatten */ "./node_modules/loda
  * var users = [
  *   { 'user': 'fred',   'age': 48 },
  *   { 'user': 'barney', 'age': 36 },
- *   { 'user': 'fred',   'age': 40 },
+ *   { 'user': 'fred',   'age': 30 },
  *   { 'user': 'barney', 'age': 34 }
  * ];
  *
  * _.sortBy(users, [function(o) { return o.user; }]);
- * // => objects for [['barney', 36], ['barney', 34], ['fred', 48], ['fred', 40]]
+ * // => objects for [['barney', 36], ['barney', 34], ['fred', 48], ['fred', 30]]
  *
  * _.sortBy(users, ['user', 'age']);
- * // => objects for [['barney', 34], ['barney', 36], ['fred', 40], ['fred', 48]]
+ * // => objects for [['barney', 34], ['barney', 36], ['fred', 30], ['fred', 48]]
  */
 var sortBy = baseRest(function(collection, iteratees) {
   if (collection == null) {
@@ -46297,14 +47955,12 @@ module.exports = toInteger;
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-var isObject = __webpack_require__(/*! ./isObject */ "./node_modules/lodash/isObject.js"),
+var baseTrim = __webpack_require__(/*! ./_baseTrim */ "./node_modules/lodash/_baseTrim.js"),
+    isObject = __webpack_require__(/*! ./isObject */ "./node_modules/lodash/isObject.js"),
     isSymbol = __webpack_require__(/*! ./isSymbol */ "./node_modules/lodash/isSymbol.js");
 
 /** Used as references for various `Number` constants. */
 var NAN = 0 / 0;
-
-/** Used to match leading and trailing whitespace. */
-var reTrim = /^\s+|\s+$/g;
 
 /** Used to detect bad signed hexadecimal string values. */
 var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
@@ -46355,7 +48011,7 @@ function toNumber(value) {
   if (typeof value != 'string') {
     return value === 0 ? value : +value;
   }
-  value = value.replace(reTrim, '');
+  value = baseTrim(value);
   var isBinary = reIsBinary.test(value);
   return (isBinary || reIsOctal.test(value))
     ? freeParseInt(value.slice(2), isBinary ? 2 : 8)
@@ -47258,1708 +48914,85 @@ process.umask = function() { return 0; };
 
 /***/ }),
 
-/***/ "./node_modules/stylis/stylis.js":
-/*!***************************************!*\
-  !*** ./node_modules/stylis/stylis.js ***!
-  \***************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/*
- *          __        ___
- *    _____/ /___  __/ (_)____
- *   / ___/ __/ / / / / / ___/
- *  (__  ) /_/ /_/ / / (__  )
- * /____/\__/\__, /_/_/____/
- *          /____/
- *
- * light - weight css preprocessor @licence MIT
- */
-(function (factory) {/* eslint-disable */
-	 true ? (module['exports'] = factory(null)) :
-		undefined
-}(/** @param {*=} options */function factory (options) {/* eslint-disable */
-
-	'use strict'
-
-	/**
-	 * Notes
-	 *
-	 * The ['<method name>'] pattern is used to support closure compiler
-	 * the jsdoc signatures are also used to the same effect
-	 *
-	 * ----
-	 *
-	 * int + int + int === n4 [faster]
-	 *
-	 * vs
-	 *
-	 * int === n1 && int === n2 && int === n3
-	 *
-	 * ----
-	 *
-	 * switch (int) { case ints...} [faster]
-	 *
-	 * vs
-	 *
-	 * if (int == 1 && int === 2 ...)
-	 *
-	 * ----
-	 *
-	 * The (first*n1 + second*n2 + third*n3) format used in the property parser
-	 * is a simple way to hash the sequence of characters
-	 * taking into account the index they occur in
-	 * since any number of 3 character sequences could produce duplicates.
-	 *
-	 * On the other hand sequences that are directly tied to the index of the character
-	 * resolve a far more accurate measure, it's also faster
-	 * to evaluate one condition in a switch statement
-	 * than three in an if statement regardless of the added math.
-	 *
-	 * This allows the vendor prefixer to be both small and fast.
-	 */
-
-	var nullptn = /^\0+/g /* matches leading null characters */
-	var formatptn = /[\0\r\f]/g /* matches new line, null and formfeed characters */
-	var colonptn = /: */g /* splits animation rules */
-	var cursorptn = /zoo|gra/ /* assert cursor varient */
-	var transformptn = /([,: ])(transform)/g /* vendor prefix transform, older webkit */
-	var animationptn = /,+\s*(?![^(]*[)])/g /* splits multiple shorthand notation animations */
-	var propertiesptn = / +\s*(?![^(]*[)])/g /* animation properties */
-	var elementptn = / *[\0] */g /* selector elements */
-	var selectorptn = /,\r+?/g /* splits selectors */
-	var andptn = /([\t\r\n ])*\f?&/g /* match & */
-	var escapeptn = /:global\(((?:[^\(\)\[\]]*|\[.*\]|\([^\(\)]*\))*)\)/g /* matches :global(.*) */
-	var invalidptn = /\W+/g /* removes invalid characters from keyframes */
-	var keyframeptn = /@(k\w+)\s*(\S*)\s*/ /* matches @keyframes $1 */
-	var plcholdrptn = /::(place)/g /* match ::placeholder varient */
-	var readonlyptn = /:(read-only)/g /* match :read-only varient */
-	var beforeptn = /\s+(?=[{\];=:>])/g /* matches \s before ] ; = : */
-	var afterptn = /([[}=:>])\s+/g /* matches \s after characters [ } = : */
-	var tailptn = /(\{[^{]+?);(?=\})/g /* matches tail semi-colons ;} */
-	var whiteptn = /\s{2,}/g /* matches repeating whitespace */
-	var pseudoptn = /([^\(])(:+) */g /* pseudo element */
-	var writingptn = /[svh]\w+-[tblr]{2}/ /* match writing mode property values */
-	var gradientptn = /([\w-]+t\()/g /* match *gradient property */
-	var supportsptn = /\(\s*(.*)\s*\)/g /* match supports (groups) */
-	var propertyptn = /([\s\S]*?);/g /* match properties leading semicolon */
-	var selfptn = /-self|flex-/g /* match flex- and -self in align-self: flex-*; */
-	var pseudofmt = /[^]*?(:[rp][el]a[\w-]+)[^]*/ /* extrats :readonly or :placholder from selector */
-	var trimptn = /[ \t]+$/ /* match tail whitspace */
-	var dimensionptn = /stretch|:\s*\w+\-(?:conte|avail)/ /* match max/min/fit-content, fill-available */
-	var imgsrcptn = /([^-])(image-set\()/
-
-	/* vendors */
-	var webkit = '-webkit-'
-	var moz = '-moz-'
-	var ms = '-ms-'
-
-	/* character codes */
-	var SEMICOLON = 59 /* ; */
-	var CLOSEBRACES = 125 /* } */
-	var OPENBRACES = 123 /* { */
-	var OPENPARENTHESES = 40 /* ( */
-	var CLOSEPARENTHESES = 41 /* ) */
-	var OPENBRACKET = 91 /* [ */
-	var CLOSEBRACKET = 93 /* ] */
-	var NEWLINE = 10 /* \n */
-	var CARRIAGE = 13 /* \r */
-	var TAB = 9 /* \t */
-	var AT = 64 /* @ */
-	var SPACE = 32 /*   */
-	var AND = 38 /* & */
-	var DASH = 45 /* - */
-	var UNDERSCORE = 95 /* _ */
-	var STAR = 42 /* * */
-	var COMMA = 44 /* , */
-	var COLON = 58 /* : */
-	var SINGLEQUOTE = 39 /* ' */
-	var DOUBLEQUOTE = 34 /* " */
-	var FOWARDSLASH = 47 /* / */
-	var GREATERTHAN = 62 /* > */
-	var PLUS = 43 /* + */
-	var TILDE = 126 /* ~ */
-	var NULL = 0 /* \0 */
-	var FORMFEED = 12 /* \f */
-	var VERTICALTAB = 11 /* \v */
-
-	/* special identifiers */
-	var KEYFRAME = 107 /* k */
-	var MEDIA = 109 /* m */
-	var SUPPORTS = 115 /* s */
-	var PLACEHOLDER = 112 /* p */
-	var READONLY = 111 /* o */
-	var IMPORT = 105 /* <at>i */
-	var CHARSET = 99 /* <at>c */
-	var DOCUMENT = 100 /* <at>d */
-	var PAGE = 112 /* <at>p */
-
-	var column = 1 /* current column */
-	var line = 1 /* current line numebr */
-	var pattern = 0 /* :pattern */
-
-	var cascade = 1 /* #id h1 h2 vs h1#id h2#id  */
-	var prefix = 1 /* vendor prefix */
-	var escape = 1 /* escape :global() pattern */
-	var compress = 0 /* compress output */
-	var semicolon = 0 /* no/semicolon option */
-	var preserve = 0 /* preserve empty selectors */
-
-	/* empty reference */
-	var array = []
-
-	/* plugins */
-	var plugins = []
-	var plugged = 0
-	var should = null
-
-	/* plugin context */
-	var POSTS = -2
-	var PREPS = -1
-	var UNKWN = 0
-	var PROPS = 1
-	var BLCKS = 2
-	var ATRUL = 3
-
-	/* plugin newline context */
-	var unkwn = 0
-
-	/* keyframe animation */
-	var keyed = 1
-	var key = ''
-
-	/* selector namespace */
-	var nscopealt = ''
-	var nscope = ''
-
-	/**
-	 * Compile
-	 *
-	 * @param {Array<string>} parent
-	 * @param {Array<string>} current
-	 * @param {string} body
-	 * @param {number} id
-	 * @param {number} depth
-	 * @return {string}
-	 */
-	function compile (parent, current, body, id, depth) {
-		var bracket = 0 /* brackets [] */
-		var comment = 0 /* comments /* // or /* */
-		var parentheses = 0 /* functions () */
-		var quote = 0 /* quotes '', "" */
-
-		var first = 0 /* first character code */
-		var second = 0 /* second character code */
-		var code = 0 /* current character code */
-		var tail = 0 /* previous character code */
-		var trail = 0 /* character before previous code */
-		var peak = 0 /* previous non-whitespace code */
-
-		var counter = 0 /* count sequence termination */
-		var context = 0 /* track current context */
-		var atrule = 0 /* track @at-rule context */
-		var pseudo = 0 /* track pseudo token index */
-		var caret = 0 /* current character index */
-		var format = 0 /* control character formating context */
-		var insert = 0 /* auto semicolon insertion */
-		var invert = 0 /* inverted selector pattern */
-		var length = 0 /* generic length address */
-		var eof = body.length /* end of file(length) */
-		var eol = eof - 1 /* end of file(characters) */
-
-		var char = '' /* current character */
-		var chars = '' /* current buffer of characters */
-		var child = '' /* next buffer of characters */
-		var out = '' /* compiled body */
-		var children = '' /* compiled children */
-		var flat = '' /* compiled leafs */
-		var selector /* generic selector address */
-		var result /* generic address */
-
-		// ...build body
-		while (caret < eof) {
-			code = body.charCodeAt(caret)
-
-			// eof varient
-			if (caret === eol) {
-				// last character + noop context, add synthetic padding for noop context to terminate
-				if (comment + quote + parentheses + bracket !== 0) {
-					if (comment !== 0) {
-						code = comment === FOWARDSLASH ? NEWLINE : FOWARDSLASH
-					}
-
-					quote = parentheses = bracket = 0
-					eof++
-					eol++
-				}
-			}
-
-			if (comment + quote + parentheses + bracket === 0) {
-				// eof varient
-				if (caret === eol) {
-					if (format > 0) {
-						chars = chars.replace(formatptn, '')
-					}
-
-					if (chars.trim().length > 0) {
-						switch (code) {
-							case SPACE:
-							case TAB:
-							case SEMICOLON:
-							case CARRIAGE:
-							case NEWLINE: {
-								break
-							}
-							default: {
-								chars += body.charAt(caret)
-							}
-						}
-
-						code = SEMICOLON
-					}
-				}
-
-				// auto semicolon insertion
-				if (insert === 1) {
-					switch (code) {
-						// false flags
-						case OPENBRACES:
-						case CLOSEBRACES:
-						case SEMICOLON:
-						case DOUBLEQUOTE:
-						case SINGLEQUOTE:
-						case OPENPARENTHESES:
-						case CLOSEPARENTHESES:
-						case COMMA: {
-							insert = 0
-						}
-						// ignore
-						case TAB:
-						case CARRIAGE:
-						case NEWLINE:
-						case SPACE: {
-							break
-						}
-						// valid
-						default: {
-							insert = 0
-							length = caret
-							first = code
-							caret--
-							code = SEMICOLON
-
-							while (length < eof) {
-								switch (body.charCodeAt(length++)) {
-									case NEWLINE:
-									case CARRIAGE:
-									case SEMICOLON: {
-										++caret
-										code = first
-										length = eof
-										break
-									}
-									case COLON: {
-										if (format > 0) {
-											++caret
-											code = first
-										}
-									}
-									case OPENBRACES: {
-										length = eof
-									}
-								}
-							}
-						}
-					}
-				}
-
-				// token varient
-				switch (code) {
-					case OPENBRACES: {
-						chars = chars.trim()
-						first = chars.charCodeAt(0)
-						counter = 1
-						length = ++caret
-
-						while (caret < eof) {
-							switch (code = body.charCodeAt(caret)) {
-								case OPENBRACES: {
-									counter++
-									break
-								}
-								case CLOSEBRACES: {
-									counter--
-									break
-								}
-								case FOWARDSLASH: {
-									switch (second = body.charCodeAt(caret + 1)) {
-										// /*, //
-										case STAR:
-										case FOWARDSLASH: {
-											caret = delimited(second, caret, eol, body)
-										}
-									}
-									break
-								}
-								// given "[" === 91 & "]" === 93 hence forth 91 + 1 + 1 === 93
-								case OPENBRACKET: {
-									code++
-								}
-								// given "(" === 40 & ")" === 41 hence forth 40 + 1 === 41
-								case OPENPARENTHESES: {
-									code++
-								}
-								// quote tail delimiter is identical to the head delimiter hence noop,
-								// fallthrough clauses have been shifted to the correct tail delimiter
-								case DOUBLEQUOTE:
-								case SINGLEQUOTE: {
-									while (caret++ < eol) {
-										if (body.charCodeAt(caret) === code) {
-											break
-										}
-									}
-								}
-							}
-
-							if (counter === 0) {
-								break
-							}
-
-							caret++
-						}
-
-						child = body.substring(length, caret)
-
-						if (first === NULL) {
-							first = (chars = chars.replace(nullptn, '').trim()).charCodeAt(0)
-						}
-
-						switch (first) {
-							// @at-rule
-							case AT: {
-								if (format > 0) {
-									chars = chars.replace(formatptn, '')
-								}
-
-								second = chars.charCodeAt(1)
-
-								switch (second) {
-									case DOCUMENT:
-									case MEDIA:
-									case SUPPORTS:
-									case DASH: {
-										selector = current
-										break
-									}
-									default: {
-										selector = array
-									}
-								}
-
-								child = compile(current, selector, child, second, depth+1)
-								length = child.length
-
-								// preserve empty @at-rule
-								if (preserve > 0 && length === 0) {
-									length = chars.length
-								}
-
-								// execute plugins, @at-rule context
-								if (plugged > 0) {
-									selector = select(array, chars, invert)
-									result = proxy(ATRUL, child, selector, current, line, column, length, second, depth, id)
-									chars = selector.join('')
-
-									if (result !== void 0) {
-										if ((length = (child = result.trim()).length) === 0) {
-											second = 0
-											child = ''
-										}
-									}
-								}
-
-								if (length > 0) {
-									switch (second) {
-										case SUPPORTS: {
-											chars = chars.replace(supportsptn, supports)
-										}
-										case DOCUMENT:
-										case MEDIA:
-										case DASH: {
-											child = chars + '{' + child + '}'
-											break
-										}
-										case KEYFRAME: {
-											chars = chars.replace(keyframeptn, '$1 $2' + (keyed > 0 ? key : ''))
-											child = chars + '{' + child + '}'
-
-											if (prefix === 1 || (prefix === 2 && vendor('@'+child, 3))) {
-												child = '@' + webkit + child + '@' + child
-											} else {
-												child = '@' + child
-											}
-											break
-										}
-										default: {
-											child = chars + child
-
-											if (id === PAGE) {
-												child = (out += child, '')
-											}
-										}
-									}
-								} else {
-									child = ''
-								}
-
-								break
-							}
-							// selector
-							default: {
-								child = compile(current, select(current, chars, invert), child, id, depth+1)
-							}
-						}
-
-						children += child
-
-						// reset
-						context = 0
-						insert = 0
-						pseudo = 0
-						format = 0
-						invert = 0
-						atrule = 0
-						chars = ''
-						child = ''
-						code = body.charCodeAt(++caret)
-						break
-					}
-					case CLOSEBRACES:
-					case SEMICOLON: {
-						chars = (format > 0 ? chars.replace(formatptn, '') : chars).trim()
-
-						if ((length = chars.length) > 1) {
-							// monkey-patch missing colon
-							if (pseudo === 0) {
-								first = chars.charCodeAt(0)
-
-								// first character is a letter or dash, buffer has a space character
-								if ((first === DASH || first > 96 && first < 123)) {
-									length = (chars = chars.replace(' ', ':')).length
-								}
-							}
-
-							// execute plugins, property context
-							if (plugged > 0) {
-								if ((result = proxy(PROPS, chars, current, parent, line, column, out.length, id, depth, id)) !== void 0) {
-									if ((length = (chars = result.trim()).length) === 0) {
-										chars = '\0\0'
-									}
-								}
-							}
-
-							first = chars.charCodeAt(0)
-							second = chars.charCodeAt(1)
-
-							switch (first) {
-								case NULL: {
-									break
-								}
-								case AT: {
-									if (second === IMPORT || second === CHARSET) {
-										flat += chars + body.charAt(caret)
-										break
-									}
-								}
-								default: {
-									if (chars.charCodeAt(length-1) === COLON) {
-										break
-									}
-
-									out += property(chars, first, second, chars.charCodeAt(2))
-								}
-							}
-						}
-
-						// reset
-						context = 0
-						insert = 0
-						pseudo = 0
-						format = 0
-						invert = 0
-						chars = ''
-						code = body.charCodeAt(++caret)
-						break
-					}
-				}
-			}
-
-			// parse characters
-			switch (code) {
-				case CARRIAGE:
-				case NEWLINE: {
-					// auto insert semicolon
-					if (comment + quote + parentheses + bracket + semicolon === 0) {
-						// valid non-whitespace characters that
-						// may precede a newline
-						switch (peak) {
-							case CLOSEPARENTHESES:
-							case SINGLEQUOTE:
-							case DOUBLEQUOTE:
-							case AT:
-							case TILDE:
-							case GREATERTHAN:
-							case STAR:
-							case PLUS:
-							case FOWARDSLASH:
-							case DASH:
-							case COLON:
-							case COMMA:
-							case SEMICOLON:
-							case OPENBRACES:
-							case CLOSEBRACES: {
-								break
-							}
-							default: {
-								// current buffer has a colon
-								if (pseudo > 0) {
-									insert = 1
-								}
-							}
-						}
-					}
-
-					// terminate line comment
-					if (comment === FOWARDSLASH) {
-						comment = 0
-					} else if (cascade + context === 0 && id !== KEYFRAME && chars.length > 0) {
-						format = 1
-						chars += '\0'
-					}
-
-					// execute plugins, newline context
-					if (plugged * unkwn > 0) {
-						proxy(UNKWN, chars, current, parent, line, column, out.length, id, depth, id)
-					}
-
-					// next line, reset column position
-					column = 1
-					line++
-					break
-				}
-				case SEMICOLON:
-				case CLOSEBRACES: {
-					if (comment + quote + parentheses + bracket === 0) {
-						column++
-						break
-					}
-				}
-				default: {
-					// increment column position
-					column++
-
-					// current character
-					char = body.charAt(caret)
-
-					// remove comments, escape functions, strings, attributes and prepare selectors
-					switch (code) {
-						case TAB:
-						case SPACE: {
-							if (quote + bracket + comment === 0) {
-								switch (tail) {
-									case COMMA:
-									case COLON:
-									case TAB:
-									case SPACE: {
-										char = ''
-										break
-									}
-									default: {
-										if (code !== SPACE) {
-											char = ' '
-										}
-									}
-								}
-							}
-							break
-						}
-						// escape breaking control characters
-						case NULL: {
-							char = '\\0'
-							break
-						}
-						case FORMFEED: {
-							char = '\\f'
-							break
-						}
-						case VERTICALTAB: {
-							char = '\\v'
-							break
-						}
-						// &
-						case AND: {
-							// inverted selector pattern i.e html &
-							if (quote + comment + bracket === 0 && cascade > 0) {
-								invert = 1
-								format = 1
-								char = '\f' + char
-							}
-							break
-						}
-						// ::p<l>aceholder, l
-						// :read-on<l>y, l
-						case 108: {
-							if (quote + comment + bracket + pattern === 0 && pseudo > 0) {
-								switch (caret - pseudo) {
-									// ::placeholder
-									case 2: {
-										if (tail === PLACEHOLDER && body.charCodeAt(caret-3) === COLON) {
-											pattern = tail
-										}
-									}
-									// :read-only
-									case 8: {
-										if (trail === READONLY) {
-											pattern = trail
-										}
-									}
-								}
-							}
-							break
-						}
-						// :<pattern>
-						case COLON: {
-							if (quote + comment + bracket === 0) {
-								pseudo = caret
-							}
-							break
-						}
-						// selectors
-						case COMMA: {
-							if (comment + parentheses + quote + bracket === 0) {
-								format = 1
-								char += '\r'
-							}
-							break
-						}
-						// quotes
-						case DOUBLEQUOTE:
-						case SINGLEQUOTE: {
-							if (comment === 0) {
-								quote = quote === code ? 0 : (quote === 0 ? code : quote)
-							}
-							break
-						}
-						// attributes
-						case OPENBRACKET: {
-							if (quote + comment + parentheses === 0) {
-								bracket++
-							}
-							break
-						}
-						case CLOSEBRACKET: {
-							if (quote + comment + parentheses === 0) {
-								bracket--
-							}
-							break
-						}
-						// functions
-						case CLOSEPARENTHESES: {
-							if (quote + comment + bracket === 0) {
-								parentheses--
-							}
-							break
-						}
-						case OPENPARENTHESES: {
-							if (quote + comment + bracket === 0) {
-								if (context === 0) {
-									switch (tail*2 + trail*3) {
-										// :matches
-										case 533: {
-											break
-										}
-										// :global, :not, :nth-child etc...
-										default: {
-											counter = 0
-											context = 1
-										}
-									}
-								}
-
-								parentheses++
-							}
-							break
-						}
-						case AT: {
-							if (comment + parentheses + quote + bracket + pseudo + atrule === 0) {
-								atrule = 1
-							}
-							break
-						}
-						// block/line comments
-						case STAR:
-						case FOWARDSLASH: {
-							if (quote + bracket + parentheses > 0) {
-								break
-							}
-
-							switch (comment) {
-								// initialize line/block comment context
-								case 0: {
-									switch (code*2 + body.charCodeAt(caret+1)*3) {
-										// //
-										case 235: {
-											comment = FOWARDSLASH
-											break
-										}
-										// /*
-										case 220: {
-											length = caret
-											comment = STAR
-											break
-										}
-									}
-									break
-								}
-								// end block comment context
-								case STAR: {
-									if (code === FOWARDSLASH && tail === STAR && length + 2 !== caret) {
-										// /*<!> ... */, !
-										if (body.charCodeAt(length+2) === 33) {
-											out += body.substring(length, caret+1)
-										}
-										char = ''
-										comment = 0
-									}
-								}
-							}
-						}
-					}
-
-					// ignore comment blocks
-					if (comment === 0) {
-						// aggressive isolation mode, divide each individual selector
-						// including selectors in :not function but excluding selectors in :global function
-						if (cascade + quote + bracket + atrule === 0 && id !== KEYFRAME && code !== SEMICOLON) {
-							switch (code) {
-								case COMMA:
-								case TILDE:
-								case GREATERTHAN:
-								case PLUS:
-								case CLOSEPARENTHESES:
-								case OPENPARENTHESES: {
-									if (context === 0) {
-										// outside of an isolated context i.e nth-child(<...>)
-										switch (tail) {
-											case TAB:
-											case SPACE:
-											case NEWLINE:
-											case CARRIAGE: {
-												char = char + '\0'
-												break
-											}
-											default: {
-												char = '\0' + char + (code === COMMA ? '' : '\0')
-											}
-										}
-										format = 1
-									} else {
-										// within an isolated context, sleep untill it's terminated
-										switch (code) {
-											case OPENPARENTHESES: {
-												// :globa<l>(
-												if (pseudo + 7 === caret && tail === 108) {
-													pseudo = 0
-												}
-												context = ++counter
-												break
-											}
-											case CLOSEPARENTHESES: {
-												if ((context = --counter) === 0) {
-													format = 1
-													char += '\0'
-												}
-												break
-											}
-										}
-									}
-									break
-								}
-								case TAB:
-								case SPACE: {
-									switch (tail) {
-										case NULL:
-										case OPENBRACES:
-										case CLOSEBRACES:
-										case SEMICOLON:
-										case COMMA:
-										case FORMFEED:
-										case TAB:
-										case SPACE:
-										case NEWLINE:
-										case CARRIAGE: {
-											break
-										}
-										default: {
-											// ignore in isolated contexts
-											if (context === 0) {
-												format = 1
-												char += '\0'
-											}
-										}
-									}
-								}
-							}
-						}
-
-						// concat buffer of characters
-						chars += char
-
-						// previous non-whitespace character code
-						if (code !== SPACE && code !== TAB) {
-							peak = code
-						}
-					}
-				}
-			}
-
-			// tail character codes
-			trail = tail
-			tail = code
-
-			// visit every character
-			caret++
-		}
-
-		length = out.length
-
-		// preserve empty selector
- 		if (preserve > 0) {
- 			if (length === 0 && children.length === 0 && (current[0].length === 0) === false) {
- 				if (id !== MEDIA || (current.length === 1 && (cascade > 0 ? nscopealt : nscope) === current[0])) {
-					length = current.join(',').length + 2
- 				}
- 			}
-		}
-
-		if (length > 0) {
-			// cascade isolation mode?
-			selector = cascade === 0 && id !== KEYFRAME ? isolate(current) : current
-
-			// execute plugins, block context
-			if (plugged > 0) {
-				result = proxy(BLCKS, out, selector, parent, line, column, length, id, depth, id)
-
-				if (result !== void 0 && (out = result).length === 0) {
-					return flat + out + children
-				}
-			}
-
-			out = selector.join(',') + '{' + out + '}'
-
-			if (prefix*pattern !== 0) {
-				if (prefix === 2 && !vendor(out, 2))
-					pattern = 0
-
-				switch (pattern) {
-					// ::read-only
-					case READONLY: {
-						out = out.replace(readonlyptn, ':'+moz+'$1')+out
-						break
-					}
-					// ::placeholder
-					case PLACEHOLDER: {
-						out = (
-							out.replace(plcholdrptn, '::' + webkit + 'input-$1') +
-							out.replace(plcholdrptn, '::' + moz + '$1') +
-							out.replace(plcholdrptn, ':' + ms + 'input-$1') + out
-						)
-						break
-					}
-				}
-
-				pattern = 0
-			}
-		}
-
-		return flat + out + children
-	}
-
-	/**
-	 * Select
-	 *
-	 * @param {Array<string>} parent
-	 * @param {string} current
-	 * @param {number} invert
-	 * @return {Array<string>}
-	 */
-	function select (parent, current, invert) {
-		var selectors = current.trim().split(selectorptn)
-		var out = selectors
-
-		var length = selectors.length
-		var l = parent.length
-
-		switch (l) {
-			// 0-1 parent selectors
-			case 0:
-			case 1: {
-				for (var i = 0, selector = l === 0 ? '' : parent[0] + ' '; i < length; ++i) {
-					out[i] = scope(selector, out[i], invert, l).trim()
-				}
-				break
-			}
-			// >2 parent selectors, nested
-			default: {
-				for (var i = 0, j = 0, out = []; i < length; ++i) {
-					for (var k = 0; k < l; ++k) {
-						out[j++] = scope(parent[k] + ' ', selectors[i], invert, l).trim()
-					}
-				}
-			}
-		}
-
-		return out
-	}
-
-	/**
-	 * Scope
-	 *
-	 * @param {string} parent
-	 * @param {string} current
-	 * @param {number} invert
-	 * @param {number} level
-	 * @return {string}
-	 */
-	function scope (parent, current, invert, level) {
-		var selector = current
-		var code = selector.charCodeAt(0)
-
-		// trim leading whitespace
-		if (code < 33) {
-			code = (selector = selector.trim()).charCodeAt(0)
-		}
-
-		switch (code) {
-			// &
-			case AND: {
-				switch (cascade + level) {
-					case 0:
-					case 1: {
-						if (parent.trim().length === 0) {
-							break
-						}
-					}
-					default: {
-						return selector.replace(andptn, '$1'+parent.trim())
-					}
-				}
-				break
-			}
-			// :
-			case COLON: {
-				switch (selector.charCodeAt(1)) {
-					// g in :global
-					case 103: {
-						if (escape > 0 && cascade > 0) {
-							return selector.replace(escapeptn, '$1').replace(andptn, '$1'+nscope)
-						}
-						break
-					}
-					default: {
-						// :hover
-						return parent.trim() + selector.replace(andptn, '$1'+parent.trim())
-					}
-				}
-			}
-			default: {
-				// html &
-				if (invert*cascade > 0 && selector.indexOf('\f') > 0) {
-					return selector.replace(andptn, (parent.charCodeAt(0) === COLON ? '' : '$1')+parent.trim())
-				}
-			}
-		}
-
-		return parent + selector
-	}
-
-	/**
-	 * Property
-	 *
-	 * @param {string} input
-	 * @param {number} first
-	 * @param {number} second
-	 * @param {number} third
-	 * @return {string}
-	 */
-	function property (input, first, second, third) {
-		var index = 0
-		var out = input + ';'
-		var hash = (first*2) + (second*3) + (third*4)
-		var cache
-
-		// animation: a, n, i characters
-		if (hash === 944) {
-			return animation(out)
-		} else if (prefix === 0 || (prefix === 2 && !vendor(out, 1))) {
-			return out
-		}
-
-		// vendor prefix
-		switch (hash) {
-			// text-decoration/text-size-adjust/text-shadow/text-align/text-transform: t, e, x
-			case 1015: {
-				// text-shadow/text-align/text-transform, a
-				return out.charCodeAt(10) === 97 ? webkit + out + out : out
-			}
-			// filter/fill f, i, l
-			case 951: {
-				// filter, t
-				return out.charCodeAt(3) === 116 ? webkit + out + out : out
-			}
-			// color/column, c, o, l
-			case 963: {
-				// column, n
-				return out.charCodeAt(5) === 110 ? webkit + out + out : out
-			}
-			// box-decoration-break, b, o, x
-			case 1009: {
-				if (out.charCodeAt(4) !== 100) {
-					break
-				}
-			}
-			// mask, m, a, s
-			// clip-path, c, l, i
-			case 969:
-			case 942: {
-				return webkit + out + out
-			}
-			// appearance: a, p, p
-			case 978: {
-				return webkit + out + moz + out + out
-			}
-			// hyphens: h, y, p
-			// user-select: u, s, e
-			case 1019:
-			case 983: {
-				return webkit + out + moz + out + ms + out + out
-			}
-			// background/backface-visibility, b, a, c
-			case 883: {
-				// backface-visibility, -
-				if (out.charCodeAt(8) === DASH) {
-					return webkit + out + out
-				}
-
-				// image-set(...)
-				if (out.indexOf('image-set(', 11) > 0) {
-					return out.replace(imgsrcptn, '$1'+webkit+'$2') + out
-				}
-
-				return out
-			}
-			// flex: f, l, e
-			case 932: {
-				if (out.charCodeAt(4) === DASH) {
-					switch (out.charCodeAt(5)) {
-						// flex-grow, g
-						case 103: {
-							return webkit + 'box-' + out.replace('-grow', '') + webkit + out + ms + out.replace('grow', 'positive') + out
-						}
-						// flex-shrink, s
-						case 115: {
-							return webkit + out + ms + out.replace('shrink', 'negative') + out
-						}
-						// flex-basis, b
-						case 98: {
-							return webkit + out + ms + out.replace('basis', 'preferred-size') + out
-						}
-					}
-				}
-
-				return webkit + out + ms + out + out
-			}
-			// order: o, r, d
-			case 964: {
-				return webkit + out + ms + 'flex' + '-' + out + out
-			}
-			// justify-items/justify-content, j, u, s
-			case 1023: {
-				// justify-content, c
-				if (out.charCodeAt(8) !== 99) {
-					break
-				}
-
-				cache = out.substring(out.indexOf(':', 15)).replace('flex-', '').replace('space-between', 'justify')
-				return webkit + 'box-pack' + cache + webkit + out + ms + 'flex-pack' + cache + out
-			}
-			// cursor, c, u, r
-			case 1005: {
-				return cursorptn.test(out) ? out.replace(colonptn, ':' + webkit) + out.replace(colonptn, ':' + moz) + out : out
-			}
-			// writing-mode, w, r, i
-			case 1000: {
-				cache = out.substring(13).trim()
-				index = cache.indexOf('-') + 1
-
-				switch (cache.charCodeAt(0)+cache.charCodeAt(index)) {
-					// vertical-lr
-					case 226: {
-						cache = out.replace(writingptn, 'tb')
-						break
-					}
-					// vertical-rl
-					case 232: {
-						cache = out.replace(writingptn, 'tb-rl')
-						break
-					}
-					// horizontal-tb
-					case 220: {
-						cache = out.replace(writingptn, 'lr')
-						break
-					}
-					default: {
-						return out
-					}
-				}
-
-				return webkit + out + ms + cache + out
-			}
-			// position: sticky
-			case 1017: {
-				if (out.indexOf('sticky', 9) === -1) {
-					return out
-				}
-			}
-			// display(flex/inline-flex/inline-box): d, i, s
-			case 975: {
-				index = (out = input).length - 10
-				cache = (out.charCodeAt(index) === 33 ? out.substring(0, index) : out).substring(input.indexOf(':', 7) + 1).trim()
-
-				switch (hash = cache.charCodeAt(0) + (cache.charCodeAt(7)|0)) {
-					// inline-
-					case 203: {
-						// inline-box
-						if (cache.charCodeAt(8) < 111) {
-							break
-						}
-					}
-					// inline-box/sticky
-					case 115: {
-						out = out.replace(cache, webkit+cache)+';'+out
-						break
-					}
-					// inline-flex
-					// flex
-					case 207:
-					case 102: {
-						out = (
-							out.replace(cache, webkit+(hash > 102 ? 'inline-' : '')+'box')+';'+
-							out.replace(cache, webkit+cache)+';'+
-							out.replace(cache, ms+cache+'box')+';'+
-							out
-						)
-					}
-				}
-
-				return out + ';'
-			}
-			// align-items, align-center, align-self: a, l, i, -
-			case 938: {
-				if (out.charCodeAt(5) === DASH) {
-					switch (out.charCodeAt(6)) {
-						// align-items, i
-						case 105: {
-							cache = out.replace('-items', '')
-							return webkit + out + webkit + 'box-' + cache + ms + 'flex-' + cache + out
-						}
-						// align-self, s
-						case 115: {
-							return webkit + out + ms + 'flex-item-' + out.replace(selfptn, '') + out
-						}
-						// align-content
-						default: {
-							return webkit + out + ms + 'flex-line-pack' + out.replace('align-content', '').replace(selfptn, '') + out
-						}
-					}
-				}
-				break
-			}
-			// min/max
-			case 973:
-			case 989: {
-				// min-/max- height/width/block-size/inline-size
-				if (out.charCodeAt(3) !== DASH || out.charCodeAt(4) === 122) {
-					break
-				}
-			}
-			// height/width: min-content / width: max-content
-			case 931:
-			case 953: {
-				if (dimensionptn.test(input) === true) {
-					// stretch
-					if ((cache = input.substring(input.indexOf(':') + 1)).charCodeAt(0) === 115)
-						return property(input.replace('stretch', 'fill-available'), first, second, third).replace(':fill-available', ':stretch')
-					else
-						return out.replace(cache, webkit + cache) + out.replace(cache, moz + cache.replace('fill-', '')) + out
-				}
-				break
-			}
-			// transform, transition: t, r, a
-			case 962: {
-				out = webkit + out + (out.charCodeAt(5) === 102 ? ms + out : '') + out
-
-				// transitions
-				if (second + third === 211 && out.charCodeAt(13) === 105 && out.indexOf('transform', 10) > 0) {
-					return out.substring(0, out.indexOf(';', 27) + 1).replace(transformptn, '$1' + webkit + '$2') + out
-				}
-
-				break
-			}
-		}
-
-		return out
-	}
-
-	/**
-	 * Vendor
-	 *
-	 * @param {string} content
-	 * @param {number} context
-	 * @return {boolean}
-	 */
-	function vendor (content, context) {
-		var index = content.indexOf(context === 1 ? ':' : '{')
-		var key = content.substring(0, context !== 3 ? index : 10)
-		var value = content.substring(index + 1, content.length - 1)
-
-		return should(context !== 2 ? key : key.replace(pseudofmt, '$1'), value, context)
-	}
-
-	/**
-	 * Supports
-	 *
-	 * @param {string} match
-	 * @param {string} group
-	 * @return {string}
-	 */
-	function supports (match, group) {
-		var out = property(group, group.charCodeAt(0), group.charCodeAt(1), group.charCodeAt(2))
-
-		return out !== group+';' ? out.replace(propertyptn, ' or ($1)').substring(4) : '('+group+')'
-	}
-
-	/**
-	 * Animation
-	 *
-	 * @param {string} input
-	 * @return {string}
-	 */
-	function animation (input) {
-		var length = input.length
-		var index = input.indexOf(':', 9) + 1
-		var declare = input.substring(0, index).trim()
-		var out = input.substring(index, length-1).trim()
-
-		switch (input.charCodeAt(9)*keyed) {
-			case 0: {
-				break
-			}
-			// animation-*, -
-			case DASH: {
-				// animation-name, n
-				if (input.charCodeAt(10) !== 110) {
-					break
-				}
-			}
-			// animation/animation-name
-			default: {
-				// split in case of multiple animations
-				var list = out.split((out = '', animationptn))
-
-				for (var i = 0, index = 0, length = list.length; i < length; index = 0, ++i) {
-					var value = list[i]
-					var items = value.split(propertiesptn)
-
-					while (value = items[index]) {
-						var peak = value.charCodeAt(0)
-
-						if (keyed === 1 && (
-							// letters
-							(peak > AT && peak < 90) || (peak > 96 && peak < 123) || peak === UNDERSCORE ||
-							// dash but not in sequence i.e --
-							(peak === DASH && value.charCodeAt(1) !== DASH)
-						)) {
-							// not a number/function
-							switch (isNaN(parseFloat(value)) + (value.indexOf('(') !== -1)) {
-								case 1: {
-									switch (value) {
-										// not a valid reserved keyword
-										case 'infinite': case 'alternate': case 'backwards': case 'running':
-										case 'normal': case 'forwards': case 'both': case 'none': case 'linear':
-										case 'ease': case 'ease-in': case 'ease-out': case 'ease-in-out':
-										case 'paused': case 'reverse': case 'alternate-reverse': case 'inherit':
-										case 'initial': case 'unset': case 'step-start': case 'step-end': {
-											break
-										}
-										default: {
-											value += key
-										}
-									}
-								}
-							}
-						}
-
-						items[index++] = value
-					}
-
-					out += (i === 0 ? '' : ',') + items.join(' ')
-				}
-			}
-		}
-
-		out = declare + out + ';'
-
-		if (prefix === 1 || (prefix === 2 && vendor(out, 1)))
-			return webkit + out + out
-
-		return out
-	}
-
-	/**
-	 * Isolate
-	 *
-	 * @param {Array<string>} current
-	 */
-	function isolate (current) {
-		for (var i = 0, length = current.length, selector = Array(length), padding, element; i < length; ++i) {
-			// split individual elements in a selector i.e h1 h2 === [h1, h2]
-			var elements = current[i].split(elementptn)
-			var out = ''
-
-			for (var j = 0, size = 0, tail = 0, code = 0, l = elements.length; j < l; ++j) {
-				// empty element
-				if ((size = (element = elements[j]).length) === 0 && l > 1) {
-					continue
-				}
-
-				tail = out.charCodeAt(out.length-1)
-				code = element.charCodeAt(0)
-				padding = ''
-
-				if (j !== 0) {
-					// determine if we need padding
-					switch (tail) {
-						case STAR:
-						case TILDE:
-						case GREATERTHAN:
-						case PLUS:
-						case SPACE:
-						case OPENPARENTHESES:  {
-							break
-						}
-						default: {
-							padding = ' '
-						}
-					}
-				}
-
-				switch (code) {
-					case AND: {
-						element = padding + nscopealt
-					}
-					case TILDE:
-					case GREATERTHAN:
-					case PLUS:
-					case SPACE:
-					case CLOSEPARENTHESES:
-					case OPENPARENTHESES: {
-						break
-					}
-					case OPENBRACKET: {
-						element = padding + element + nscopealt
-						break
-					}
-					case COLON: {
-						switch (element.charCodeAt(1)*2 + element.charCodeAt(2)*3) {
-							// :global
-							case 530: {
-								if (escape > 0) {
-									element = padding + element.substring(8, size - 1)
-									break
-								}
-							}
-							// :hover, :nth-child(), ...
-							default: {
-								if (j < 1 || elements[j-1].length < 1) {
-									element = padding + nscopealt + element
-								}
-							}
-						}
-						break
-					}
-					case COMMA: {
-						padding = ''
-					}
-					default: {
-						if (size > 1 && element.indexOf(':') > 0) {
-							element = padding + element.replace(pseudoptn, '$1' + nscopealt + '$2')
-						} else {
-							element = padding + element + nscopealt
-						}
-					}
-				}
-
-				out += element
-			}
-
-			selector[i] = out.replace(formatptn, '').trim()
-		}
-
-		return selector
-	}
-
-	/**
-	 * Proxy
-	 *
-	 * @param {number} context
-	 * @param {string} content
-	 * @param {Array<string>} selectors
-	 * @param {Array<string>} parents
-	 * @param {number} line
-	 * @param {number} column
-	 * @param {number} length
-	 * @param {number} id
-	 * @param {number} depth
-	 * @param {number} at
-	 * @return {(string|void|*)}
-	 */
-	function proxy (context, content, selectors, parents, line, column, length, id, depth, at) {
-		for (var i = 0, out = content, next; i < plugged; ++i) {
-			switch (next = plugins[i].call(stylis, context, out, selectors, parents, line, column, length, id, depth, at)) {
-				case void 0:
-				case false:
-				case true:
-				case null: {
-					break
-				}
-				default: {
-					out = next
-				}
-			}
-		}
-		if (out !== content) {
-		  return out
-		}
-	}
-
-	/**
-	 * @param {number} code
-	 * @param {number} index
-	 * @param {number} length
-	 * @param {string} body
-	 * @return {number}
-	 */
-	function delimited (code, index, length, body) {
-		for (var i = index + 1; i < length; ++i) {
-			switch (body.charCodeAt(i)) {
-				// /*
-				case FOWARDSLASH: {
-					if (code === STAR) {
-						if (body.charCodeAt(i - 1) === STAR &&  index + 2 !== i) {
-							return i + 1
-						}
-					}
-					break
-				}
-				// //
-				case NEWLINE: {
-					if (code === FOWARDSLASH) {
-						return i + 1
-					}
-				}
-			}
-		}
-
-		return i
-	}
-
-	/**
-	 * @param {number} type
-	 * @param {number} index
-	 * @param {number} length
-	 * @param {number} find
-	 * @param {string} body
-	 * @return {number}
-	 */
-	function match (type, index, length, body) {
-		for (var i = index + 1; i < length; ++i) {
-			switch (body.charCodeAt(i)) {
-				case type: {
-					return i
-				}
-			}
-		}
-
-		return i
-	}
-
-	/**
-	 * Minify
-	 *
-	 * @param {(string|*)} output
-	 * @return {string}
-	 */
-	function minify (output) {
-		return output
-			.replace(formatptn, '')
-			.replace(beforeptn, '')
-			.replace(afterptn, '$1')
-			.replace(tailptn, '$1')
-			.replace(whiteptn, ' ')
-	}
-
-	/**
-	 * Use
-	 *
-	 * @param {(Array<function(...?)>|function(...?)|number|void)?} plugin
-	 */
-	function use (plugin) {
-		switch (plugin) {
-			case void 0:
-			case null: {
-				plugged = plugins.length = 0
-				break
-			}
-			default: {
-				if (typeof plugin === 'function') {
-					plugins[plugged++] = plugin
-				}	else if (typeof plugin === 'object') {
-					for (var i = 0, length = plugin.length; i < length; ++i) {
-						use(plugin[i])
-					}
-				} else {
-					unkwn = !!plugin|0
-				}
-			}
- 		}
-
- 		return use
-	}
-
-	/**
-	 * Set
-	 *
-	 * @param {*} options
-	 */
-	function set (options) {
-		for (var name in options) {
-			var value = options[name]
-			switch (name) {
-				case 'keyframe': keyed = value|0; break
-				case 'global': escape = value|0; break
-				case 'cascade': cascade = value|0; break
-				case 'compress': compress = value|0; break
-				case 'semicolon': semicolon = value|0; break
-				case 'preserve': preserve = value|0; break
-				case 'prefix':
-					should = null
-
-					if (!value) {
-						prefix = 0
-					} else if (typeof value !== 'function') {
-						prefix = 1
-					} else {
-						prefix = 2
-						should = value
-					}
-			}
-		}
-
-		return set
-	}
-
-	/**
-	 * Stylis
-	 *
-	 * @param {string} selector
-	 * @param {string} input
-	 * @return {*}
-	 */
-	function stylis (selector, input) {
-		if (this !== void 0 && this.constructor === stylis) {
-			return factory(selector)
-		}
-
-		// setup
-		var ns = selector
-		var code = ns.charCodeAt(0)
-
-		// trim leading whitespace
-		if (code < 33) {
-			code = (ns = ns.trim()).charCodeAt(0)
-		}
-
-		// keyframe/animation namespace
-		if (keyed > 0) {
-			key = ns.replace(invalidptn, code === OPENBRACKET ? '' : '-')
-		}
-
-		// reset, used to assert if a plugin is moneky-patching the return value
-		code = 1
-
-		// cascade/isolate
-		if (cascade === 1) {
-			nscope = ns
-		} else {
-			nscopealt = ns
-		}
-
-		var selectors = [nscope]
-		var result
-
-		// execute plugins, pre-process context
-		if (plugged > 0) {
-			result = proxy(PREPS, input, selectors, selectors, line, column, 0, 0, 0, 0)
-
-			if (result !== void 0 && typeof result === 'string') {
-				input = result
-			}
-		}
-
-		// build
-		var output = compile(array, selectors, input, 0, 0)
-
-		// execute plugins, post-process context
-		if (plugged > 0) {
-			result = proxy(POSTS, output, selectors, selectors, line, column, output.length, 0, 0, 0)
-
-			// bypass minification
-			if (result !== void 0 && typeof(output = result) !== 'string') {
-				code = 0
-			}
-		}
-
-		// reset
-		key = ''
-		nscope = ''
-		nscopealt = ''
-		pattern = 0
-		line = 1
-		column = 1
-
-		return compress*code === 0 ? output : minify(output)
-	}
-
-	stylis['use'] = use
-	stylis['set'] = set
-
-	if (options !== void 0) {
-		set(options)
-	}
-
-	return stylis
-}));
+/***/ "./node_modules/stylis/dist/stylis.mjs":
+/*!*********************************************!*\
+  !*** ./node_modules/stylis/dist/stylis.mjs ***!
+  \*********************************************/
+/*! exports provided: CHARSET, COMMENT, COUNTER_STYLE, DECLARATION, DOCUMENT, FONT_FACE, FONT_FEATURE_VALUES, IMPORT, KEYFRAMES, MEDIA, MOZ, MS, NAMESPACE, PAGE, RULESET, SUPPORTS, VIEWPORT, WEBKIT, abs, alloc, append, caret, char, character, characters, charat, column, combine, comment, commenter, compile, copy, dealloc, declaration, delimit, delimiter, escaping, from, hash, identifier, indexof, length, line, match, middleware, namespace, next, node, parse, peek, position, prefix, prefixer, prev, replace, ruleset, rulesheet, serialize, sizeof, slice, stringify, strlen, substr, token, tokenize, tokenizer, trim, whitespace */
+/***/ (function(__webpack_module__, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CHARSET", function() { return f; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "COMMENT", function() { return c; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "COUNTER_STYLE", function() { return w; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DECLARATION", function() { return t; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DOCUMENT", function() { return v; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "FONT_FACE", function() { return b; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "FONT_FEATURE_VALUES", function() { return $; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "IMPORT", function() { return i; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "KEYFRAMES", function() { return p; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MEDIA", function() { return u; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MOZ", function() { return r; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MS", function() { return e; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "NAMESPACE", function() { return h; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "PAGE", function() { return s; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "RULESET", function() { return n; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SUPPORTS", function() { return l; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "VIEWPORT", function() { return o; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "WEBKIT", function() { return a; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "abs", function() { return k; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "alloc", function() { return T; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "append", function() { return O; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "caret", function() { return P; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "char", function() { return J; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "character", function() { return F; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "characters", function() { return G; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "charat", function() { return z; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "column", function() { return B; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "combine", function() { return S; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "comment", function() { return te; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "commenter", function() { return ee; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "compile", function() { return ae; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "copy", function() { return I; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "dealloc", function() { return U; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "declaration", function() { return se; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "delimit", function() { return V; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "delimiter", function() { return _; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "escaping", function() { return Z; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "from", function() { return d; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "hash", function() { return m; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "identifier", function() { return re; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "indexof", function() { return j; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "length", function() { return D; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "line", function() { return q; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "match", function() { return x; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "middleware", function() { return oe; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "namespace", function() { return he; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "next", function() { return L; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "node", function() { return H; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "parse", function() { return ce; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "peek", function() { return N; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "position", function() { return E; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "prefix", function() { return ue; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "prefixer", function() { return ve; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "prev", function() { return K; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "replace", function() { return y; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ruleset", function() { return ne; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "rulesheet", function() { return le; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "serialize", function() { return ie; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "sizeof", function() { return M; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "slice", function() { return Q; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "stringify", function() { return fe; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "strlen", function() { return A; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "substr", function() { return C; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "token", function() { return R; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "tokenize", function() { return W; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "tokenizer", function() { return Y; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "trim", function() { return g; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "whitespace", function() { return X; });
+var e="-ms-";var r="-moz-";var a="-webkit-";var c="comm";var n="rule";var t="decl";var s="@page";var u="@media";var i="@import";var f="@charset";var o="@viewport";var l="@supports";var v="@document";var h="@namespace";var p="@keyframes";var b="@font-face";var w="@counter-style";var $="@font-feature-values";var k=Math.abs;var d=String.fromCharCode;function m(e,r){return(((r<<2^z(e,0))<<2^z(e,1))<<2^z(e,2))<<2^z(e,3)}function g(e){return e.trim()}function x(e,r){return(e=r.exec(e))?e[0]:e}function y(e,r,a){return e.replace(r,a)}function j(e,r){return e.indexOf(r)}function z(e,r){return e.charCodeAt(r)|0}function C(e,r,a){return e.slice(r,a)}function A(e){return e.length}function M(e){return e.length}function O(e,r){return r.push(e),e}function S(e,r){return e.map(r).join("")}var q=1;var B=1;var D=0;var E=0;var F=0;var G="";function H(e,r,a,c,n,t,s){return{value:e,root:r,parent:a,type:c,props:n,children:t,line:q,column:B,length:s,return:""}}function I(e,r,a){return H(e,r.root,r.parent,a,r.props,r.children,0)}function J(){return F}function K(){F=E>0?z(G,--E):0;if(B--,F===10)B=1,q--;return F}function L(){F=E<D?z(G,E++):0;if(B++,F===10)B=1,q++;return F}function N(){return z(G,E)}function P(){return E}function Q(e,r){return C(G,e,r)}function R(e){switch(e){case 0:case 9:case 10:case 13:case 32:return 5;case 33:case 43:case 44:case 47:case 62:case 64:case 126:case 59:case 123:case 125:return 4;case 58:return 3;case 34:case 39:case 40:case 91:return 2;case 41:case 93:return 1}return 0}function T(e){return q=B=1,D=A(G=e),E=0,[]}function U(e){return G="",e}function V(e){return g(Q(E-1,_(e===91?e+2:e===40?e+1:e)))}function W(e){return U(Y(T(e)))}function X(e){while(F=N())if(F<33)L();else break;return R(e)>2||R(F)>3?"":" "}function Y(e){while(L())switch(R(F)){case 0:O(re(E-1),e);break;case 2:O(V(F),e);break;default:O(d(F),e)}return e}function Z(e,r){while(--r&&L())if(F<48||F>102||F>57&&F<65||F>70&&F<97)break;return Q(e,P()+(r<6&&N()==32&&L()==32))}function _(e){while(L())switch(F){case e:return E;case 34:case 39:return _(e===34||e===39?e:F);case 40:if(e===41)_(e);break;case 92:L();break}return E}function ee(e,r){while(L())if(e+F===47+10)break;else if(e+F===42+42&&N()===47)break;return"/*"+Q(r,E-1)+"*"+d(e===47?e:L())}function re(e){while(!R(N()))L();return Q(e,E)}function ae(e){return U(ce("",null,null,null,[""],e=T(e),0,[0],e))}function ce(e,r,a,c,n,t,s,u,i){var f=0;var o=0;var l=s;var v=0;var h=0;var p=0;var b=1;var w=1;var $=1;var k=0;var m="";var g=n;var x=t;var j=c;var z=m;while(w)switch(p=k,k=L()){case 34:case 39:case 91:case 40:z+=V(k);break;case 9:case 10:case 13:case 32:z+=X(p);break;case 92:z+=Z(P()-1,7);continue;case 47:switch(N()){case 42:case 47:O(te(ee(L(),P()),r,a),i);break;default:z+="/"}break;case 123*b:u[f++]=A(z)*$;case 125*b:case 59:case 0:switch(k){case 0:case 125:w=0;case 59+o:if(h>0&&A(z)-l)O(h>32?se(z+";",c,a,l-1):se(y(z," ","")+";",c,a,l-2),i);break;case 59:z+=";";default:O(j=ne(z,r,a,f,o,n,u,m,g=[],x=[],l),t);if(k===123)if(o===0)ce(z,r,j,j,g,t,l,u,x);else switch(v){case 100:case 109:case 115:ce(e,j,j,c&&O(ne(e,j,j,0,0,n,u,m,n,g=[],l),x),n,x,l,u,c?g:x);break;default:ce(z,j,j,j,[""],x,l,u,x)}}f=o=h=0,b=$=1,m=z="",l=s;break;case 58:l=1+A(z),h=p;default:if(b<1)if(k==123)--b;else if(k==125&&b++==0&&K()==125)continue;switch(z+=d(k),k*b){case 38:$=o>0?1:(z+="\f",-1);break;case 44:u[f++]=(A(z)-1)*$,$=1;break;case 64:if(N()===45)z+=V(L());v=N(),o=A(m=z+=re(P())),k++;break;case 45:if(p===45&&A(z)==2)b=0}}return t}function ne(e,r,a,c,t,s,u,i,f,o,l){var v=t-1;var h=t===0?s:[""];var p=M(h);for(var b=0,w=0,$=0;b<c;++b)for(var d=0,m=C(e,v+1,v=k(w=u[b])),x=e;d<p;++d)if(x=g(w>0?h[d]+" "+m:y(m,/&\f/g,h[d])))f[$++]=x;return H(e,r,a,t===0?n:i,f,o,l)}function te(e,r,a){return H(e,r,a,c,d(J()),C(e,2,-2),0)}function se(e,r,a,c){return H(e,r,a,t,C(e,0,c),C(e,c+1,-1),c)}function ue(c,n){switch(m(c,n)){case 5103:return a+"print-"+c+c;case 5737:case 4201:case 3177:case 3433:case 1641:case 4457:case 2921:case 5572:case 6356:case 5844:case 3191:case 6645:case 3005:case 6391:case 5879:case 5623:case 6135:case 4599:case 4855:case 4215:case 6389:case 5109:case 5365:case 5621:case 3829:return a+c+c;case 5349:case 4246:case 4810:case 6968:case 2756:return a+c+r+c+e+c+c;case 6828:case 4268:return a+c+e+c+c;case 6165:return a+c+e+"flex-"+c+c;case 5187:return a+c+y(c,/(\w+).+(:[^]+)/,a+"box-$1$2"+e+"flex-$1$2")+c;case 5443:return a+c+e+"flex-item-"+y(c,/flex-|-self/,"")+c;case 4675:return a+c+e+"flex-line-pack"+y(c,/align-content|flex-|-self/,"")+c;case 5548:return a+c+e+y(c,"shrink","negative")+c;case 5292:return a+c+e+y(c,"basis","preferred-size")+c;case 6060:return a+"box-"+y(c,"-grow","")+a+c+e+y(c,"grow","positive")+c;case 4554:return a+y(c,/([^-])(transform)/g,"$1"+a+"$2")+c;case 6187:return y(y(y(c,/(zoom-|grab)/,a+"$1"),/(image-set)/,a+"$1"),c,"")+c;case 5495:case 3959:return y(c,/(image-set\([^]*)/,a+"$1"+"$`$1");case 4968:return y(y(c,/(.+:)(flex-)?(.*)/,a+"box-pack:$3"+e+"flex-pack:$3"),/s.+-b[^;]+/,"justify")+a+c+c;case 4095:case 3583:case 4068:case 2532:return y(c,/(.+)-inline(.+)/,a+"$1$2")+c;case 8116:case 7059:case 5753:case 5535:case 5445:case 5701:case 4933:case 4677:case 5533:case 5789:case 5021:case 4765:if(A(c)-1-n>6)switch(z(c,n+1)){case 109:if(z(c,n+4)!==45)break;case 102:return y(c,/(.+:)(.+)-([^]+)/,"$1"+a+"$2-$3"+"$1"+r+(z(c,n+3)==108?"$3":"$2-$3"))+c;case 115:return~j(c,"stretch")?ue(y(c,"stretch","fill-available"),n)+c:c}break;case 4949:if(z(c,n+1)!==115)break;case 6444:switch(z(c,A(c)-3-(~j(c,"!important")&&10))){case 107:return y(c,":",":"+a)+c;case 101:return y(c,/(.+:)([^;!]+)(;|!.+)?/,"$1"+a+(z(c,14)===45?"inline-":"")+"box$3"+"$1"+a+"$2$3"+"$1"+e+"$2box$3")+c}break;case 5936:switch(z(c,n+11)){case 114:return a+c+e+y(c,/[svh]\w+-[tblr]{2}/,"tb")+c;case 108:return a+c+e+y(c,/[svh]\w+-[tblr]{2}/,"tb-rl")+c;case 45:return a+c+e+y(c,/[svh]\w+-[tblr]{2}/,"lr")+c}return a+c+e+c+c}return c}function ie(e,r){var a="";var c=M(e);for(var n=0;n<c;n++)a+=r(e[n],n,e,r)||"";return a}function fe(e,r,a,s){switch(e.type){case i:case t:return e.return=e.return||e.value;case c:return"";case n:e.value=e.props.join(",")}return A(a=ie(e.children,s))?e.return=e.value+"{"+a+"}":""}function oe(e){var r=M(e);return function(a,c,n,t){var s="";for(var u=0;u<r;u++)s+=e[u](a,c,n,t)||"";return s}}function le(e){return function(r){if(!r.root)if(r=r.return)e(r)}}function ve(c,s,u,i){if(!c.return)switch(c.type){case t:c.return=ue(c.value,c.length);break;case p:return ie([I(y(c.value,"@","@"+a),c,"")],i);case n:if(c.length)return S(c.props,(function(n){switch(x(n,/(::plac\w+|:read-\w+)/)){case":read-only":case":read-write":return ie([I(y(n,/:(read-\w+)/,":"+r+"$1"),c,"")],i);case"::placeholder":return ie([I(y(n,/:(plac\w+)/,":"+a+"input-$1"),c,""),I(y(n,/:(plac\w+)/,":"+r+"$1"),c,""),I(y(n,/:(plac\w+)/,e+"input-$1"),c,"")],i)}return""}))}}function he(e){switch(e.type){case n:e.props=e.props.map((function(r){return S(W(r),(function(r,a,c){switch(z(r,0)){case 12:return C(r,1,A(r));case 0:case 40:case 43:case 62:case 126:return r;case 58:if(c[++a]==="global")c[a]="",c[++a]="\f"+C(c[a],a=1,-1);case 32:return a===1?"":r;default:switch(a){case 0:e=r;return M(c)>1?"":r;case a=M(c)-1:case 2:return a===2?r+e+e:r+e;default:return r}}}))}))}}
+//# sourceMappingURL=stylis.mjs.map
 
 
 /***/ }),
@@ -49035,7 +49068,7 @@ module.exports = function(module) {
 /*! exports provided: name, version, description, main, keywords, scripts, repository, author, license, standard, dependencies, devDependencies, files, yarn-upgrade-all, sideEffects, husky, default */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"mermaid\",\"version\":\"8.9.2\",\"description\":\"Markdownish syntax for generating flowcharts, sequence diagrams, class diagrams, gantt charts and git graphs.\",\"main\":\"dist/mermaid.core.js\",\"keywords\":[\"diagram\",\"markdown\",\"flowchart\",\"sequence diagram\",\"gantt\",\"class diagram\",\"git graph\"],\"scripts\":{\"build:development\":\"webpack --progress --colors\",\"build:production\":\"yarn build:development -p --config webpack.config.prod.babel.js\",\"build\":\"yarn build:development && yarn build:production\",\"postbuild\":\"documentation build src/mermaidAPI.js src/config.js src/defaultConfig.js --shallow -f md --markdown-toc false > docs/Setup.md\",\"build:watch\":\"yarn build --watch\",\"minify\":\"minify ./dist/mermaid.js > ./dist/mermaid.min.js\",\"release\":\"yarn build\",\"lint\":\"eslint src\",\"e2e:depr\":\"yarn lint && jest e2e --config e2e/jest.config.js\",\"cypress\":\"percy exec -- cypress run\",\"e2e\":\"start-server-and-test dev http://localhost:9000/ cypress\",\"e2e-upd\":\"yarn lint && jest e2e -u --config e2e/jest.config.js\",\"dev\":\"webpack-dev-server --config webpack.config.e2e.js\",\"test\":\"yarn lint && jest src/.*\",\"test:watch\":\"jest --watch src\",\"prepublishOnly\":\"yarn build && yarn test\",\"prepare\":\"yarn build\"},\"repository\":{\"type\":\"git\",\"url\":\"https://github.com/knsv/mermaid\"},\"author\":\"Knut Sveidqvist\",\"license\":\"MIT\",\"standard\":{\"ignore\":[\"**/parser/*.js\",\"dist/**/*.js\",\"cypress/**/*.js\"],\"globals\":[\"page\"]},\"dependencies\":{\"@braintree/sanitize-url\":\"^3.1.0\",\"d3\":\"^5.7.0\",\"dagre\":\"^0.8.4\",\"dagre-d3\":\"^0.6.4\",\"entity-decode\":\"^2.0.2\",\"graphlib\":\"^2.1.7\",\"he\":\"^1.2.0\",\"khroma\":\"^1.1.0\",\"minify\":\"^4.1.1\",\"moment-mini\":\"^2.22.1\",\"stylis\":\"^3.5.2\"},\"devDependencies\":{\"@babel/core\":\"^7.2.2\",\"@babel/preset-env\":\"^7.8.4\",\"@babel/register\":\"^7.0.0\",\"@percy/cypress\":\"*\",\"babel-core\":\"7.0.0-bridge.0\",\"babel-eslint\":\"^10.1.0\",\"babel-jest\":\"^24.9.0\",\"babel-loader\":\"^8.0.4\",\"coveralls\":\"^3.0.2\",\"css-loader\":\"^2.0.1\",\"css-to-string-loader\":\"^0.1.3\",\"cypress\":\"4.0.1\",\"documentation\":\"^12.0.1\",\"eslint\":\"^6.3.0\",\"eslint-config-prettier\":\"^6.3.0\",\"eslint-plugin-prettier\":\"^3.1.0\",\"husky\":\"^1.2.1\",\"identity-obj-proxy\":\"^3.0.0\",\"jest\":\"^24.9.0\",\"jison\":\"^0.4.18\",\"moment\":\"^2.23.0\",\"node-sass\":\"^5.0.0\",\"prettier\":\"^1.18.2\",\"puppeteer\":\"^1.17.0\",\"sass-loader\":\"^7.1.0\",\"start-server-and-test\":\"^1.10.6\",\"terser-webpack-plugin\":\"^2.2.2\",\"webpack\":\"^4.41.2\",\"webpack-bundle-analyzer\":\"^3.7.0\",\"webpack-cli\":\"^3.1.2\",\"webpack-dev-server\":\"^3.4.1\",\"webpack-node-externals\":\"^1.7.2\",\"yarn-upgrade-all\":\"^0.5.0\"},\"files\":[\"dist\"],\"yarn-upgrade-all\":{\"ignore\":[\"babel-core\"]},\"sideEffects\":[\"**/*.css\",\"**/*.scss\"],\"husky\":{\"hooks\":{\"pre-push\":\"yarn test\"}}}");
+module.exports = JSON.parse("{\"name\":\"mermaid\",\"version\":\"8.11.0\",\"description\":\"Markdownish syntax for generating flowcharts, sequence diagrams, class diagrams, gantt charts and git graphs.\",\"main\":\"dist/mermaid.core.js\",\"keywords\":[\"diagram\",\"markdown\",\"flowchart\",\"sequence diagram\",\"gantt\",\"class diagram\",\"git graph\"],\"scripts\":{\"build:development\":\"webpack --progress --colors\",\"build:production\":\"yarn build:development -p --config webpack.config.prod.babel.js\",\"build\":\"yarn build:development && yarn build:production\",\"postbuild\":\"documentation build src/mermaidAPI.js src/config.js src/defaultConfig.js --shallow -f md --markdown-toc false > docs/Setup.md\",\"build:watch\":\"yarn build --watch\",\"release\":\"yarn build\",\"lint\":\"eslint src\",\"e2e:depr\":\"yarn lint && jest e2e --config e2e/jest.config.js\",\"cypress\":\"percy exec -- cypress run\",\"e2e\":\"start-server-and-test dev http://localhost:9000/ cypress\",\"e2e-upd\":\"yarn lint && jest e2e -u --config e2e/jest.config.js\",\"dev\":\"webpack-dev-server --config webpack.config.e2e.js\",\"test\":\"yarn lint && jest src/.*\",\"test:watch\":\"jest --watch src\",\"prepublishOnly\":\"yarn build && yarn test\",\"prepare\":\"yarn build\"},\"repository\":{\"type\":\"git\",\"url\":\"https://github.com/knsv/mermaid\"},\"author\":\"Knut Sveidqvist\",\"license\":\"MIT\",\"standard\":{\"ignore\":[\"**/parser/*.js\",\"dist/**/*.js\",\"cypress/**/*.js\"],\"globals\":[\"page\"]},\"dependencies\":{\"@braintree/sanitize-url\":\"^3.1.0\",\"@percy/migrate\":\"^0.10.0\",\"d3\":\"^5.7.0\",\"dagre\":\"^0.8.5\",\"dagre-d3\":\"^0.6.4\",\"graphlib\":\"^2.1.8\",\"khroma\":\"^1.4.1\",\"moment-mini\":\"^2.24.0\",\"stylis\":\"^4.0.10\"},\"devDependencies\":{\"@babel/core\":\"^7.14.6\",\"@babel/preset-env\":\"^7.14.7\",\"@babel/register\":\"^7.14.5\",\"@percy/cli\":\"^1.0.0-beta.58\",\"@percy/cypress\":\"^3.1.0\",\"babel-core\":\"7.0.0-bridge.0\",\"babel-eslint\":\"^10.1.0\",\"babel-jest\":\"^27.0.6\",\"babel-loader\":\"^8.2.2\",\"coveralls\":\"^3.0.2\",\"css-to-string-loader\":\"^0.1.3\",\"cypress\":\"7.6.0\",\"documentation\":\"13.2.0\",\"dompurify\":\"2.3.0\",\"eslint\":\"^7.30.0\",\"eslint-config-prettier\":\"^8.3.0\",\"eslint-plugin-prettier\":\"^3.4.0\",\"husky\":\"^7.0.1\",\"identity-obj-proxy\":\"^3.0.0\",\"jest\":\"^27.0.6\",\"jison\":\"^0.4.18\",\"js-base64\":\"3.6.1\",\"moment\":\"^2.23.0\",\"prettier\":\"^2.3.2\",\"start-server-and-test\":\"^1.12.6\",\"terser-webpack-plugin\":\"^2.2.2\",\"webpack\":\"^4.41.2\",\"webpack-bundle-analyzer\":\"^4.4.2\",\"webpack-cli\":\"^3.1.2\",\"webpack-dev-server\":\"^3.4.1\",\"webpack-node-externals\":\"^1.7.2\"},\"files\":[\"dist\"],\"yarn-upgrade-all\":{\"ignore\":[\"babel-core\"]},\"sideEffects\":[\"**/*.css\",\"**/*.scss\"],\"husky\":{\"hooks\":{\"pre-push\":\"yarn test\"}}}");
 
 /***/ }),
 
@@ -49281,6 +49314,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _createLabel__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./createLabel */ "./src/dagre-wrapper/createLabel.js");
 /* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! d3 */ "./node_modules/d3/index.js");
 /* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../config */ "./src/config.js");
+/* harmony import */ var _diagrams_common_common__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../diagrams/common/common */ "./src/diagrams/common/common.js");
+
 
 
 
@@ -49299,7 +49334,7 @@ var rect = function rect(parent, node) {
 
   var bbox = text.getBBox();
 
-  if (Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.htmlLabels) {
+  if (Object(_diagrams_common_common__WEBPACK_IMPORTED_MODULE_5__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.htmlLabels)) {
     var div = text.children[0];
     var dv = Object(d3__WEBPACK_IMPORTED_MODULE_3__["select"])(text);
     bbox = div.getBoundingClientRect();
@@ -49309,9 +49344,17 @@ var rect = function rect(parent, node) {
 
   var padding = 0 * node.padding;
   var halfPadding = padding / 2;
+  var width = node.width <= bbox.width + padding ? bbox.width + padding : node.width;
+
+  if (node.width <= bbox.width + padding) {
+    node.diff = (bbox.width - node.width) / 2;
+  } else {
+    node.diff = -node.padding / 2;
+  }
+
   _logger__WEBPACK_IMPORTED_MODULE_1__["log"].trace('Data ', node, JSON.stringify(node)); // center the rect around its coordinate
 
-  rect.attr('style', node.style).attr('rx', node.rx).attr('ry', node.ry).attr('x', node.x - node.width / 2 - halfPadding).attr('y', node.y - node.height / 2 - halfPadding).attr('width', node.width + padding).attr('height', node.height + padding); // Center the label
+  rect.attr('style', node.style).attr('rx', node.rx).attr('ry', node.ry).attr('x', node.x - width / 2).attr('y', node.y - node.height / 2 - halfPadding).attr('width', width).attr('height', node.height + padding); // Center the label
 
   label.attr('transform', 'translate(' + (node.x - bbox.width / 2) + ', ' + (node.y - node.height / 2 + node.padding / 3) + ')');
   var rectBox = rect.node().getBBox();
@@ -49361,7 +49404,7 @@ var roundedWithTitle = function roundedWithTitle(parent, node) {
 
   var bbox = text.getBBox();
 
-  if (Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.htmlLabels) {
+  if (Object(_diagrams_common_common__WEBPACK_IMPORTED_MODULE_5__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.htmlLabels)) {
     var div = text.children[0];
     var dv = Object(d3__WEBPACK_IMPORTED_MODULE_3__["select"])(text);
     bbox = div.getBoundingClientRect();
@@ -49371,14 +49414,21 @@ var roundedWithTitle = function roundedWithTitle(parent, node) {
 
   bbox = text.getBBox();
   var padding = 0 * node.padding;
-  var halfPadding = padding / 2; // center the rect around its coordinate
+  var halfPadding = padding / 2;
+  var width = node.width <= bbox.width + node.padding ? bbox.width + node.padding : node.width;
 
-  rect.attr('class', 'outer').attr('x', node.x - node.width / 2 - halfPadding).attr('y', node.y - node.height / 2 - halfPadding).attr('width', node.width + padding).attr('height', node.height + padding);
-  innerRect.attr('class', 'inner').attr('x', node.x - node.width / 2 - halfPadding).attr('y', node.y - node.height / 2 - halfPadding + bbox.height - 1).attr('width', node.width + padding).attr('height', node.height + padding - bbox.height - 3); // Center the label
+  if (node.width <= bbox.width + node.padding) {
+    node.diff = (bbox.width + node.padding * 0 - node.width) / 2;
+  } else {
+    node.diff = -node.padding / 2;
+  } // center the rect around its coordinate
 
-  label.attr('transform', 'translate(' + (node.x - bbox.width / 2) + ', ' + (node.y - node.height / 2 - node.padding / 3 + (Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.htmlLabels ? 5 : 3)) + ')');
+
+  rect.attr('class', 'outer').attr('x', node.x - width / 2 - halfPadding).attr('y', node.y - node.height / 2 - halfPadding).attr('width', width + padding).attr('height', node.height + padding);
+  innerRect.attr('class', 'inner').attr('x', node.x - width / 2 - halfPadding).attr('y', node.y - node.height / 2 - halfPadding + bbox.height - 1).attr('width', width + padding).attr('height', node.height + padding - bbox.height - 3); // Center the label
+
+  label.attr('transform', 'translate(' + (node.x - bbox.width / 2) + ', ' + (node.y - node.height / 2 - node.padding / 3 + (Object(_diagrams_common_common__WEBPACK_IMPORTED_MODULE_5__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.htmlLabels) ? 5 : 3)) + ')');
   var rectBox = rect.node().getBBox();
-  node.width = rectBox.width;
   node.height = rectBox.height;
 
   node.intersect = function (point) {
@@ -49400,6 +49450,7 @@ var divider = function divider(parent, node) {
   var rectBox = rect.node().getBBox();
   node.width = rectBox.width;
   node.height = rectBox.height;
+  node.diff = -node.padding / 2;
 
   node.intersect = function (point) {
     return Object(_intersect_intersect_rect__WEBPACK_IMPORTED_MODULE_0__["default"])(node, point);
@@ -49431,7 +49482,7 @@ var clear = function clear() {
   clusterElems = {};
 };
 var positionCluster = function positionCluster(node) {
-  _logger__WEBPACK_IMPORTED_MODULE_1__["log"].info('Position cluster');
+  _logger__WEBPACK_IMPORTED_MODULE_1__["log"].info('Position cluster (' + node.id + ', ' + node.x + ', ' + node.y + ')');
   var el = clusterElems[node.id];
   el.attr('transform', 'translate(' + node.x + ', ' + node.y + ')');
 };
@@ -49449,11 +49500,15 @@ var positionCluster = function positionCluster(node) {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! d3 */ "./node_modules/d3/index.js");
 /* harmony import */ var _logger__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../logger */ "./src/logger.js");
-/* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../config */ "./src/config.js");
+/* harmony import */ var _diagrams_common_common__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../diagrams/common/common */ "./src/diagrams/common/common.js");
+/* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../config */ "./src/config.js");
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
 
  // eslint-disable-line
-// let vertexNode;
-// if (getConfig().flowchart.htmlLabels) {
+
+ // let vertexNode;
+// if (evaluate(getConfig().flowchart.htmlLabels)) {
 //   // TODO: addHtmlLabel accepts a labelStyle. Do we possibly have that?
 //   const node = {
 //     label: vertexText.replace(/fa[lrsb]?:fa-[\w-]+/g, s => `<i class='${s.replace(':', ' ')}'></i>`)
@@ -49522,8 +49577,9 @@ function addHtmlLabel(node) {
 
 var createLabel = function createLabel(_vertexText, style, isTitle, isNode) {
   var vertexText = _vertexText || '';
+  if (_typeof(vertexText) === 'object') vertexText = vertexText[0];
 
-  if (Object(_config__WEBPACK_IMPORTED_MODULE_2__["getConfig"])().flowchart.htmlLabels) {
+  if (Object(_diagrams_common_common__WEBPACK_IMPORTED_MODULE_2__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels)) {
     // TODO: addHtmlLabel accepts a labelStyle. Do we possibly have that?
     vertexText = vertexText.replace(/\\n|\n/g, '<br />');
     _logger__WEBPACK_IMPORTED_MODULE_1__["log"].info('vertexText' + vertexText);
@@ -49593,12 +49649,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! d3 */ "./node_modules/d3/index.js");
 /* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../config */ "./src/config.js");
 /* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../utils */ "./src/utils.js");
+/* harmony import */ var _diagrams_common_common__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../diagrams/common/common */ "./src/diagrams/common/common.js");
  // eslint-disable-line
 
+ // import { line, curveBasis, curveLinear, select } from 'd3';
 
 
 
- // import { calcLabelPosition } from '../utils';
+
 
 var edgeLabels = {};
 var terminalLabels = {};
@@ -49617,7 +49675,7 @@ var insertEdgeLabel = function insertEdgeLabel(elem, edge) {
 
   var bbox = labelElement.getBBox();
 
-  if (Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels) {
+  if (Object(_diagrams_common_common__WEBPACK_IMPORTED_MODULE_5__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels)) {
     var div = labelElement.children[0];
     var dv = Object(d3__WEBPACK_IMPORTED_MODULE_2__["select"])(labelElement);
     bbox = div.getBoundingClientRect();
@@ -49717,7 +49775,7 @@ var insertEdgeLabel = function insertEdgeLabel(elem, edge) {
   }
 };
 var positionEdgeLabel = function positionEdgeLabel(edge, paths) {
-  _logger__WEBPACK_IMPORTED_MODULE_0__["log"].info('Moving label', edge.id, edge.label, edgeLabels[edge.id]);
+  _logger__WEBPACK_IMPORTED_MODULE_0__["log"].info('Moving label abc78 ', edge.id, edge.label, edgeLabels[edge.id]);
   var path = paths.updatedPath ? paths.updatedPath : paths.originalPath;
 
   if (edge.label) {
@@ -49728,7 +49786,7 @@ var positionEdgeLabel = function positionEdgeLabel(edge, paths) {
     if (path) {
       //   // debugger;
       var pos = _utils__WEBPACK_IMPORTED_MODULE_4__["default"].calcLabelPosition(path);
-      _logger__WEBPACK_IMPORTED_MODULE_0__["log"].info('Moving label from (', x, ',', y, ') to (', pos.x, ',', pos.y, ')'); // x = pos.x;
+      _logger__WEBPACK_IMPORTED_MODULE_0__["log"].info('Moving label from (', x, ',', y, ') to (', pos.x, ',', pos.y, ') abc78'); // x = pos.x;
       // y = pos.y;
     }
 
@@ -49738,66 +49796,66 @@ var positionEdgeLabel = function positionEdgeLabel(edge, paths) {
 
   if (edge.startLabelLeft) {
     var _el = terminalLabels[edge.id].startLeft;
-    var _x = edge.x;
-    var _y = edge.y;
-
-    if (path) {
-      // debugger;
-      var _pos = _utils__WEBPACK_IMPORTED_MODULE_4__["default"].calcTerminalLabelPosition(0, 'start_left', path);
-
-      _x = _pos.x;
-      _y = _pos.y;
-    }
-
-    _el.attr('transform', 'translate(' + _x + ', ' + _y + ')');
-  }
-
-  if (edge.startLabelRight) {
-    var _el2 = terminalLabels[edge.id].startRight;
     var _x2 = edge.x;
     var _y2 = edge.y;
 
     if (path) {
       // debugger;
-      var _pos2 = _utils__WEBPACK_IMPORTED_MODULE_4__["default"].calcTerminalLabelPosition(0, 'start_right', path);
+      var _pos = _utils__WEBPACK_IMPORTED_MODULE_4__["default"].calcTerminalLabelPosition(0, 'start_left', path);
 
-      _x2 = _pos2.x;
-      _y2 = _pos2.y;
+      _x2 = _pos.x;
+      _y2 = _pos.y;
     }
 
-    _el2.attr('transform', 'translate(' + _x2 + ', ' + _y2 + ')');
+    _el.attr('transform', 'translate(' + _x2 + ', ' + _y2 + ')');
   }
 
-  if (edge.endLabelLeft) {
-    var _el3 = terminalLabels[edge.id].endLeft;
+  if (edge.startLabelRight) {
+    var _el2 = terminalLabels[edge.id].startRight;
     var _x3 = edge.x;
     var _y3 = edge.y;
 
     if (path) {
       // debugger;
-      var _pos3 = _utils__WEBPACK_IMPORTED_MODULE_4__["default"].calcTerminalLabelPosition(0, 'end_left', path);
+      var _pos2 = _utils__WEBPACK_IMPORTED_MODULE_4__["default"].calcTerminalLabelPosition(0, 'start_right', path);
 
-      _x3 = _pos3.x;
-      _y3 = _pos3.y;
+      _x3 = _pos2.x;
+      _y3 = _pos2.y;
     }
 
-    _el3.attr('transform', 'translate(' + _x3 + ', ' + _y3 + ')');
+    _el2.attr('transform', 'translate(' + _x3 + ', ' + _y3 + ')');
   }
 
-  if (edge.endLabelRight) {
-    var _el4 = terminalLabels[edge.id].endRight;
+  if (edge.endLabelLeft) {
+    var _el3 = terminalLabels[edge.id].endLeft;
     var _x4 = edge.x;
     var _y4 = edge.y;
 
     if (path) {
       // debugger;
-      var _pos4 = _utils__WEBPACK_IMPORTED_MODULE_4__["default"].calcTerminalLabelPosition(0, 'end_right', path);
+      var _pos3 = _utils__WEBPACK_IMPORTED_MODULE_4__["default"].calcTerminalLabelPosition(0, 'end_left', path);
 
-      _x4 = _pos4.x;
-      _y4 = _pos4.y;
+      _x4 = _pos3.x;
+      _y4 = _pos3.y;
     }
 
-    _el4.attr('transform', 'translate(' + _x4 + ', ' + _y4 + ')');
+    _el3.attr('transform', 'translate(' + _x4 + ', ' + _y4 + ')');
+  }
+
+  if (edge.endLabelRight) {
+    var _el4 = terminalLabels[edge.id].endRight;
+    var _x5 = edge.x;
+    var _y5 = edge.y;
+
+    if (path) {
+      // debugger;
+      var _pos4 = _utils__WEBPACK_IMPORTED_MODULE_4__["default"].calcTerminalLabelPosition(0, 'end_right', path);
+
+      _x5 = _pos4.x;
+      _y5 = _pos4.y;
+    }
+
+    _el4.attr('transform', 'translate(' + _x5 + ', ' + _y5 + ')');
   }
 }; // const getRelationType = function(type) {
 //   switch (type) {
@@ -49829,24 +49887,28 @@ var outsideNode = function outsideNode(node, point) {
 };
 
 var intersection = function intersection(node, outsidePoint, insidePoint) {
-  _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('intersection calc o:', outsidePoint, ' i:', insidePoint, node);
+  _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn("intersection calc abc89:\n  outsidePoint: ".concat(JSON.stringify(outsidePoint), "\n  insidePoint : ").concat(JSON.stringify(insidePoint), "\n  node        : x:").concat(node.x, " y:").concat(node.y, " w:").concat(node.width, " h:").concat(node.height));
   var x = node.x;
   var y = node.y;
-  var dx = Math.abs(x - insidePoint.x);
+  var dx = Math.abs(x - insidePoint.x); // const dy = Math.abs(y - insidePoint.y);
+
   var w = node.width / 2;
   var r = insidePoint.x < outsidePoint.x ? w - dx : w + dx;
-  var h = node.height / 2;
-  var edges = {
-    x1: x - w,
-    x2: x + w,
-    y1: y - h,
-    y2: y + h
-  };
-
-  if (outsidePoint.x === edges.x1 || outsidePoint.x === edges.x2 || outsidePoint.y === edges.y1 || outsidePoint.y === edges.y2) {
-    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('calc equals on edge');
-    return outsidePoint;
-  }
+  var h = node.height / 2; // const edges = {
+  //   x1: x - w,
+  //   x2: x + w,
+  //   y1: y - h,
+  //   y2: y + h
+  // };
+  // if (
+  //   outsidePoint.x === edges.x1 ||
+  //   outsidePoint.x === edges.x2 ||
+  //   outsidePoint.y === edges.y1 ||
+  //   outsidePoint.y === edges.y2
+  // ) {
+  //   log.warn('abc89 calc equals on edge', outsidePoint, edges);
+  //   return outsidePoint;
+  // }
 
   var Q = Math.abs(outsidePoint.y - insidePoint.y);
   var R = Math.abs(outsidePoint.x - insidePoint.x); // log.warn();
@@ -49858,16 +49920,27 @@ var intersection = function intersection(node, outsidePoint, insidePoint) {
     var q = insidePoint.y < outsidePoint.y ? outsidePoint.y - h - y : y - h - outsidePoint.y;
     r = R * q / Q;
     var res = {
-      x: insidePoint.x < outsidePoint.x ? insidePoint.x + R - r : insidePoint.x - r,
-      y: insidePoint.y < outsidePoint.y ? insidePoint.y + Q - q : insidePoint.y - q
+      x: insidePoint.x < outsidePoint.x ? insidePoint.x + r : insidePoint.x - R + r,
+      y: insidePoint.y < outsidePoint.y ? insidePoint.y + Q - q : insidePoint.y - Q + q
     };
-    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn("topp/bott calc, Q ".concat(Q, ", q ").concat(q, ", R ").concat(R, ", r ").concat(r), res);
+
+    if (r === 0) {
+      res.x = outsidePoint.x;
+      res.y = outsidePoint.y;
+    }
+
+    if (R === 0) {
+      res.x = outsidePoint.x;
+    }
+
+    if (Q === 0) {
+      res.y = outsidePoint.y;
+    }
+
+    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn("abc89 topp/bott calc, Q ".concat(Q, ", q ").concat(q, ", R ").concat(R, ", r ").concat(r), res);
     return res;
   } else {
     // Intersection onn sides of rect
-    // q = (Q * r) / R;
-    // q = 2;
-    // r = (R * q) / Q;
     if (insidePoint.x < outsidePoint.x) {
       r = outsidePoint.x - w - x;
     } else {
@@ -49875,24 +49948,99 @@ var intersection = function intersection(node, outsidePoint, insidePoint) {
       r = x - w - outsidePoint.x;
     }
 
-    var _q = _q = Q * r / R;
+    var _q = Q * r / R; //  OK let _x = insidePoint.x < outsidePoint.x ? insidePoint.x + R - r : insidePoint.x + dx - w;
+    // OK let _x = insidePoint.x < outsidePoint.x ? insidePoint.x + R - r : outsidePoint.x + r;
 
-    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn("sides calc, Q ".concat(Q, ", q ").concat(_q, ", R ").concat(R, ", r ").concat(r), {
-      x: insidePoint.x < outsidePoint.x ? insidePoint.x + R - r : insidePoint.x + dx - w,
-      y: insidePoint.y < outsidePoint.y ? insidePoint.y + _q : insidePoint.y - _q
+
+    var _x = insidePoint.x < outsidePoint.x ? insidePoint.x + R - r : insidePoint.x - R + r; // let _x = insidePoint.x < outsidePoint.x ? insidePoint.x + R - r : outsidePoint.x + r;
+
+
+    var _y = insidePoint.y < outsidePoint.y ? insidePoint.y + _q : insidePoint.y - _q;
+
+    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn("sides calc abc89, Q ".concat(Q, ", q ").concat(_q, ", R ").concat(R, ", r ").concat(r), {
+      _x: _x,
+      _y: _y
     });
+
+    if (r === 0) {
+      _x = outsidePoint.x;
+      _y = outsidePoint.y;
+    }
+
+    if (R === 0) {
+      _x = outsidePoint.x;
+    }
+
+    if (Q === 0) {
+      _y = outsidePoint.y;
+    }
+
     return {
-      x: insidePoint.x < outsidePoint.x ? insidePoint.x + R - r : insidePoint.x + dx - w,
-      y: insidePoint.y < outsidePoint.y ? insidePoint.y + _q : insidePoint.y - _q
+      x: _x,
+      y: _y
     };
   }
+};
+/**
+ * This function will page a path and node where the last point(s) in the path is inside the node
+ * and return an update path ending by the border of the node.
+ * @param {*} points
+ * @param {*} boundryNode
+ * @returns
+ */
+
+var cutPathAtIntersect = function cutPathAtIntersect(_points, boundryNode) {
+  _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('abc88 cutPathAtIntersect', _points, boundryNode);
+  var points = [];
+  var lastPointOutside = _points[0];
+  var isInside = false;
+
+  _points.forEach(function (point) {
+    // const node = clusterDb[edge.toCluster].node;
+    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].info('abc88 checking point', point, boundryNode); // check if point is inside the boundry rect
+
+    if (!outsideNode(boundryNode, point) && !isInside) {
+      // First point inside the rect found
+      // Calc the intersection coord between the point anf the last opint ouside the rect
+      var inter = intersection(boundryNode, lastPointOutside, point);
+      _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('abc88 inside', point, lastPointOutside, inter);
+      _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('abc88 intersection', inter); // // Check case where the intersection is the same as the last point
+
+      var pointPresent = false;
+      points.forEach(function (p) {
+        pointPresent = pointPresent || p.x === inter.x && p.y === inter.y;
+      }); // // if (!pointPresent) {
+
+      if (!points.find(function (e) {
+        return e.x === inter.x && e.y === inter.y;
+      })) {
+        points.push(inter);
+      } else {
+        _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('abc88 no intersect', inter, points);
+      } // points.push(inter);
+
+
+      isInside = true;
+    } else {
+      // Outside
+      _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('abc88 outside', point, lastPointOutside);
+      lastPointOutside = point; // points.push(point);
+
+      if (!isInside) points.push(point);
+    }
+  });
+
+  _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('abc88 returning points', points);
+  return points;
 }; //(edgePaths, e, edge, clusterDb, diagramtype, graph)
+
 
 var insertEdge = function insertEdge(elem, e, edge, clusterDb, diagramType, graph) {
   var points = edge.points;
   var pointsHasChanged = false;
   var tail = graph.node(e.v);
   var head = graph.node(e.w);
+  _logger__WEBPACK_IMPORTED_MODULE_0__["log"].info('abc88 InsertEdge: ', edge);
 
   if (head.intersect && tail.intersect) {
     points = points.slice(1, edge.points.length - 1);
@@ -49902,72 +50050,79 @@ var insertEdge = function insertEdge(elem, e, edge, clusterDb, diagramType, grap
   }
 
   if (edge.toCluster) {
-    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].trace('edge', edge);
-    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].trace('to cluster', clusterDb[edge.toCluster]);
-    points = [];
-    var lastPointOutside;
-    var isInside = false;
-    edge.points.forEach(function (point) {
-      var node = clusterDb[edge.toCluster].node;
+    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].info('to cluster abc88', clusterDb[edge.toCluster]);
+    points = cutPathAtIntersect(edge.points, clusterDb[edge.toCluster].node); // log.trace('edge', edge);
+    // points = [];
+    // let lastPointOutside; // = edge.points[0];
+    // let isInside = false;
+    // edge.points.forEach(point => {
+    //   const node = clusterDb[edge.toCluster].node;
+    //   log.warn('checking from', edge.fromCluster, point, node);
+    //   if (!outsideNode(node, point) && !isInside) {
+    //     log.trace('inside', edge.toCluster, point, lastPointOutside);
+    //     // First point inside the rect
+    //     const inter = intersection(node, lastPointOutside, point);
+    //     let pointPresent = false;
+    //     points.forEach(p => {
+    //       pointPresent = pointPresent || (p.x === inter.x && p.y === inter.y);
+    //     });
+    //     // if (!pointPresent) {
+    //     if (!points.find(e => e.x === inter.x && e.y === inter.y)) {
+    //       points.push(inter);
+    //     } else {
+    //       log.warn('no intersect', inter, points);
+    //     }
+    //     isInside = true;
+    // } else {
+    //   // outtside
+    //   lastPointOutside = point;
+    //   if (!isInside) points.push(point);
+    // }
+    // });
 
-      if (!outsideNode(node, point) && !isInside) {
-        _logger__WEBPACK_IMPORTED_MODULE_0__["log"].trace('inside', edge.toCluster, point, lastPointOutside); // First point inside the rect
-
-        var inter = intersection(node, lastPointOutside, point);
-        var pointPresent = false;
-        points.forEach(function (p) {
-          pointPresent = pointPresent || p.x === inter.x && p.y === inter.y;
-        }); // if (!pointPresent) {
-
-        if (!points.find(function (e) {
-          return e.x === inter.x && e.y === inter.y;
-        })) {
-          points.push(inter);
-        } else {
-          _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('no intersect', inter, points);
-        }
-
-        isInside = true;
-      } else {
-        if (!isInside) points.push(point);
-      }
-
-      lastPointOutside = point;
-    });
     pointsHasChanged = true;
   }
 
   if (edge.fromCluster) {
-    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].trace('edge', edge);
-    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('from cluster', clusterDb[edge.fromCluster]);
-    var updatedPoints = [];
+    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].info('from cluster abc88', clusterDb[edge.fromCluster]);
+    points = cutPathAtIntersect(points.reverse(), clusterDb[edge.fromCluster].node).reverse(); // log.warn('edge', edge);
+    // log.warn('from cluster', clusterDb[edge.fromCluster], points);
+    // const updatedPoints = [];
+    // let lastPointOutside = edge.points[edge.points.length - 1];
+    // let isInside = false;
+    // for (let i = points.length - 1; i >= 0; i--) {
+    //   const point = points[i];
+    //   const node = clusterDb[edge.fromCluster].node;
+    //   log.warn('checking to', edge.fromCluster, point, node);
+    //   if (!outsideNode(node, point) && !isInside) {
+    //     log.warn('inside', edge.fromCluster, point, node);
+    //     // First point inside the rect
+    //     const inter = intersection(node, lastPointOutside, point);
+    //     log.warn('intersect', intersection(node, lastPointOutside, point));
+    //     let pointPresent = false;
+    //     points.forEach(p => {
+    //       pointPresent = pointPresent || (p.x === inter.x && p.y === inter.y);
+    //     });
+    //     // if (!pointPresent) {
+    //     if (!points.find(e => e.x === inter.x && e.y === inter.y)) {
+    //       updatedPoints.unshift(inter);
+    //       log.warn('Adding point -updated = ', updatedPoints);
+    //     } else {
+    //       log.warn('no intersect', inter, points);
+    //     }
+    //     // points.push(insterection);
+    //     isInside = true;
+    //   } else {
+    //     // at the outside
+    //     // if (!isInside) updatedPoints.unshift(point);
+    //     updatedPoints.unshift(point);
+    //     log.warn('Outside point', point, updatedPoints);
+    //   }
+    //   lastPointOutside = point;
+    // }
+    // points = updatedPoints;
+    // points = edge.points;
 
-    var _lastPointOutside;
-
-    var _isInside = false;
-
-    for (var i = points.length - 1; i >= 0; i--) {
-      var point = points[i];
-      var node = clusterDb[edge.fromCluster].node;
-
-      if (!outsideNode(node, point) && !_isInside) {
-        _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('inside', edge.fromCluster, point, node); // First point inside the rect
-
-        var insterection = intersection(node, _lastPointOutside, point); // log.trace('intersect', intersection(node, lastPointOutside, point));
-
-        updatedPoints.unshift(insterection); // points.push(insterection);
-
-        _isInside = true;
-      } else {
-        // at the outside
-        _logger__WEBPACK_IMPORTED_MODULE_0__["log"].trace('Outside point', point);
-        if (!_isInside) updatedPoints.unshift(point);
-      }
-
-      _lastPointOutside = point;
-    }
-
-    points = updatedPoints;
     pointsHasChanged = true;
   } // The data for our line
 
@@ -49984,7 +50139,8 @@ var insertEdge = function insertEdge(elem, e, edge, clusterDb, diagramType, grap
     curve = edge.curve || d3__WEBPACK_IMPORTED_MODULE_2__["curveBasis"];
   } else {
     curve = d3__WEBPACK_IMPORTED_MODULE_2__["curveBasis"];
-  }
+  } // curve = curveLinear;
+
 
   var lineFunction = Object(d3__WEBPACK_IMPORTED_MODULE_2__["line"])().x(function (d) {
     return d.x;
@@ -50161,7 +50317,7 @@ __webpack_require__.r(__webpack_exports__);
 var recursiveRender = function recursiveRender(_elem, graph, diagramtype, parentCluster) {
   _logger__WEBPACK_IMPORTED_MODULE_8__["log"].info('Graph in recursive render: XXX', graphlib__WEBPACK_IMPORTED_MODULE_1___default.a.json.write(graph), parentCluster);
   var dir = graph.graph().rankdir;
-  _logger__WEBPACK_IMPORTED_MODULE_8__["log"].warn('Dir in recursive render - dir:', dir);
+  _logger__WEBPACK_IMPORTED_MODULE_8__["log"].trace('Dir in recursive render - dir:', dir);
 
   var elem = _elem.insert('g').attr('class', 'root'); // eslint-disable-line
 
@@ -50173,7 +50329,7 @@ var recursiveRender = function recursiveRender(_elem, graph, diagramtype, parent
   }
 
   if (graph.edges().length > 0) {
-    _logger__WEBPACK_IMPORTED_MODULE_8__["log"].info('Recursive edges', graph.edge(graph.edges()[0]));
+    _logger__WEBPACK_IMPORTED_MODULE_8__["log"].trace('Recursive edges', graph.edge(graph.edges()[0]));
   }
 
   var clusters = elem.insert('g').attr('class', 'clusters'); // eslint-disable-line
@@ -50193,7 +50349,7 @@ var recursiveRender = function recursiveRender(_elem, graph, diagramtype, parent
       graph.setNode(parentCluster.id, data);
 
       if (!graph.parent(v)) {
-        _logger__WEBPACK_IMPORTED_MODULE_8__["log"].warn('Setting parent', v, parentCluster.id);
+        _logger__WEBPACK_IMPORTED_MODULE_8__["log"].trace('Setting parent', v, parentCluster.id);
         graph.setParent(v, parentCluster.id, data);
       }
     }
@@ -50202,11 +50358,14 @@ var recursiveRender = function recursiveRender(_elem, graph, diagramtype, parent
 
     if (node && node.clusterNode) {
       // const children = graph.children(v);
-      _logger__WEBPACK_IMPORTED_MODULE_8__["log"].info('Cluster identified', v, node, graph.node(v));
-      var newEl = recursiveRender(nodes, node.graph, diagramtype, graph.node(v));
+      _logger__WEBPACK_IMPORTED_MODULE_8__["log"].info('Cluster identified', v, node.width, graph.node(v));
+      var o = recursiveRender(nodes, node.graph, diagramtype, graph.node(v));
+      var newEl = o.elem;
       Object(_shapes_util__WEBPACK_IMPORTED_MODULE_3__["updateNodeBounds"])(node, newEl);
+      node.diff = o.diff || 0;
+      _logger__WEBPACK_IMPORTED_MODULE_8__["log"].info('Node bounds (abc123)', v, node, node.width, node.x, node.y);
       Object(_nodes__WEBPACK_IMPORTED_MODULE_5__["setNodeElem"])(newEl, node);
-      _logger__WEBPACK_IMPORTED_MODULE_8__["log"].warn('Recursive render complete', newEl, node);
+      _logger__WEBPACK_IMPORTED_MODULE_8__["log"].warn('Recursive render complete ', newEl, node);
     } else {
       if (graph.children(v).length > 0) {
         // This is a cluster but not to be rendered recusively
@@ -50245,6 +50404,7 @@ var recursiveRender = function recursiveRender(_elem, graph, diagramtype, parent
   dagre__WEBPACK_IMPORTED_MODULE_0___default.a.layout(graph);
   _logger__WEBPACK_IMPORTED_MODULE_8__["log"].info('Graph after layout:', graphlib__WEBPACK_IMPORTED_MODULE_1___default.a.json.write(graph)); // Move the nodes to the correct place
 
+  var diff = 0;
   Object(_mermaid_graphlib__WEBPACK_IMPORTED_MODULE_4__["sortNodesByHierarchy"])(graph).forEach(function (v) {
     var node = graph.node(v);
     _logger__WEBPACK_IMPORTED_MODULE_8__["log"].info('Position ' + v + ': ' + JSON.stringify(graph.node(v)));
@@ -50272,7 +50432,18 @@ var recursiveRender = function recursiveRender(_elem, graph, diagramtype, parent
     var paths = Object(_edges__WEBPACK_IMPORTED_MODULE_7__["insertEdge"])(edgePaths, e, edge, _mermaid_graphlib__WEBPACK_IMPORTED_MODULE_4__["clusterDb"], diagramtype, graph);
     Object(_edges__WEBPACK_IMPORTED_MODULE_7__["positionEdgeLabel"])(edge, paths);
   });
-  return elem;
+  graph.nodes().forEach(function (v) {
+    var n = graph.node(v);
+    _logger__WEBPACK_IMPORTED_MODULE_8__["log"].info(v, n.type, n.diff);
+
+    if (n.type === 'group') {
+      diff = n.diff;
+    }
+  });
+  return {
+    elem: elem,
+    diff: diff
+  };
 };
 
 var render = function render(elem, graph, markers, diagramtype, id) {
@@ -50720,7 +50891,7 @@ var clear = function clear() {
 
 var isDecendant = function isDecendant(id, ancenstorId) {
   // if (id === ancenstorId) return true;
-  _logger__WEBPACK_IMPORTED_MODULE_0__["log"].debug('In isDecendant', ancenstorId, ' ', id, ' = ', decendants[ancenstorId].indexOf(id) >= 0);
+  _logger__WEBPACK_IMPORTED_MODULE_0__["log"].trace('In isDecendant', ancenstorId, ' ', id, ' = ', decendants[ancenstorId].indexOf(id) >= 0);
   if (decendants[ancenstorId].indexOf(id) >= 0) return true;
   return false;
 };
@@ -51007,11 +51178,20 @@ var extractor = function extractor(graph, depth) {
     graph.children(_node) && graph.children(_node).length > 0) {
       _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('Cluster without external connections, without a parent and with children', _node, depth);
       var graphSettings = graph.graph();
+      var dir = graphSettings.rankdir === 'TB' ? 'LR' : 'TB';
+
+      if (clusterDb[_node]) {
+        if (clusterDb[_node].clusterData && clusterDb[_node].clusterData.dir) {
+          dir = clusterDb[_node].clusterData.dir;
+          _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('Fixing dir', clusterDb[_node].clusterData.dir, dir);
+        }
+      }
+
       var clusterGraph = new graphlib__WEBPACK_IMPORTED_MODULE_1___default.a.Graph({
         multigraph: true,
         compound: true
       }).setGraph({
-        rankdir: graphSettings.rankdir === 'TB' ? 'LR' : 'TB',
+        rankdir: dir,
         // Todo: set proper spacing
         nodesep: 50,
         ranksep: 50,
@@ -51089,8 +51269,12 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _createLabel__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./createLabel */ "./src/dagre-wrapper/createLabel.js");
 /* harmony import */ var _shapes_note__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./shapes/note */ "./src/dagre-wrapper/shapes/note.js");
 /* harmony import */ var _diagrams_class_svgDraw__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../diagrams/class/svgDraw */ "./src/diagrams/class/svgDraw.js");
+/* harmony import */ var _diagrams_common_common__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../diagrams/common/common */ "./src/diagrams/common/common.js");
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
 
  // eslint-disable-line
+
 
 
 
@@ -51128,6 +51312,37 @@ var question = function question(parent, node) {
   node.intersect = function (point) {
     _logger__WEBPACK_IMPORTED_MODULE_1__["log"].warn('Intersect called');
     return _intersect_index_js__WEBPACK_IMPORTED_MODULE_4__["default"].polygon(node, points, point);
+  };
+
+  return shapeSvg;
+};
+
+var choice = function choice(parent, node) {
+  var shapeSvg = parent.insert('g').attr('class', 'node default').attr('id', node.domId || node.id);
+  var s = 28;
+  var points = [{
+    x: 0,
+    y: s / 2
+  }, {
+    x: s / 2,
+    y: 0
+  }, {
+    x: 0,
+    y: -s / 2
+  }, {
+    x: -s / 2,
+    y: 0
+  }];
+  var choice = shapeSvg.insert('polygon', ':first-child').attr('points', points.map(function (d) {
+    return d.x + ',' + d.y;
+  }).join(' ')); // center the circle around its coordinate
+
+  choice.attr('class', 'state-start').attr('r', 7).attr('width', 28).attr('height', 28);
+  node.width = 28;
+  node.height = 28;
+
+  node.intersect = function (point) {
+    return _intersect_index_js__WEBPACK_IMPORTED_MODULE_4__["default"].circle(node, 14, point);
   };
 
   return shapeSvg;
@@ -51434,12 +51649,21 @@ var rectWithTitle = function rectWithTitle(parent, node) {
 
   var innerLine = shapeSvg.insert('line');
   var label = shapeSvg.insert('g').attr('class', 'label');
-  var text2 = node.labelText.flat();
-  _logger__WEBPACK_IMPORTED_MODULE_1__["log"].info('Label text', text2[0]);
-  var text = label.node().appendChild(Object(_createLabel__WEBPACK_IMPORTED_MODULE_5__["default"])(text2[0], node.labelStyle, true, true));
+  var text2 = node.labelText.flat ? node.labelText.flat() : node.labelText; // const text2 = typeof text2prim === 'object' ? text2prim[0] : text2prim;
+
+  var title = '';
+
+  if (_typeof(text2) === 'object') {
+    title = text2[0];
+  } else {
+    title = text2;
+  }
+
+  _logger__WEBPACK_IMPORTED_MODULE_1__["log"].info('Label text abc79', title, text2, _typeof(text2) === 'object');
+  var text = label.node().appendChild(Object(_createLabel__WEBPACK_IMPORTED_MODULE_5__["default"])(title, node.labelStyle, true, true));
   var bbox;
 
-  if (Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels) {
+  if (Object(_diagrams_common_common__WEBPACK_IMPORTED_MODULE_8__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels)) {
     var div = text.children[0];
     var dv = Object(d3__WEBPACK_IMPORTED_MODULE_0__["select"])(text);
     bbox = div.getBoundingClientRect();
@@ -51450,9 +51674,9 @@ var rectWithTitle = function rectWithTitle(parent, node) {
   _logger__WEBPACK_IMPORTED_MODULE_1__["log"].info('Text 2', text2);
   var textRows = text2.slice(1, text2.length);
   var titleBox = text.getBBox();
-  var descr = label.node().appendChild(Object(_createLabel__WEBPACK_IMPORTED_MODULE_5__["default"])(textRows.join('<br/>'), node.labelStyle, true, true));
+  var descr = label.node().appendChild(Object(_createLabel__WEBPACK_IMPORTED_MODULE_5__["default"])(textRows.join ? textRows.join('<br/>') : textRows, node.labelStyle, true, true));
 
-  if (Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels) {
+  if (Object(_diagrams_common_common__WEBPACK_IMPORTED_MODULE_8__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels)) {
     var _div = descr.children[0];
 
     var _dv = Object(d3__WEBPACK_IMPORTED_MODULE_0__["select"])(descr);
@@ -51598,7 +51822,7 @@ var forkJoin = function forkJoin(parent, node, dir) {
     height = 70;
   }
 
-  var shape = shapeSvg.append('rect').style('stroke', 'black').style('fill', 'black').attr('x', -1 * width / 2).attr('y', -1 * height / 2).attr('width', width).attr('height', height).attr('class', 'fork-join');
+  var shape = shapeSvg.append('rect').attr('x', -1 * width / 2).attr('y', -1 * height / 2).attr('width', width).attr('height', height).attr('class', 'fork-join');
   Object(_shapes_util__WEBPACK_IMPORTED_MODULE_2__["updateNodeBounds"])(node, shape);
   node.height = node.height + node.padding / 2;
   node.width = node.width + node.padding / 2;
@@ -51653,7 +51877,7 @@ var class_box = function class_box(parent, node) {
   var interfaceLabel = labelContainer.node().appendChild(Object(_createLabel__WEBPACK_IMPORTED_MODULE_5__["default"])(interfaceLabelText, node.labelStyle, true, true));
   var interfaceBBox = interfaceLabel.getBBox();
 
-  if (Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels) {
+  if (Object(_diagrams_common_common__WEBPACK_IMPORTED_MODULE_8__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels)) {
     var div = interfaceLabel.children[0];
     var dv = Object(d3__WEBPACK_IMPORTED_MODULE_0__["select"])(interfaceLabel);
     interfaceBBox = div.getBoundingClientRect();
@@ -51676,7 +51900,7 @@ var class_box = function class_box(parent, node) {
   Object(d3__WEBPACK_IMPORTED_MODULE_0__["select"])(classTitleLabel).attr('class', 'classTitle');
   var classTitleBBox = classTitleLabel.getBBox();
 
-  if (Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels) {
+  if (Object(_diagrams_common_common__WEBPACK_IMPORTED_MODULE_8__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels)) {
     var _div2 = classTitleLabel.children[0];
 
     var _dv2 = Object(d3__WEBPACK_IMPORTED_MODULE_0__["select"])(classTitleLabel);
@@ -51700,7 +51924,7 @@ var class_box = function class_box(parent, node) {
     var lbl = labelContainer.node().appendChild(Object(_createLabel__WEBPACK_IMPORTED_MODULE_5__["default"])(parsedText, node.labelStyle, true, true));
     var bbox = lbl.getBBox();
 
-    if (Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels) {
+    if (Object(_diagrams_common_common__WEBPACK_IMPORTED_MODULE_8__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels)) {
       var _div3 = lbl.children[0];
 
       var _dv3 = Object(d3__WEBPACK_IMPORTED_MODULE_0__["select"])(lbl);
@@ -51726,7 +51950,7 @@ var class_box = function class_box(parent, node) {
     var lbl = labelContainer.node().appendChild(Object(_createLabel__WEBPACK_IMPORTED_MODULE_5__["default"])(parsedText, node.labelStyle, true, true));
     var bbox = lbl.getBBox();
 
-    if (Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels) {
+    if (Object(_diagrams_common_common__WEBPACK_IMPORTED_MODULE_8__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_3__["getConfig"])().flowchart.htmlLabels)) {
       var _div4 = lbl.children[0];
 
       var _dv4 = Object(d3__WEBPACK_IMPORTED_MODULE_0__["select"])(lbl);
@@ -51773,7 +51997,7 @@ var class_box = function class_box(parent, node) {
     verticalPos += classTitleBBox.height + rowPadding;
   }); //
   // let bbox;
-  // if (getConfig().flowchart.htmlLabels) {
+  // if (evaluate(getConfig().flowchart.htmlLabels)) {
   //   const div = interfaceLabel.children[0];
   //   const dv = select(interfaceLabel);
   //   bbox = div.getBoundingClientRect();
@@ -51787,7 +52011,7 @@ var class_box = function class_box(parent, node) {
   // const descr = label
   //   .node()
   //   .appendChild(createLabel(textRows.join('<br/>'), node.labelStyle, true, true));
-  // if (getConfig().flowchart.htmlLabels) {
+  // if (evaluate(getConfig().flowchart.htmlLabels)) {
   //   const div = descr.children[0];
   //   const dv = select(descr);
   //   bbox = div.getBoundingClientRect();
@@ -51843,6 +52067,7 @@ var shapes = {
   question: question,
   rect: rect,
   rectWithTitle: rectWithTitle,
+  choice: choice,
   circle: circle,
   stadium: stadium,
   hexagon: hexagon,
@@ -51896,14 +52121,17 @@ var clear = function clear() {
 };
 var positionNode = function positionNode(node) {
   var el = nodeElems[node.id];
-  _logger__WEBPACK_IMPORTED_MODULE_1__["log"].trace('Transforming node', node, 'translate(' + (node.x - node.width / 2 - 5) + ', ' + (node.y - node.height / 2 - 5) + ')');
+  _logger__WEBPACK_IMPORTED_MODULE_1__["log"].trace('Transforming node', node.diff, node, 'translate(' + (node.x - node.width / 2 - 5) + ', ' + node.width / 2 + ')');
   var padding = 8;
+  var diff = node.diff || 0;
 
   if (node.clusterNode) {
-    el.attr('transform', 'translate(' + (node.x - node.width / 2 - padding) + ', ' + (node.y - node.height / 2 - padding) + ')');
+    el.attr('transform', 'translate(' + (node.x + diff - node.width / 2) + ', ' + (node.y - node.height / 2 - padding) + ')');
   } else {
     el.attr('transform', 'translate(' + node.x + ', ' + node.y + ')');
   }
+
+  return diff;
 };
 
 /***/ }),
@@ -51963,6 +52191,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _createLabel__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../createLabel */ "./src/dagre-wrapper/createLabel.js");
 /* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../config */ "./src/config.js");
 /* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! d3 */ "./node_modules/d3/index.js");
+/* harmony import */ var _diagrams_common_common__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../diagrams/common/common */ "./src/diagrams/common/common.js");
+
 
 
 
@@ -51983,7 +52213,7 @@ var labelHelper = function labelHelper(parent, node, _classes, isNode) {
 
   var bbox = text.getBBox();
 
-  if (Object(_config__WEBPACK_IMPORTED_MODULE_1__["getConfig"])().flowchart.htmlLabels) {
+  if (Object(_diagrams_common_common__WEBPACK_IMPORTED_MODULE_3__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_1__["getConfig"])().flowchart.htmlLabels)) {
     var div = text.children[0];
     var dv = Object(d3__WEBPACK_IMPORTED_MODULE_2__["select"])(text);
     bbox = div.getBoundingClientRect();
@@ -52029,7 +52259,9 @@ __webpack_require__.r(__webpack_exports__);
  * **Configuration methods in Mermaid version 8.6.0 have been updated, to learn more[[click here](8.6.0_docs.md)].**
  *
  * ## **What follows are config instructions for older versions**
+ *
  * These are the default options which can be overridden with the initialization call like so:
+ *
  * **Example 1:**
  * <pre>
  * mermaid.initialize({
@@ -52061,15 +52293,15 @@ __webpack_require__.r(__webpack_exports__);
  */
 
 var config = {
-  /** theme , the CSS style sheet
-   *
+  /**
    * theme , the CSS style sheet
    *
-   *| Parameter | Description |Type | Required | Values|
-   *| --- | --- | --- | --- | --- |
-   *| Theme |Built in Themes| String | Optional | Values include, default, forest, dark, neutral, null|
+   * | Parameter | Description | Type | Required | Values |
+   * | --- | --- | --- | --- | --- |
+   * | theme | Built in Themes | string | Optional | 'default', 'forest', 'dark', 'neutral', 'null'|
    *
-   ***Notes:**To disable any pre-defined mermaid theme, use "null".
+   * **Notes:** To disable any pre-defined mermaid theme, use "null".
+   *
    * <pre>
    *  "theme": "forest",
    *  "themeCSS": ".node rect { fill: red; }"
@@ -52083,59 +52315,64 @@ var config = {
   maxTextSize: 50000,
 
   /**
-   *| Parameter | Description |Type | Required | Values|
-   *| --- | --- | --- | --- | --- |
-   *|fontFamily | specifies the font to be used in the rendered diagrams| String | Required | Trebuchet MS, Verdana, Arial, Sans-Serif |
+   * | Parameter | Description | Type | Required | Values |
+   * | --- | --- | --- | --- | --- |
+   * | fontFamily | specifies the font to be used in the rendered diagrams| string | Required | Any Posiable CSS FontFamily |
    *
-   ***notes: Default value is \\"trebuchet ms\\".
+   * **Notes:**
+   * Default value: '"trebuchet ms", verdana, arial, sans-serif;'.
    */
   fontFamily: '"trebuchet ms", verdana, arial, sans-serif;',
 
   /**
-   *| Parameter | Description |Type | Required | Values|
-   *| --- | --- | --- | --- | --- |
-   *| logLevel |This option decides the amount of logging to be used.| String | Required | 1, 2, 3, 4, 5 |
+   * | Parameter | Description | Type | Required | Values |
+   * | --- | --- | --- | --- | --- |
+   * | logLevel |This option decides the amount of logging to be used.| string \| number | Required | 1, 2, 3, 4, 5 |
    *
    *
-   ***Notes:**
-   *-   debug: 1.
-   *-   info: 2.
-   *-   warn: 3.
-   *-   error: 4.
-   *-   fatal: 5(default).
+   * **Notes:**
+   *
+   * - debug: 1
+   * - info: 2
+   * - warn: 3
+   * - error: 4
+   * - fatal: 5 (default)
    */
   logLevel: 5,
 
   /**
-   *| Parameter | Description |Type | Required | Values|
-   *| --- | --- | --- | --- | --- |
-   *| securitylevel | Level of trust for parsed diagram|String | Required | Strict, Loose, antiscript |
+   * | Parameter | Description | Type | Required | Values |
+   * | --- | --- | --- | --- | --- |
+   * | securitylevel | Level of trust for parsed diagram|string | Required | 'strict', 'loose', 'antiscript' |
    *
-   ***Notes:
-   *-   **strict**: (**default**) tags in text are encoded, click functionality is disabeled
-   *-   **loose**: tags in text are allowed, click functionality is enabled
-   *-   **antiscript**: html tags in text are allowed, (only script element is removed), click functionality is enabled
+   * **Notes**:
+   *
+   * - **strict**: (**default**) tags in text are encoded, click functionality is disabled
+   * - **loose**: tags in text are allowed, click functionality is enabled
+   * - **antiscript**: html tags in text are allowed, (only script element is removed), click functionality is enabled
    */
   securityLevel: 'strict',
 
   /**
-   *| Parameter | Description |Type | Required | Values|
-   *| --- | --- | --- | --- | --- |
-   *| startOnLoad| Dictates whether mermaind starts on Page load | Boolean | Required | True, False |
+   * | Parameter | Description | Type | Required | Values |
+   * | --- | --- | --- | --- | --- |
+   * | startOnLoad | Dictates whether mermaind starts on Page load | boolean | Required | true, false |
    *
-   ***Notes:**
-   ***Default value: true**
+   * **Notes:** Default value: true
    */
   startOnLoad: true,
 
   /**
-   *| Parameter | Description |Type | Required |Values|
-   *| --- | --- | --- | --- | --- |
-   *| arrowMarkerAbsolute | Controls whether or arrow markers in html code are absolute paths or anchors | Boolean | Required |  True, False |
+   * | Parameter | Description |Type | Required |Values|
+   * | --- | --- | --- | --- | --- |
+   * | arrowMarkerAbsolute | Controls whether or arrow markers in html code are absolute paths or anchors | boolean | Required | true, false |
    *
    *
-   *## Notes**: This matters if you are using base tag settings.
-   ***Default value: false**.
+   * **Notes**:
+   *
+   * This matters if you are using base tag settings.
+   *
+   * Default value: false
    */
   arrowMarkerAbsolute: false,
 
@@ -52144,6 +52381,9 @@ var config = {
    * call to mermaidAPI.initialize. Calls to mermaidAPI.reinitialize cannot make changes to
    * the `secure` keys in the current currentConfig. This prevents malicious graph directives from
    * overriding a site's default security.
+    * **Notes**:
+   *
+   * Default value: ['secure', 'securityLevel', 'startOnLoad', 'maxTextSize']
    */
   secure: ['secure', 'securityLevel', 'startOnLoad', 'maxTextSize'],
 
@@ -52151,8 +52391,11 @@ var config = {
    * This option controls if the generated ids of nodes in the SVG are generated randomly or based on a seed.
    * If set to false, the IDs are generated based on the current date and thus are not deterministic. This is the default behaviour.
    *
-   *## Notes**: This matters if your files are checked into sourcecontrol e.g. git and should not change unless content is changed.
-   ***Default value: false**
+   * **Notes**:
+   *
+   * This matters if your files are checked into sourcecontrol e.g. git and should not change unless content is changed.
+   *
+   * Default value: false
    */
   deterministicIds: false,
 
@@ -52167,69 +52410,95 @@ var config = {
    */
   flowchart: {
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| diagramPadding | amount of padding around the diagram as a whole | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | diagramPadding | Amount of padding around the diagram as a whole | Integer | Required | Any Positive Value |
      *
-     ***Notes:**The amount of padding around the diagram as a whole so that embedded diagrams have margins, expressed in pixels
-     ***Default value: 8**.
+     * **Notes:**
+     *
+     * The amount of padding around the diagram as a whole so that embedded diagrams have margins, expressed in pixels
+     *
+     * Default value: 8
      */
     diagramPadding: 8,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| htmlLabels | Flag for setting whether or not a html tag should be used for rendering labels on the edges. | Boolean| Required | True, False|
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | htmlLabels | Flag for setting whether or not a html tag should be used for rendering labels on the edges. | boolean| Required | true, false |
      *
-     ***Notes: Default value: true**.
+     * **Notes:** Default value: true.
      */
     htmlLabels: true,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| nodeSpacing | Defines the spacing between nodes on the same level | Integer| Required | Any positive Numbers |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | nodeSpacing | Defines the spacing between nodes on the same level | Integer | Required | Any positive Number |
      *
-     ***Notes:
-     *Pertains to horizontal spacing for TB (top to bottom) or BT (bottom to top) graphs, and the vertical spacing for LR as well as RL graphs.**
-     ***Default value 50**.
+     * **Notes:**
+     *
+     * Pertains to horizontal spacing for TB (top to bottom) or BT (bottom to top) graphs, and the vertical spacing for LR as well as RL graphs.**
+     *
+     * Default value: 50
      */
     nodeSpacing: 50,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| rankSpacing | Defines the spacing between nodes on different levels | Integer | Required| Any Positive Numbers |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | rankSpacing | Defines the spacing between nodes on different levels | Integer | Required | Any Positive Number |
      *
-     ***Notes: pertains to vertical spacing for TB (top to bottom) or BT (bottom to top), and the horizontal spacing for LR as well as RL graphs.
-     ***Default value 50**.
+     * **Notes**:
+     *
+     * pertains to vertical spacing for TB (top to bottom) or BT (bottom to top), and the horizontal spacing for LR as well as RL graphs.
+     *
+     * Default value 50
      */
     rankSpacing: 50,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| curve | Defines how mermaid renders curves for flowcharts. | String | Required | Basis, Linear, Cardinal|
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | curve | Defines how mermaid renders curves for flowcharts. | string | Required | 'basis', 'linear', 'cardinal'|
      *
-     ***Notes:
-     *Default Vaue: monotoneX**
+     * **Notes:**
+     *
+     * Default Vaue: 'basis'
      */
-    curve: 'natural',
+    curve: 'basis',
     // Only used in new experimental rendering
     // represents the padding between the labels and the shape
     padding: 15,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| useMaxWidth | See notes | Boolean | 4 | True, False |
+     * | Parameter | Description | Type | Required | Values|
+     * | --- | --- | --- | --- | --- |
+     * | useMaxWidth | See notes | boolean | 4 | true, false |
      *
-     ***Notes:**when this flag is set the height and width is set to 100% and is then scaling with the
-     *available space if not the absolute space required is used.
+     * **Notes:**
      *
-     ***Default value true**.
+     * When this flag is set the height and width is set to 100% and is then scaling with the
+     * available space if not the absolute space required is used.
+     *
+     * Default value: true
      */
-    useMaxWidth: true
+    useMaxWidth: true,
+
+    /**
+     * | Parameter | Description | Type | Required | Values|
+     * | --- | --- | --- | --- | --- |
+     * | defaultRenderer | See notes | boolean | 4 | dagre-d3, dagre-wrapper |
+     *
+     * **Notes:**
+     *
+     * Decides which rendering engine that is to be used for the rendering. Legal values are:
+     * * dagre-d3
+     * * dagre-wrapper - wrapper for dagre implemented in mermaid
+     *
+     * Default value: 'dagre-d3'
+     */
+    defaultRenderer: 'dagre-d3'
   },
 
   /**
@@ -52237,174 +52506,176 @@ var config = {
    */
   sequence: {
     /**
-     * widt of the activation rect
-     * **Default value 10**.
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | activationWidth | Width of the activation rect | Integer | Required | Any Positive Value |
+     *
+     *
+     * **Notes:** Default value :10
      */
     activationWidth: 10,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| diagramMarginX | margin to the right and left of the sequence diagram | Integer | Required | Any Positive Values |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | diagramMarginX | Margin to the right and left of the sequence diagram | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 50**.
+     * **Notes:** Default value: 50
      */
     diagramMarginX: 50,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
+     *| Parameter | Description | Type | Required | Values |
      *| --- | --- | --- | --- | --- |
-     *| diagramMarginY | Margin to the over and under the sequence diagram | Integer | Required | Any Positive Values|
+     *| diagramMarginY | Margin to the over and under the sequence diagram | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 10**.
+     * **Notes:** Default value: 10
      */
     diagramMarginY: 10,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| actorMargin | Margin between actors. | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | actorMargin | Margin between actors | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 50**.
+     * **Notes:**
+     * Default value: 50
      */
     actorMargin: 50,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| width | Width of actor boxes | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | width | Width of actor boxes | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 150**.
+     * **Notes:**
+     * Default value: 150
      */
     width: 150,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| height | Height of actor boxes | Integer | Required | Any Positive Value|
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | height | Height of actor boxes | Integer | Required | Any Positive Value|
      *
-     ***Notes:**
-     ***Default value 65**..
+     * **Notes:**
+     * Default value: 65
      */
     height: 65,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| boxMargin | Margin around loop boxes | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | boxMargin | Margin around loop boxes | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     *
-     ***Default value 10**.
+     * **Notes:**
+     * Default value: 10
      */
     boxMargin: 10,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| boxTextMargin| margin around the text in loop/alt/opt boxes | Integer | Required| Any Positive Value|
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | boxTextMargin | Margin around the text in loop/alt/opt boxes | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     *
-     ***Default value 5**.
+     * **Notes:**
+     * Default value: 5
      */
     boxTextMargin: 5,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| noteMargin | margin around notes. | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | noteMargin | margin around notes | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     *
-     ***Default value 10**.
+     * **Notes:**
+     * Default value: 10
      */
     noteMargin: 10,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| messageMargin | Space between messages. | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | messageMargin | Space between messages | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     *
-     *Space between messages.
-     ***Default value 35**.
+     * **Notes:**
+     * Default value: 35
      */
     messageMargin: 35,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| messageAlign | Multiline message alignment | Integer | Required | left, center, right |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | messageAlign | Multiline message alignment | string | Required | 'left', 'center', 'right' |
      *
-     ***Notes:**center **default**
+     * **Notes:**
+     * Default value: 'center'
      */
     messageAlign: 'center',
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| mirrorActors | mirror actors under diagram. | Boolean| Required | True, False |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | mirrorActors | Mirror actors under diagram | boolean | Required | true, false |
      *
-     ***Notes:**
-     *
-     ***Default value true**.
+     * **Notes:**
+     * Default value: true
      */
     mirrorActors: true,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| bottomMarginAdj | Prolongs the edge of the diagram downwards. | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | bottomMarginAdj | Prolongs the edge of the diagram downwards | Integer | Required | Any Positive Value |
      *
-     ***Notes:**Depending on css styling this might need adjustment.
-     ***Default value 1**.
+     * **Notes:**
+     *
+     * Depending on css styling this might need adjustment.
+     *
+     * Default value: 1
      */
     bottomMarginAdj: 1,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| useMaxWidth | See Notes | Boolean | Required | True, False |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | useMaxWidth | See Notes | boolean | Required | true, false |
      *
-     ***Notes:**
-     *when this flag is set to true, the height and width is set to 100% and is then scaling with the
-     *available space. If set to false, the absolute space required is used.
-     ***Default value: True**.
+     * **Notes:**
+     * When this flag is set to true, the height and width is set to 100% and is then scaling with the
+     * available space. If set to false, the absolute space required is used.
+     *
+     * Default value: true
      */
     useMaxWidth: true,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| rightAngles | display curve arrows as right angles| Boolean | Required | True, False |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | rightAngles | display curve arrows as right angles | boolean | Required | true, false |
      *
-     ***Notes:**
+     * **Notes:**
      *
-     *This will display arrows that start and begin at the same node as right angles, rather than a curve
-     ***Default value false**.
+     * This will display arrows that start and begin at the same node as right angles, rather than a curve
+     *
+     * Default value: false
      */
     rightAngles: false,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| showSequenceNumbers | This will show the node numbers | Boolean | Required | True, False |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | showSequenceNumbers | This will show the node numbers | boolean | Required | true, false |
      *
-     ***Notes:**
-     ***Default value false**.
+     * **Notes:**
+     * Default value: false
      */
     showSequenceNumbers: false,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| actorFontSize| This sets the font size of the actor's description | Integer | Require | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | actorFontSize| This sets the font size of the actor's description | Integer | Require | Any Positive Value |
      *
      ***Notes:**
      ***Default value 14**..
@@ -52412,104 +52683,118 @@ var config = {
     actorFontSize: 14,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| actorFontFamily |This sets the font family of the actor's description | 3 | 4 | Open-Sans, Sans-Serif |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | actorFontFamily |This sets the font family of the actor's description | string | Required | Any Posiable CSS FontFamily |
      *
-     ***Notes:**
-     ***Default value "Open-Sans", "sans-serif"**.
+     * **Notes:**
+     * Default value: "'Open-Sans", "sans-serif"'
      */
     actorFontFamily: '"Open-Sans", "sans-serif"',
 
     /**
      * This sets the font weight of the actor's description
-     * **Default value 400.
+     *
+     * **Notes:**
+     * Default value: 400.
      */
     actorFontWeight: 400,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| noteFontSize |This sets the font size of actor-attached notes. | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | noteFontSize | This sets the font size of actor-attached notes | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 14**..
+     * **Notes:**
+     * Default value: 14
      */
     noteFontSize: 14,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| noteFontFamily| This sets the font family of actor-attached notes. | String | Required |  trebuchet ms, verdana, arial, sans-serif |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | noteFontFamily| This sets the font family of actor-attached notes. | string | Required | Any Posiable CSS FontFamily |
      *
-     ***Notes:**
-     ***Default value: trebuchet ms **.
+     * **Notes:**
+     * Default value: ''"trebuchet ms", verdana, arial, sans-serif'
      */
     noteFontFamily: '"trebuchet ms", verdana, arial, sans-serif',
 
     /**
      * This sets the font weight of the note's description
-     * **Default value 400.
+     *
+     * **Notes:**
+     * Default value: 400
      */
     noteFontWeight: 400,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| noteAlign | This sets the text alignment of actor-attached notes. | string | required | left, center, right|
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | noteAlign | This sets the text alignment of actor-attached notes | string | required | 'left', 'center', 'right'|
      *
-     ***Notes:**
-     ***Default value center**.
+     * **Notes:**
+     * Default value: 'center'
      */
     noteAlign: 'center',
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| messageFontSize | This sets the font size of actor messages. | Integer | Required | Any Positive Number |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | messageFontSize | This sets the font size of actor messages | Integer | Required | Any Positive Number |
      *
-     ***Notes:**
-     ***Default value 16**.
+     * **Notes:**
+     * Default value: 16
      */
     messageFontSize: 16,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| messageFontFamily | This sets the font family of actor messages. | String| Required | trebuchet ms", verdana, arial, sans-serif |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | messageFontFamily | This sets the font family of actor messages | string | Required | Any Posiable CSS FontFamily |
      *
-     ***Notes:**
-     ***Default value: "trebuchet ms**.
+     * **Notes:**
+     * Default value: '"trebuchet ms", verdana, arial, sans-serif'
      */
     messageFontFamily: '"trebuchet ms", verdana, arial, sans-serif',
 
     /**
      * This sets the font weight of the message's description
-     * **Default value 400.
+     *
+     * **Notes:**
+     * Default value: 400.
      */
     messageFontWeight: 400,
 
     /**
      * This sets the auto-wrap state for the diagram
-     * **Default value false.
+     *
+     * **Notes:**
+     * Default value: false.
      */
     wrap: false,
 
     /**
      * This sets the auto-wrap padding for the diagram (sides only)
-     * **Default value 10.
+     *
+     * **Notes:**
+     * Default value: 0.
      */
     wrapPadding: 10,
 
     /**
      * This sets the width of the loop-box (loop, alt, opt, par)
-     * **Default value 50.
+     *
+     * **Notes:**
+     * Default value: 50.
      */
     labelBoxWidth: 50,
 
     /**
      * This sets the height of the loop-box (loop, alt, opt, par)
-     * **Default value 20.
+     *
+     * **Notes:**
+     * Default value: 20.
      */
     labelBoxHeight: 20,
     messageFont: function messageFont() {
@@ -52536,125 +52821,149 @@ var config = {
   },
 
   /**
-   * The object containing configurations specific for gantt diagrams*
+   * The object containing configurations specific for gantt diagrams
    */
   gantt: {
     /**
-     *### titleTopMargin
+     * ### titleTopMargin
      *
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| titleTopMargin | Margin top for the text over the gantt diagram | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | titleTopMargin | Margin top for the text over the gantt diagram | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 25**.
+     * **Notes:**
+     * Default value: 25
      */
     titleTopMargin: 25,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| barHeight | The height of the bars in the graph | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | barHeight | The height of the bars in the graph | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 20**.
+     * **Notes:**
+     * Default value: 20
      */
     barHeight: 20,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| barGap | The margin between the different activities in the gantt diagram. | Integer | Optional |Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | barGap | The margin between the different activities in the gantt diagram | Integer | Optional | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 4**.
+     * **Notes:**
+     * Default value: 4
      */
     barGap: 4,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| topPadding | Margin between title and gantt diagram and between axis and gantt diagram. | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values|
+     * | --- | --- | --- | --- | --- |
+     * | topPadding | Margin between title and gantt diagram and between axis and gantt diagram. | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 50**.
+     * **Notes:**
+     * Default value: 50
      */
     topPadding: 50,
+
+    /**
+     * | Parameter | Description | Type | Required | Values|
+     * | --- | --- | --- | --- | --- |
+     * | rightPadding | The space allocated for the section name to the right of the activities | Integer | Required | Any Positive Value |
+     *
+     * **Notes:**
+     * Default value: 75
+     */
     rightPadding: 75,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| leftPadding | The space allocated for the section name to the left of the activities. | Integer| Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values|
+     * | --- | --- | --- | --- | --- |
+     * | leftPadding | The space allocated for the section name to the left of the activities | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 75**.
+     * **Notes:**
+     * Default value: 75
      */
     leftPadding: 75,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| gridLineStartPadding | Vertical starting position of the grid lines. | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values|
+     * | --- | --- | --- | --- | --- |
+     * | gridLineStartPadding | Vertical starting position of the grid lines | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 35**.
+     * **Notes:**
+     * Default value: 35
      */
     gridLineStartPadding: 35,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| fontSize | Font size| Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values|
+     * | --- | --- | --- | --- | --- |
+     * | fontSize | Font size | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 11**.
+     * **Notes:**
+     * Default value: 11
      */
     fontSize: 11,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| sectionFontSize | Font size for secions| Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values|
+     * | --- | --- | --- | --- | --- |
+     * | sectionFontSize | Font size for secions| Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 11**.
+     * **Notes:**
+     * Default value: 11
      */
     sectionFontSize: 11,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| numberSectionStyles | The number of alternating section styles | Integer | 4 | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values|
+     * | --- | --- | --- | --- | --- |
+     * | numberSectionStyles | The number of alternating section styles | Integer | 4 | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 4**.
+     * **Notes:**
+     * Default value: 4
      */
     numberSectionStyles: 4,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| axisFormat | Datetime format of the axis. | 3 | Required | Date in yy-mm-dd |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | axisFormat | Datetime format of the axis | 3 | Required | Date in yy-mm-dd |
      *
-     ***Notes:**
+     * **Notes:**
      *
      * This might need adjustment to match your locale and preferences
-     ***Default value '%Y-%m-%d'**.
+     *
+     * Default value: '%Y-%m-%d'.
      */
     axisFormat: '%Y-%m-%d',
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| useMaxWidth | See notes | Boolean | 4 | True, False |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | useMaxWidth | See notes | boolean | 4 | true, false |
      *
-     ***Notes:**when this flag is set the height and width is set to 100% and is then scaling with the
-     *available space if not the absolute space required is used.
+     * **Notes:**
      *
-     ***Default value true**.
+     * When this flag is set the height and width is set to 100% and is then scaling with the
+     * available space if not the absolute space required is used.
+     *
+     * Default value: true
      */
     useMaxWidth: true,
+
+    /**
+     *| Parameter | Description |Type | Required | Values|
+     *| --- | --- | --- | --- | --- |
+     *| topAxis | See notes | Boolean | 4 | True, False |
+     *
+     ***Notes:** when this flag is set date labels will be added to the
+    top of the chart
+     *
+     ***Default value false**.
+     */
+    topAxis: false,
     useWidth: undefined
   },
 
@@ -52663,52 +52972,52 @@ var config = {
    */
   journey: {
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| diagramMarginX | margin to the right and left of the sequence diagram | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | diagramMarginX | Margin to the right and left of the sequence diagram | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 50**.
+     * **Notes:**
+     * Default value: 50
      */
     diagramMarginX: 50,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| diagramMarginY | margin to the over and under the sequence diagram. | Integer | Required | Any Positive Value|
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | diagramMarginY | Margin to the over and under the sequence diagram. | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 10**..
+     * **Notes:**
+     * Default value: 10
      */
     diagramMarginY: 10,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| actorMargin | Margin between actors. | Integer | Required | Any Positive Value|
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | actorMargin | Margin between actors | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 50**.
+     * **Notes:**
+     * Default value: 50
      */
     leftMargin: 150,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| width | Width of actor boxes | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | width | Width of actor boxes | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 150**.
+     * **Notes:**
+     * Default value: 150
      */
     width: 150,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| height | Height of actor boxes | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | height | Height of actor boxes | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 65**.
+     * **Notes:**
+     * Default value: 65
      */
     height: 50,
 
@@ -52717,80 +53026,91 @@ var config = {
      *| --- | --- | --- | --- | --- |
      *| boxMargin | Margin around loop boxes | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 10**.
+     * **Notes:**
+     * Default value: 10
      */
     boxMargin: 10,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| boxTextMargin | margin around the text in loop/alt/opt boxes | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | boxTextMargin | Margin around the text in loop/alt/opt boxes | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
+     * **Notes:**
+     * Default value: 5
      */
     boxTextMargin: 5,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| noteMargin | margin around notes. | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | noteMargin | Margin around notes | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
-     ***Default value 10**.
+     * **Notes:**
+     * Default value: 10
      */
     noteMargin: 10,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| messageMargin |Space between messages. | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | messageMargin |Space between messages. | Integer | Required | Any Positive Value |
      *
-     ***Notes:**
+     * **Notes:**
      *
-     *Space between messages.
-     ***Default value 35**.
+     * Space between messages.
+     *
+     * Default value: 35
      */
     messageMargin: 35,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| messageAlign |Multiline message alignment | 3 | 4 | left, center, right |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | messageAlign | Multiline message alignment | 3 | 4 | 'left', 'center', 'right' |
      *
-     ***Notes:**default:center**
+     * **Notes:**
+     * Default value: 'center'
      */
     messageAlign: 'center',
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| bottomMarginAdj | Prolongs the edge of the diagram downwards. | Integer | 4 | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | bottomMarginAdj | Prolongs the edge of the diagram downwards | Integer | 4 | Any Positive Value |
      *
-     ***Notes:**Depending on css styling this might need adjustment.
-     ***Default value 1**.
+     * **Notes:**
+     *
+     * Depending on css styling this might need adjustment.
+     *
+     * Default value: 1
      */
     bottomMarginAdj: 1,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| useMaxWidth | See notes | Boolean | 4 | True, False |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | useMaxWidth | See notes | boolean | 4 | true, false |
      *
-     ***Notes:**when this flag is set the height and width is set to 100% and is then scaling with the
-     *available space if not the absolute space required is used.
+     * **Notes:**
      *
-     ***Default value true**.
+     * When this flag is set the height and width is set to 100% and is then scaling with the
+     * available space if not the absolute space required is used.
+     *
+     * Default value: true
      */
     useMaxWidth: true,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| rightAngles | Curved Arrows become Right Angles,  | 3 | 4 | True, False |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | rightAngles | Curved Arrows become Right Angles | 3 | 4 | true, false |
      *
-     ***Notes:**This will display arrows that start and begin at the same node as right angles, rather than a curves
-     ***Default value false**.
+     * **Notes:**
+     *
+     * This will display arrows that start and begin at the same node as right angles, rather than a curves
+     *
+     * Default value: false
      */
     rightAngles: false,
     taskFontSize: 14,
@@ -52808,30 +53128,49 @@ var config = {
     arrowMarkerAbsolute: false,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| useMaxWidth | See notes | Boolean | 4 | True, False |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | useMaxWidth | See notes | boolean | 4 | true, false |
      *
-     ***Notes:**when this flag is set the height and width is set to 100% and is then scaling with the
-     *available space if not the absolute space required is used.
+     * **Notes:**
      *
-     ***Default value true**.
+     * When this flag is set the height and width is set to 100% and is then scaling with the
+     * available space if not the absolute space required is used.
+     *
+     * Default value: true
      */
-    useMaxWidth: true
+    useMaxWidth: true,
+
+    /**
+     * | Parameter | Description | Type | Required | Values|
+     * | --- | --- | --- | --- | --- |
+     * | defaultRenderer | See notes | boolean | 4 | dagre-d3, dagre-wrapper |
+     *
+     * **Notes:**
+     *
+     * Decides which rendering engine that is to be used for the rendering. Legal values are:
+     * * dagre-d3
+     * * dagre-wrapper - wrapper for dagre implemented in mermaid
+     *
+     * Default value: 'dagre-d3'
+     */
+    defaultRenderer: 'dagre-d3'
   },
   git: {
     arrowMarkerAbsolute: false,
     useWidth: undefined,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| useMaxWidth | See notes | Boolean | 4 | True, False |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | useMaxWidth | See notes | boolean | 4 | true, false |
      *
-     ***Notes:**when this flag is set the height and width is set to 100% and is then scaling with the
-     *available space if not the absolute space required is used.
+     * **Notes:**
      *
-     ***Default value true**.
+     * When this flag is set the height and width is set to 100% and is then scaling with the
+     * available space if not the absolute space required is used.
+     *
+     * Default value: true
      */
     useMaxWidth: true
   },
@@ -52856,16 +53195,33 @@ var config = {
     radius: 5,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| useMaxWidth | See notes | Boolean | 4 | True, False |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | useMaxWidth | See notes | boolean | 4 | true, false |
      *
-     ***Notes:**when this flag is set the height and width is set to 100% and is then scaling with the
-     *available space if not the absolute space required is used.
+     * **Notes:**
      *
-     ***Default value true**.
+     * When this flag is set the height and width is set to 100% and is then scaling with the
+     * available space if not the absolute space required is used.
+     *
+     * Default value: true
      */
-    useMaxWidth: true
+    useMaxWidth: true,
+
+    /**
+     * | Parameter | Description | Type | Required | Values|
+     * | --- | --- | --- | --- | --- |
+     * | defaultRenderer | See notes | boolean | 4 | dagre-d3, dagre-wrapper |
+     *
+     * **Notes:**
+     *
+     * Decides which rendering engine that is to be used for the rendering. Legal values are:
+     * * dagre-d3
+     * * dagre-wrapper - wrapper for dagre implemented in mermaid
+     *
+     * Default value: 'dagre-d3'
+     */
+    defaultRenderer: 'dagre-wrapper'
   },
 
   /**
@@ -52873,95 +53229,112 @@ var config = {
    */
   er: {
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| diagramPadding | amount of padding around the diagram as a whole | Integer | Required | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | diagramPadding | Amount of padding around the diagram as a whole | Integer | Required | Any Positive Value |
      *
-     ***Notes:**The amount of padding around the diagram as a whole so that embedded diagrams have margins, expressed in pixels
-     ***Default value: 20**.
+     * **Notes:**
+     *
+     * The amount of padding around the diagram as a whole so that embedded diagrams have margins, expressed in pixels
+     *
+     * Default value: 20
      */
     diagramPadding: 20,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| layoutDirection | Directional bias for layout of entities. | String | Required | "TB", "BT","LR","RL" |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | layoutDirection | Directional bias for layout of entities. | string | Required | "TB", "BT", "LR", "RL" |
      *
-     ***Notes:**
-     *'TB' for Top-Bottom, 'BT'for Bottom-Top, 'LR' for Left-Right, or 'RL' for Right to Left.
+     * **Notes:**
+     *
+     * 'TB' for Top-Bottom, 'BT'for Bottom-Top, 'LR' for Left-Right, or 'RL' for Right to Left.
+     *
      * T = top, B = bottom, L = left, and R = right.
-     ***Default value: TB **.
+     *
+     * Default value: 'TB'
      */
     layoutDirection: 'TB',
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| minEntityWidth | The mimimum width of an entity box, | Integer | Required| Any Positive Value  |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | minEntityWidth | The mimimum width of an entity box | Integer | Required | Any Positive Value  |
      *
-     ***Notes:**expressed in pixels
-     ***Default value: 100**.
+     * **Notes:**
+     * Expressed in pixels.
+     * Default value: 100
      */
     minEntityWidth: 100,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| minEntityHeight| The minimum height of an entity box, | Integer | 4 | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | minEntityHeight| The minimum height of an entity box | Integer | 4 | Any Positive Value |
      *
-     ***Notes:**expressed in pixels
-     ***Default value: 75 **
+     * **Notes:**
+     * Expressed in pixels
+     * Default value: 75
      */
     minEntityHeight: 75,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| entityPadding|minimum internal padding betweentext in box and  box borders| Integer | 4 | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | entityPadding | Minimum internal padding betweentext in box and box borders | Integer | 4 | Any Positive Value |
      *
-     ***Notes:**The minimum internal padding betweentext in an entity box and the enclosing box borders, expressed in pixels.
-     ***Default value: 15 **
+     * **Notes:**
+     *
+     * The minimum internal padding betweentext in an entity box and the enclosing box borders, expressed in pixels.
+     *
+     * Default value: 15
      */
     entityPadding: 15,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| stroke | Stroke color of box edges and lines | String | 4 | Any recognized color |
-     ***Default value: gray **
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | stroke | Stroke color of box edges and lines | string | 4 | Any recognized color |
+     *
+     * **Notes:**
+     * Default value: 'gray'
      */
     stroke: 'gray',
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| fill | Fill color of entity boxes | String | 4 | Any recognized color |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | fill | Fill color of entity boxes | string | 4 | Any recognized color |
      *
-     ***Notes:**
-     ***Default value:'honeydew'**
+     * **Notes:**
+     * Default value: 'honeydew'
      */
     fill: 'honeydew',
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| fontSize| Font Size in pixels| Integer |  | Any Positive Value |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | fontSize | Font Size in pixels | Integer |  | Any Positive Value |
      *
-     ***Notes:**Font size (expressed as an integer representing a number of pixels)
-     ***Default value: 12 **
+     * **Notes:**
+     *
+     * Font size (expressed as an integer representing a number of pixels)
+     * Default value: 12
      */
     fontSize: 12,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| useMaxWidth | See Notes | Boolean | Required | true, false |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | useMaxWidth | See Notes | boolean | Required | true, false |
      *
-     ***Notes:**
-     *When this flag is set to true, the diagram width is locked to 100% and
-     *scaled based on available space. If set to false, the diagram reserves its
-     *absolute width.
-     ***Default value: true**.
+     * **Notes:**
+     *
+     * When this flag is set to true, the diagram width is locked to 100% and
+     * scaled based on available space. If set to false, the diagram reserves its
+     * absolute width.
+     *
+     * Default value: true
      */
     useMaxWidth: true
   },
@@ -52973,15 +53346,17 @@ var config = {
     useWidth: undefined,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| useMaxWidth | See Notes | Boolean | Required | true, false |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | useMaxWidth | See Notes | boolean | Required | true, false |
      *
-     ***Notes:**
-     *When this flag is set to true, the diagram width is locked to 100% and
-     *scaled based on available space. If set to false, the diagram reserves its
-     *absolute width.
-     ***Default value: true**.
+     * **Notes:**
+     *
+     * When this flag is set to true, the diagram width is locked to 100% and
+     * scaled based on available space. If set to false, the diagram reserves its
+     * absolute width.
+     *
+     * Default value: true
      */
     useMaxWidth: true
   },
@@ -52993,15 +53368,17 @@ var config = {
     useWidth: undefined,
 
     /**
-     *| Parameter | Description |Type | Required | Values|
-     *| --- | --- | --- | --- | --- |
-     *| useMaxWidth | See Notes | Boolean | Required | true, false |
+     * | Parameter | Description | Type | Required | Values |
+     * | --- | --- | --- | --- | --- |
+     * | useMaxWidth | See Notes | boolean | Required | true, false |
      *
-     ***Notes:**
-     *When this flag is set to true, the diagram width is locked to 100% and
-     *scaled based on available space. If set to false, the diagram reserves its
-     *absolute width.
-     ***Default value: true**.
+     * **Notes:**
+     *
+     * When this flag is set to true, the diagram width is locked to 100% and
+     * scaled based on available space. If set to false, the diagram reserves its
+     * absolute width.
+     *
+     * Default value: true
      */
     useMaxWidth: true,
     rect_fill: '#f9f9f9',
@@ -53054,13 +53431,17 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _common_common__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../common/common */ "./src/diagrams/common/common.js");
 /* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../utils */ "./src/utils.js");
 /* harmony import */ var _mermaidAPI__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../mermaidAPI */ "./src/mermaidAPI.js");
-function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
 
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 
-function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 
-function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
 
 
@@ -53486,7 +53867,7 @@ var addClasses = function addClasses(classes, g) {
 
     var vertexText = vertex.text !== undefined ? vertex.text : vertex.id; // We create a SVG label, either by delegating to addHtmlLabel or manually
     // let vertexNode;
-    // if (getConfig().flowchart.htmlLabels) {
+    // if (evaluate(getConfig().flowchart.htmlLabels)) {
     //   const node = {
     //     label: vertexText.replace(
     //       /fa[lrsb]?:fa-[\w-]+/g,
@@ -55291,7 +55672,7 @@ var parseClassifier = function parseClassifier(classifier) {
 /*!***************************************!*\
   !*** ./src/diagrams/common/common.js ***!
   \***************************************/
-/*! exports provided: getRows, removeScript, sanitizeText, lineBreakRegex, hasBreaks, splitBreaks, default */
+/*! exports provided: getRows, removeScript, sanitizeText, lineBreakRegex, hasBreaks, splitBreaks, evaluate, default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -55302,6 +55683,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "lineBreakRegex", function() { return lineBreakRegex; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "hasBreaks", function() { return hasBreaks; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "splitBreaks", function() { return splitBreaks; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "evaluate", function() { return evaluate; });
+/* harmony import */ var dompurify__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! dompurify */ "./node_modules/dompurify/dist/purify.js");
+/* harmony import */ var dompurify__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(dompurify__WEBPACK_IMPORTED_MODULE_0__);
+
 var getRows = function getRows(s) {
   if (!s) return 1;
   var str = breakToPlaceholder(s);
@@ -55331,30 +55716,13 @@ var removeScript = function removeScript(txt) {
     }
   }
 
+  rs = rs.replace(/javascript:/g, '#');
+  rs = rs.replace(/onerror=/g, 'onerror:');
+  rs = rs.replace(/<iframe/g, '');
   return rs;
 };
-var sanitizeText = function sanitizeText(text, config) {
-  var txt = text;
-  var htmlLabels = true;
-
-  if (config.flowchart && (config.flowchart.htmlLabels === false || config.flowchart.htmlLabels === 'false')) {
-    htmlLabels = false;
-  }
-
-  if (htmlLabels) {
-    var level = config.securityLevel;
-
-    if (level === 'antiscript') {
-      txt = removeScript(txt);
-    } else if (level !== 'loose') {
-      // eslint-disable-line
-      txt = breakToPlaceholder(txt);
-      txt = txt.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      txt = txt.replace(/=/g, '&equals;');
-      txt = placeholderToBreak(txt);
-    }
-  }
-
+var sanitizeText = function sanitizeText(text) {
+  var txt = dompurify__WEBPACK_IMPORTED_MODULE_0___default.a.sanitize(text);
   return txt;
 };
 var lineBreakRegex = /<br\s*\/?>/gi;
@@ -55369,10 +55737,6 @@ var breakToPlaceholder = function breakToPlaceholder(s) {
   return s.replace(lineBreakRegex, '#br#');
 };
 
-var placeholderToBreak = function placeholderToBreak(s) {
-  return s.replace(/#br#/g, '<br/>');
-};
-
 var getUrl = function getUrl(useAbsolute) {
   var url = '';
 
@@ -55385,6 +55749,9 @@ var getUrl = function getUrl(useAbsolute) {
   return url;
 };
 
+var evaluate = function evaluate(val) {
+  return val === 'false' || val === false ? false : true;
+};
 /* harmony default export */ __webpack_exports__["default"] = ({
   getRows: getRows,
   sanitizeText: sanitizeText,
@@ -55392,7 +55759,8 @@ var getUrl = function getUrl(useAbsolute) {
   splitBreaks: splitBreaks,
   lineBreakRegex: lineBreakRegex,
   removeScript: removeScript,
-  getUrl: getUrl
+  getUrl: getUrl,
+  evaluate: evaluate
 });
 
 /***/ }),
@@ -57153,13 +57521,17 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _logger__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../logger */ "./src/logger.js");
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
-function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
 
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 
-function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 
-function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
 
 
@@ -57212,7 +57584,7 @@ var lookUpDomId = function lookUpDomId(id) {
  * @param classes
  */
 
-var addVertex = function addVertex(_id, text, type, style, classes) {
+var addVertex = function addVertex(_id, text, type, style, classes, dir) {
   var txt;
   var id = _id;
 
@@ -57269,6 +57641,10 @@ var addVertex = function addVertex(_id, text, type, style, classes) {
         vertices[id].classes.push(s);
       });
     }
+  }
+
+  if (typeof dir !== 'undefined') {
+    vertices[id].dir = dir;
   }
 };
 /**
@@ -57605,6 +57981,7 @@ var defaultStyle = function defaultStyle() {
  */
 
 var addSubGraph = function addSubGraph(_id, list, _title) {
+  // console.log('addSubGraph', _id, list, _title);
   var id = _id.trim();
 
   var title = _title;
@@ -57620,8 +57997,15 @@ var addSubGraph = function addSubGraph(_id, list, _title) {
       string: {}
     };
     var objs = [];
-    return a.filter(function (item) {
+    var dir; //  = unbdefined; direction.trim();
+
+    var nodeList = a.filter(function (item) {
       var type = _typeof(item);
+
+      if (item.stmt && item.stmt === 'dir') {
+        dir = item.value;
+        return false;
+      }
 
       if (item.trim() === '') {
         return false;
@@ -57633,10 +58017,19 @@ var addSubGraph = function addSubGraph(_id, list, _title) {
         return objs.indexOf(item) >= 0 ? false : objs.push(item);
       }
     });
+    return {
+      nodeList: nodeList,
+      dir: dir
+    };
   }
 
   var nodeList = [];
-  nodeList = uniq(nodeList.concat.apply(nodeList, list));
+
+  var _uniq = uniq(nodeList.concat.apply(nodeList, list)),
+      nl = _uniq.nodeList,
+      dir = _uniq.dir;
+
+  nodeList = nl;
 
   if (version === 'gen-1') {
     _logger__WEBPACK_IMPORTED_MODULE_5__["log"].warn('LOOKING UP');
@@ -57655,9 +58048,10 @@ var addSubGraph = function addSubGraph(_id, list, _title) {
     id: id,
     nodes: nodeList,
     title: title.trim(),
-    classes: []
+    classes: [],
+    dir: dir
   };
-  _logger__WEBPACK_IMPORTED_MODULE_5__["log"].info('Adding', subGraph.id, subGraph.nodes);
+  _logger__WEBPACK_IMPORTED_MODULE_5__["log"].info('Adding', subGraph.id, subGraph.nodes, subGraph.dir);
   /**
    * Deletes an id from all subgraphs
    */
@@ -58048,7 +58442,7 @@ var addVertices = function addVertices(vert, g, svgId) {
 
     var vertexNode;
 
-    if (Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.htmlLabels) {
+    if (Object(_common_common__WEBPACK_IMPORTED_MODULE_8__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.htmlLabels)) {
       // TODO: addHtmlLabel accepts a labelStyle. Do we possibly have that?
       var node = {
         label: vertexText.replace(/fa[lrsb]?:fa-[\w-]+/g, function (s) {
@@ -58163,6 +58557,7 @@ var addVertices = function addVertices(vert, g, svgId) {
       domId: _flowDb__WEBPACK_IMPORTED_MODULE_2__["default"].lookUpDomId(vertex.id),
       haveCallback: vertex.haveCallback,
       width: vertex.type === 'group' ? 500 : undefined,
+      dir: vertex.dir,
       type: vertex.type,
       padding: Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.padding
     });
@@ -58178,6 +58573,7 @@ var addVertices = function addVertices(vert, g, svgId) {
       domId: _flowDb__WEBPACK_IMPORTED_MODULE_2__["default"].lookUpDomId(vertex.id),
       width: vertex.type === 'group' ? 500 : undefined,
       type: vertex.type,
+      dir: vertex.dir,
       padding: Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.padding
     });
   });
@@ -58189,7 +58585,9 @@ var addVertices = function addVertices(vert, g, svgId) {
  */
 
 var addEdges = function addEdges(edges, g) {
+  _logger__WEBPACK_IMPORTED_MODULE_7__["log"].info('abc78 edges = ', edges);
   var cnt = 0;
+  var linkIdCnt = {};
   var defaultStyle;
   var defaultLabelStyle;
 
@@ -58202,7 +58600,18 @@ var addEdges = function addEdges(edges, g) {
   edges.forEach(function (edge) {
     cnt++; // Identify Link
 
-    var linkId = 'L-' + edge.start + '-' + edge.end;
+    var linkIdBase = 'L-' + edge.start + '-' + edge.end; // count the links from+to the same node to give unique id
+
+    if (typeof linkIdCnt[linkIdBase] === 'undefined') {
+      linkIdCnt[linkIdBase] = 0;
+      _logger__WEBPACK_IMPORTED_MODULE_7__["log"].info('abc78 new entry', linkIdBase, linkIdCnt[linkIdBase]);
+    } else {
+      linkIdCnt[linkIdBase]++;
+      _logger__WEBPACK_IMPORTED_MODULE_7__["log"].info('abc78 new entry', linkIdBase, linkIdCnt[linkIdBase]);
+    }
+
+    var linkId = linkIdBase + '-' + linkIdCnt[linkIdBase];
+    _logger__WEBPACK_IMPORTED_MODULE_7__["log"].info('abc78 new link id to be used is', linkIdBase, linkId, linkIdCnt[linkIdBase]);
     var linkNameStart = 'LS-' + edge.start;
     var linkNameEnd = 'LE-' + edge.end;
     var edgeData = {
@@ -58302,7 +58711,7 @@ var addEdges = function addEdges(edges, g) {
     } else {
       edgeData.arrowheadStyle = 'fill: #333';
       edgeData.labelpos = 'c';
-    } // if (getConfig().flowchart.htmlLabels && false) {
+    } // if (evaluate(getConfig().flowchart.htmlLabels) && false) {
     //   // eslint-disable-line
     //   edgeData.labelType = 'html';
     //   edgeData.label = `<span id="L-${linkId}" class="edgeLabel L-${linkNameStart}' L-${linkNameEnd}">${edge.text}</span>`;
@@ -58392,7 +58801,7 @@ var draw = function draw(text, id) {
   for (var _i = subGraphs.length - 1; _i >= 0; _i--) {
     subG = subGraphs[_i];
     _logger__WEBPACK_IMPORTED_MODULE_7__["log"].info('Subgraph - ', subG);
-    _flowDb__WEBPACK_IMPORTED_MODULE_2__["default"].addVertex(subG.id, subG.title, 'group', undefined, subG.classes);
+    _flowDb__WEBPACK_IMPORTED_MODULE_2__["default"].addVertex(subG.id, subG.title, 'group', undefined, subG.classes, subG.dir);
   } // Fetch the verices/nodes and edges/links from the parsed graph definition
 
 
@@ -58577,7 +58986,7 @@ var addVertices = function addVertices(vert, g, svgId) {
 
     var vertexNode;
 
-    if (Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.htmlLabels) {
+    if (Object(_common_common__WEBPACK_IMPORTED_MODULE_8__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.htmlLabels)) {
       // TODO: addHtmlLabel accepts a labelStyle. Do we possibly have that?
       var node = {
         label: vertexText.replace(/fa[lrsb]?:fa-[\w-]+/g, function (s) {
@@ -58773,7 +59182,7 @@ var addEdges = function addEdges(edges, g) {
       edgeData.arrowheadStyle = 'fill: #333';
       edgeData.labelpos = 'c';
 
-      if (Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.htmlLabels) {
+      if (Object(_common_common__WEBPACK_IMPORTED_MODULE_8__["evaluate"])(Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().flowchart.htmlLabels)) {
         edgeData.labelType = 'html';
         edgeData.label = "<span id=\"L-".concat(linkId, "\" class=\"edgeLabel L-").concat(linkNameStart, "' L-").concat(linkNameEnd, "\">").concat(edge.text.replace(/fa[lrsb]?:fa-[\w-]+/g, function (s) {
           return "<i class='".concat(s.replace(':', ' '), "'></i>");
@@ -58944,7 +59353,7 @@ var draw = function draw(text, id) {
   } // Add label rects for non html labels
 
 
-  if (!conf.htmlLabels || true) {
+  if (!Object(_common_common__WEBPACK_IMPORTED_MODULE_8__["evaluate"])(conf.htmlLabels) || true) {
     // eslint-disable-line
     var labels = document.querySelectorAll('[id="' + id + '"] .edgeLabel .label');
 
@@ -59093,12 +59502,12 @@ var draw = function draw(text, id) {
   }
 */
 var parser = (function(){
-var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,9],$V1=[1,7],$V2=[1,6],$V3=[1,8],$V4=[1,20,21,22,23,38,46,75,76,77,78,79,80,94,95,98,99,100,102,103,109,110,111,112,113,114],$V5=[2,10],$V6=[1,20],$V7=[1,21],$V8=[1,22],$V9=[1,23],$Va=[1,30],$Vb=[1,54],$Vc=[1,32],$Vd=[1,33],$Ve=[1,34],$Vf=[1,35],$Vg=[1,36],$Vh=[1,48],$Vi=[1,43],$Vj=[1,45],$Vk=[1,40],$Vl=[1,44],$Vm=[1,47],$Vn=[1,51],$Vo=[1,52],$Vp=[1,53],$Vq=[1,42],$Vr=[1,46],$Vs=[1,49],$Vt=[1,50],$Vu=[1,41],$Vv=[1,57],$Vw=[1,62],$Vx=[1,20,21,22,23,38,42,46,75,76,77,78,79,80,94,95,98,99,100,102,103,109,110,111,112,113,114],$Vy=[1,66],$Vz=[1,65],$VA=[1,67],$VB=[20,21,23,69,70],$VC=[1,88],$VD=[1,93],$VE=[1,90],$VF=[1,95],$VG=[1,98],$VH=[1,96],$VI=[1,97],$VJ=[1,91],$VK=[1,103],$VL=[1,102],$VM=[1,92],$VN=[1,94],$VO=[1,99],$VP=[1,100],$VQ=[1,101],$VR=[1,104],$VS=[20,21,22,23,69,70],$VT=[20,21,22,23,47,69,70],$VU=[20,21,22,23,40,46,47,49,51,53,55,57,59,61,62,64,69,70,80,94,95,98,99,100,102,103,109,110,111,112,113,114],$VV=[20,21,23],$VW=[20,21,23,46,69,70,80,94,95,98,99,100,102,103,109,110,111,112,113,114],$VX=[1,12,20,21,22,23,24,38,42,46,75,76,77,78,79,80,94,95,98,99,100,102,103,109,110,111,112,113,114],$VY=[46,80,94,95,98,99,100,102,103,109,110,111,112,113,114],$VZ=[1,136],$V_=[1,144],$V$=[1,145],$V01=[1,146],$V11=[1,147],$V21=[1,131],$V31=[1,132],$V41=[1,128],$V51=[1,139],$V61=[1,140],$V71=[1,141],$V81=[1,142],$V91=[1,143],$Va1=[1,148],$Vb1=[1,149],$Vc1=[1,134],$Vd1=[1,137],$Ve1=[1,133],$Vf1=[1,130],$Vg1=[20,21,22,23,38,42,46,75,76,77,78,79,80,94,95,98,99,100,102,103,109,110,111,112,113,114],$Vh1=[1,152],$Vi1=[20,21,22,23,26,46,80,94,95,98,99,100,102,103,109,110,111,112,113,114],$Vj1=[20,21,22,23,24,26,38,40,41,42,46,50,52,54,56,58,60,61,63,65,69,70,71,75,76,77,78,79,80,81,84,94,95,98,99,100,102,103,104,105,109,110,111,112,113,114],$Vk1=[12,21,22,24],$Vl1=[22,95],$Vm1=[1,233],$Vn1=[1,237],$Vo1=[1,234],$Vp1=[1,231],$Vq1=[1,228],$Vr1=[1,229],$Vs1=[1,230],$Vt1=[1,232],$Vu1=[1,235],$Vv1=[1,236],$Vw1=[1,238],$Vx1=[1,255],$Vy1=[20,21,23,95],$Vz1=[20,21,22,23,75,91,94,95,98,99,100,101,102,103,104];
+var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,9],$V1=[1,7],$V2=[1,6],$V3=[1,8],$V4=[1,20,21,22,23,38,47,76,77,78,79,80,81,95,96,99,100,101,103,104,110,111,112,113,114,115,116,117,118,119],$V5=[2,10],$V6=[1,20],$V7=[1,21],$V8=[1,22],$V9=[1,23],$Va=[1,30],$Vb=[1,59],$Vc=[1,33],$Vd=[1,34],$Ve=[1,35],$Vf=[1,36],$Vg=[1,37],$Vh=[1,53],$Vi=[1,48],$Vj=[1,50],$Vk=[1,45],$Vl=[1,49],$Vm=[1,52],$Vn=[1,56],$Vo=[1,57],$Vp=[1,38],$Vq=[1,39],$Vr=[1,40],$Vs=[1,41],$Vt=[1,58],$Vu=[1,47],$Vv=[1,51],$Vw=[1,54],$Vx=[1,55],$Vy=[1,46],$Vz=[1,62],$VA=[1,67],$VB=[1,20,21,22,23,38,42,47,76,77,78,79,80,81,95,96,99,100,101,103,104,110,111,112,113,114,115,116,117,118,119],$VC=[1,71],$VD=[1,70],$VE=[1,72],$VF=[20,21,23,70,71],$VG=[1,93],$VH=[1,98],$VI=[1,95],$VJ=[1,100],$VK=[1,103],$VL=[1,101],$VM=[1,102],$VN=[1,96],$VO=[1,108],$VP=[1,107],$VQ=[1,97],$VR=[1,99],$VS=[1,104],$VT=[1,105],$VU=[1,106],$VV=[1,109],$VW=[20,21,22,23,70,71],$VX=[20,21,22,23,48,70,71],$VY=[20,21,22,23,40,47,48,50,52,54,56,58,60,62,63,65,70,71,81,95,96,99,100,101,103,104,114,115,116,117,118,119],$VZ=[20,21,23],$V_=[20,21,23,47,70,71,81,95,96,99,100,101,103,104,114,115,116,117,118,119],$V$=[1,12,20,21,22,23,24,38,42,47,76,77,78,79,80,81,95,96,99,100,101,103,104,110,111,112,113,114,115,116,117,118,119],$V01=[47,81,95,96,99,100,101,103,104,114,115,116,117,118,119],$V11=[1,141],$V21=[1,149],$V31=[1,150],$V41=[1,151],$V51=[1,152],$V61=[1,136],$V71=[1,137],$V81=[1,133],$V91=[1,144],$Va1=[1,145],$Vb1=[1,146],$Vc1=[1,147],$Vd1=[1,148],$Ve1=[1,153],$Vf1=[1,154],$Vg1=[1,139],$Vh1=[1,142],$Vi1=[1,138],$Vj1=[1,135],$Vk1=[20,21,22,23,38,42,47,76,77,78,79,80,81,95,96,99,100,101,103,104,110,111,112,113,114,115,116,117,118,119],$Vl1=[1,157],$Vm1=[20,21,22,23,26,47,81,95,96,99,100,101,103,104,114,115,116,117,118,119],$Vn1=[20,21,22,23,24,26,38,40,41,42,47,51,53,55,57,59,61,62,64,66,70,71,72,76,77,78,79,80,81,82,85,95,96,99,100,101,103,104,105,106,114,115,116,117,118,119],$Vo1=[12,21,22,24],$Vp1=[22,96],$Vq1=[1,238],$Vr1=[1,242],$Vs1=[1,239],$Vt1=[1,236],$Vu1=[1,233],$Vv1=[1,234],$Vw1=[1,235],$Vx1=[1,237],$Vy1=[1,240],$Vz1=[1,241],$VA1=[1,243],$VB1=[1,260],$VC1=[20,21,23,96],$VD1=[20,21,22,23,76,92,95,96,99,100,101,102,103,104,105];
 var parser = {trace: function trace () { },
 yy: {},
-symbols_: {"error":2,"start":3,"mermaidDoc":4,"directive":5,"openDirective":6,"typeDirective":7,"closeDirective":8,"separator":9,":":10,"argDirective":11,"open_directive":12,"type_directive":13,"arg_directive":14,"close_directive":15,"graphConfig":16,"document":17,"line":18,"statement":19,"SEMI":20,"NEWLINE":21,"SPACE":22,"EOF":23,"GRAPH":24,"NODIR":25,"DIR":26,"FirstStmtSeperator":27,"ending":28,"endToken":29,"spaceList":30,"spaceListNewline":31,"verticeStatement":32,"styleStatement":33,"linkStyleStatement":34,"classDefStatement":35,"classStatement":36,"clickStatement":37,"subgraph":38,"text":39,"SQS":40,"SQE":41,"end":42,"link":43,"node":44,"vertex":45,"AMP":46,"STYLE_SEPARATOR":47,"idString":48,"PS":49,"PE":50,"(-":51,"-)":52,"STADIUMSTART":53,"STADIUMEND":54,"SUBROUTINESTART":55,"SUBROUTINEEND":56,"CYLINDERSTART":57,"CYLINDEREND":58,"DIAMOND_START":59,"DIAMOND_STOP":60,"TAGEND":61,"TRAPSTART":62,"TRAPEND":63,"INVTRAPSTART":64,"INVTRAPEND":65,"linkStatement":66,"arrowText":67,"TESTSTR":68,"START_LINK":69,"LINK":70,"PIPE":71,"textToken":72,"STR":73,"keywords":74,"STYLE":75,"LINKSTYLE":76,"CLASSDEF":77,"CLASS":78,"CLICK":79,"DOWN":80,"UP":81,"textNoTags":82,"textNoTagsToken":83,"DEFAULT":84,"stylesOpt":85,"alphaNum":86,"CALLBACKNAME":87,"CALLBACKARGS":88,"HREF":89,"LINK_TARGET":90,"HEX":91,"numList":92,"INTERPOLATE":93,"NUM":94,"COMMA":95,"style":96,"styleComponent":97,"ALPHA":98,"COLON":99,"MINUS":100,"UNIT":101,"BRKT":102,"DOT":103,"PCT":104,"TAGSTART":105,"alphaNumToken":106,"idStringToken":107,"alphaNumStatement":108,"PUNCTUATION":109,"UNICODE_TEXT":110,"PLUS":111,"EQUALS":112,"MULT":113,"UNDERSCORE":114,"graphCodeTokens":115,"ARROW_CROSS":116,"ARROW_POINT":117,"ARROW_CIRCLE":118,"ARROW_OPEN":119,"QUOTE":120,"$accept":0,"$end":1},
-terminals_: {2:"error",10:":",12:"open_directive",13:"type_directive",14:"arg_directive",15:"close_directive",20:"SEMI",21:"NEWLINE",22:"SPACE",23:"EOF",24:"GRAPH",25:"NODIR",26:"DIR",38:"subgraph",40:"SQS",41:"SQE",42:"end",46:"AMP",47:"STYLE_SEPARATOR",49:"PS",50:"PE",51:"(-",52:"-)",53:"STADIUMSTART",54:"STADIUMEND",55:"SUBROUTINESTART",56:"SUBROUTINEEND",57:"CYLINDERSTART",58:"CYLINDEREND",59:"DIAMOND_START",60:"DIAMOND_STOP",61:"TAGEND",62:"TRAPSTART",63:"TRAPEND",64:"INVTRAPSTART",65:"INVTRAPEND",68:"TESTSTR",69:"START_LINK",70:"LINK",71:"PIPE",73:"STR",75:"STYLE",76:"LINKSTYLE",77:"CLASSDEF",78:"CLASS",79:"CLICK",80:"DOWN",81:"UP",84:"DEFAULT",87:"CALLBACKNAME",88:"CALLBACKARGS",89:"HREF",90:"LINK_TARGET",91:"HEX",93:"INTERPOLATE",94:"NUM",95:"COMMA",98:"ALPHA",99:"COLON",100:"MINUS",101:"UNIT",102:"BRKT",103:"DOT",104:"PCT",105:"TAGSTART",109:"PUNCTUATION",110:"UNICODE_TEXT",111:"PLUS",112:"EQUALS",113:"MULT",114:"UNDERSCORE",116:"ARROW_CROSS",117:"ARROW_POINT",118:"ARROW_CIRCLE",119:"ARROW_OPEN",120:"QUOTE"},
-productions_: [0,[3,1],[3,2],[5,4],[5,6],[6,1],[7,1],[11,1],[8,1],[4,2],[17,0],[17,2],[18,1],[18,1],[18,1],[18,1],[18,1],[16,2],[16,2],[16,2],[16,3],[28,2],[28,1],[29,1],[29,1],[29,1],[27,1],[27,1],[27,2],[31,2],[31,2],[31,1],[31,1],[30,2],[30,1],[19,2],[19,2],[19,2],[19,2],[19,2],[19,2],[19,9],[19,6],[19,4],[9,1],[9,1],[9,1],[32,3],[32,4],[32,2],[32,1],[44,1],[44,5],[44,3],[45,4],[45,6],[45,4],[45,4],[45,4],[45,4],[45,4],[45,4],[45,6],[45,4],[45,4],[45,4],[45,4],[45,4],[45,1],[43,2],[43,3],[43,3],[43,1],[43,3],[66,1],[67,3],[39,1],[39,2],[39,1],[74,1],[74,1],[74,1],[74,1],[74,1],[74,1],[74,1],[74,1],[74,1],[74,1],[74,1],[82,1],[82,2],[35,5],[35,5],[36,5],[37,2],[37,4],[37,3],[37,5],[37,2],[37,4],[37,4],[37,6],[37,2],[37,4],[37,2],[37,4],[37,4],[37,6],[33,5],[33,5],[34,5],[34,5],[34,9],[34,9],[34,7],[34,7],[92,1],[92,3],[85,1],[85,3],[96,1],[96,2],[97,1],[97,1],[97,1],[97,1],[97,1],[97,1],[97,1],[97,1],[97,1],[97,1],[97,1],[72,1],[72,1],[72,1],[72,1],[72,1],[72,1],[83,1],[83,1],[83,1],[83,1],[48,1],[48,2],[86,1],[86,2],[108,1],[108,1],[108,1],[108,1],[106,1],[106,1],[106,1],[106,1],[106,1],[106,1],[106,1],[106,1],[106,1],[106,1],[106,1],[106,1],[106,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1],[115,1]],
+symbols_: {"error":2,"start":3,"mermaidDoc":4,"directive":5,"openDirective":6,"typeDirective":7,"closeDirective":8,"separator":9,":":10,"argDirective":11,"open_directive":12,"type_directive":13,"arg_directive":14,"close_directive":15,"graphConfig":16,"document":17,"line":18,"statement":19,"SEMI":20,"NEWLINE":21,"SPACE":22,"EOF":23,"GRAPH":24,"NODIR":25,"DIR":26,"FirstStmtSeperator":27,"ending":28,"endToken":29,"spaceList":30,"spaceListNewline":31,"verticeStatement":32,"styleStatement":33,"linkStyleStatement":34,"classDefStatement":35,"classStatement":36,"clickStatement":37,"subgraph":38,"text":39,"SQS":40,"SQE":41,"end":42,"direction":43,"link":44,"node":45,"vertex":46,"AMP":47,"STYLE_SEPARATOR":48,"idString":49,"PS":50,"PE":51,"(-":52,"-)":53,"STADIUMSTART":54,"STADIUMEND":55,"SUBROUTINESTART":56,"SUBROUTINEEND":57,"CYLINDERSTART":58,"CYLINDEREND":59,"DIAMOND_START":60,"DIAMOND_STOP":61,"TAGEND":62,"TRAPSTART":63,"TRAPEND":64,"INVTRAPSTART":65,"INVTRAPEND":66,"linkStatement":67,"arrowText":68,"TESTSTR":69,"START_LINK":70,"LINK":71,"PIPE":72,"textToken":73,"STR":74,"keywords":75,"STYLE":76,"LINKSTYLE":77,"CLASSDEF":78,"CLASS":79,"CLICK":80,"DOWN":81,"UP":82,"textNoTags":83,"textNoTagsToken":84,"DEFAULT":85,"stylesOpt":86,"alphaNum":87,"CALLBACKNAME":88,"CALLBACKARGS":89,"HREF":90,"LINK_TARGET":91,"HEX":92,"numList":93,"INTERPOLATE":94,"NUM":95,"COMMA":96,"style":97,"styleComponent":98,"ALPHA":99,"COLON":100,"MINUS":101,"UNIT":102,"BRKT":103,"DOT":104,"PCT":105,"TAGSTART":106,"alphaNumToken":107,"idStringToken":108,"alphaNumStatement":109,"direction_tb":110,"direction_bt":111,"direction_rl":112,"direction_lr":113,"PUNCTUATION":114,"UNICODE_TEXT":115,"PLUS":116,"EQUALS":117,"MULT":118,"UNDERSCORE":119,"graphCodeTokens":120,"ARROW_CROSS":121,"ARROW_POINT":122,"ARROW_CIRCLE":123,"ARROW_OPEN":124,"QUOTE":125,"$accept":0,"$end":1},
+terminals_: {2:"error",10:":",12:"open_directive",13:"type_directive",14:"arg_directive",15:"close_directive",20:"SEMI",21:"NEWLINE",22:"SPACE",23:"EOF",24:"GRAPH",25:"NODIR",26:"DIR",38:"subgraph",40:"SQS",41:"SQE",42:"end",47:"AMP",48:"STYLE_SEPARATOR",50:"PS",51:"PE",52:"(-",53:"-)",54:"STADIUMSTART",55:"STADIUMEND",56:"SUBROUTINESTART",57:"SUBROUTINEEND",58:"CYLINDERSTART",59:"CYLINDEREND",60:"DIAMOND_START",61:"DIAMOND_STOP",62:"TAGEND",63:"TRAPSTART",64:"TRAPEND",65:"INVTRAPSTART",66:"INVTRAPEND",69:"TESTSTR",70:"START_LINK",71:"LINK",72:"PIPE",74:"STR",76:"STYLE",77:"LINKSTYLE",78:"CLASSDEF",79:"CLASS",80:"CLICK",81:"DOWN",82:"UP",85:"DEFAULT",88:"CALLBACKNAME",89:"CALLBACKARGS",90:"HREF",91:"LINK_TARGET",92:"HEX",94:"INTERPOLATE",95:"NUM",96:"COMMA",99:"ALPHA",100:"COLON",101:"MINUS",102:"UNIT",103:"BRKT",104:"DOT",105:"PCT",106:"TAGSTART",110:"direction_tb",111:"direction_bt",112:"direction_rl",113:"direction_lr",114:"PUNCTUATION",115:"UNICODE_TEXT",116:"PLUS",117:"EQUALS",118:"MULT",119:"UNDERSCORE",121:"ARROW_CROSS",122:"ARROW_POINT",123:"ARROW_CIRCLE",124:"ARROW_OPEN",125:"QUOTE"},
+productions_: [0,[3,1],[3,2],[5,4],[5,6],[6,1],[7,1],[11,1],[8,1],[4,2],[17,0],[17,2],[18,1],[18,1],[18,1],[18,1],[18,1],[16,2],[16,2],[16,2],[16,3],[28,2],[28,1],[29,1],[29,1],[29,1],[27,1],[27,1],[27,2],[31,2],[31,2],[31,1],[31,1],[30,2],[30,1],[19,2],[19,2],[19,2],[19,2],[19,2],[19,2],[19,9],[19,6],[19,4],[19,1],[9,1],[9,1],[9,1],[32,3],[32,4],[32,2],[32,1],[45,1],[45,5],[45,3],[46,4],[46,6],[46,4],[46,4],[46,4],[46,4],[46,4],[46,4],[46,6],[46,4],[46,4],[46,4],[46,4],[46,4],[46,1],[44,2],[44,3],[44,3],[44,1],[44,3],[67,1],[68,3],[39,1],[39,2],[39,1],[75,1],[75,1],[75,1],[75,1],[75,1],[75,1],[75,1],[75,1],[75,1],[75,1],[75,1],[83,1],[83,2],[35,5],[35,5],[36,5],[37,2],[37,4],[37,3],[37,5],[37,2],[37,4],[37,4],[37,6],[37,2],[37,4],[37,2],[37,4],[37,4],[37,6],[33,5],[33,5],[34,5],[34,5],[34,9],[34,9],[34,7],[34,7],[93,1],[93,3],[86,1],[86,3],[97,1],[97,2],[98,1],[98,1],[98,1],[98,1],[98,1],[98,1],[98,1],[98,1],[98,1],[98,1],[98,1],[73,1],[73,1],[73,1],[73,1],[73,1],[73,1],[84,1],[84,1],[84,1],[84,1],[49,1],[49,2],[87,1],[87,2],[109,1],[109,1],[109,1],[109,1],[43,1],[43,1],[43,1],[43,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[107,1],[108,1],[108,1],[108,1],[108,1],[108,1],[108,1],[108,1],[108,1],[108,1],[108,1],[108,1],[108,1],[108,1],[108,1],[108,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1],[120,1]],
 performAction: function anonymous(yytext, yyleng, yylineno, yy, yystate /* action[1] */, $$ /* vstack */, _$ /* lstack */) {
 /* this == yyval */
 
@@ -59126,7 +59535,7 @@ case 11:
 	    }
 	    this.$=$$[$0-1];
 break;
-case 12: case 76: case 78: case 90: case 146: case 148: case 149:
+case 12: case 77: case 79: case 91: case 147: case 149: case 150:
 this.$=$$[$0];
 break;
 case 19:
@@ -59150,169 +59559,181 @@ break;
 case 43:
 this.$=yy.addSubGraph(undefined,$$[$0-1],undefined);
 break;
-case 47:
+case 48:
  /* console.warn('vs',$$[$0-2].stmt,$$[$0]); */ yy.addLink($$[$0-2].stmt,$$[$0],$$[$0-1]); this.$ = { stmt: $$[$0], nodes: $$[$0].concat($$[$0-2].nodes) } 
 break;
-case 48:
+case 49:
  /* console.warn('vs',$$[$0-3].stmt,$$[$0-1]); */ yy.addLink($$[$0-3].stmt,$$[$0-1],$$[$0-2]); this.$ = { stmt: $$[$0-1], nodes: $$[$0-1].concat($$[$0-3].nodes) } 
 break;
-case 49:
+case 50:
 /*console.warn('noda', $$[$0-1]);*/ this.$ = {stmt: $$[$0-1], nodes:$$[$0-1] }
 break;
-case 50:
+case 51:
  /*console.warn('noda', $$[$0]);*/ this.$ = {stmt: $$[$0], nodes:$$[$0] }
 break;
-case 51:
+case 52:
  /* console.warn('nod', $$[$0]); */ this.$ = [$$[$0]];
 break;
-case 52:
+case 53:
  this.$ = $$[$0-4].concat($$[$0]); /* console.warn('pip', $$[$0-4][0], $$[$0], this.$); */ 
 break;
-case 53:
+case 54:
 this.$ = [$$[$0-2]];yy.setClass($$[$0-2],$$[$0])
 break;
-case 54:
+case 55:
 this.$ = $$[$0-3];yy.addVertex($$[$0-3],$$[$0-1],'square');
 break;
-case 55:
+case 56:
 this.$ = $$[$0-5];yy.addVertex($$[$0-5],$$[$0-2],'circle');
 break;
-case 56:
+case 57:
 this.$ = $$[$0-3];yy.addVertex($$[$0-3],$$[$0-1],'ellipse');
 break;
-case 57:
+case 58:
 this.$ = $$[$0-3];yy.addVertex($$[$0-3],$$[$0-1],'stadium');
 break;
-case 58:
+case 59:
 this.$ = $$[$0-3];yy.addVertex($$[$0-3],$$[$0-1],'subroutine');
 break;
-case 59:
+case 60:
 this.$ = $$[$0-3];yy.addVertex($$[$0-3],$$[$0-1],'cylinder');
 break;
-case 60:
+case 61:
 this.$ = $$[$0-3];yy.addVertex($$[$0-3],$$[$0-1],'round');
 break;
-case 61:
+case 62:
 this.$ = $$[$0-3];yy.addVertex($$[$0-3],$$[$0-1],'diamond');
 break;
-case 62:
+case 63:
 this.$ = $$[$0-5];yy.addVertex($$[$0-5],$$[$0-2],'hexagon');
 break;
-case 63:
+case 64:
 this.$ = $$[$0-3];yy.addVertex($$[$0-3],$$[$0-1],'odd');
 break;
-case 64:
+case 65:
 this.$ = $$[$0-3];yy.addVertex($$[$0-3],$$[$0-1],'trapezoid');
 break;
-case 65:
+case 66:
 this.$ = $$[$0-3];yy.addVertex($$[$0-3],$$[$0-1],'inv_trapezoid');
 break;
-case 66:
+case 67:
 this.$ = $$[$0-3];yy.addVertex($$[$0-3],$$[$0-1],'lean_right');
 break;
-case 67:
+case 68:
 this.$ = $$[$0-3];yy.addVertex($$[$0-3],$$[$0-1],'lean_left');
 break;
-case 68:
+case 69:
  /*console.warn('h: ', $$[$0]);*/this.$ = $$[$0];yy.addVertex($$[$0]);
 break;
-case 69:
+case 70:
 $$[$0-1].text = $$[$0];this.$ = $$[$0-1];
 break;
-case 70: case 71:
+case 71: case 72:
 $$[$0-2].text = $$[$0-1];this.$ = $$[$0-2];
 break;
-case 72:
+case 73:
 this.$ = $$[$0];
 break;
-case 73:
+case 74:
 var inf = yy.destructLink($$[$0], $$[$0-2]); this.$ = {"type":inf.type,"stroke":inf.stroke,"length":inf.length,"text":$$[$0-1]};
 break;
-case 74:
+case 75:
 var inf = yy.destructLink($$[$0]);this.$ = {"type":inf.type,"stroke":inf.stroke,"length":inf.length};
 break;
-case 75:
+case 76:
 this.$ = $$[$0-1];
 break;
-case 77: case 91: case 147:
+case 78: case 92: case 148:
 this.$=$$[$0-1]+''+$$[$0];
 break;
-case 92: case 93:
+case 93: case 94:
 this.$ = $$[$0-4];yy.addClass($$[$0-2],$$[$0]);
 break;
-case 94:
+case 95:
 this.$ = $$[$0-4];yy.setClass($$[$0-2], $$[$0]);
 break;
-case 95: case 103:
+case 96: case 104:
 this.$ = $$[$0-1];yy.setClickEvent($$[$0-1], $$[$0]);
 break;
-case 96: case 104:
+case 97: case 105:
 this.$ = $$[$0-3];yy.setClickEvent($$[$0-3], $$[$0-2]);yy.setTooltip($$[$0-3], $$[$0]);
 break;
-case 97:
+case 98:
 this.$ = $$[$0-2];yy.setClickEvent($$[$0-2], $$[$0-1], $$[$0]);
 break;
-case 98:
+case 99:
 this.$ = $$[$0-4];yy.setClickEvent($$[$0-4], $$[$0-3], $$[$0-2]);yy.setTooltip($$[$0-4], $$[$0]);
 break;
-case 99: case 105:
+case 100: case 106:
 this.$ = $$[$0-1];yy.setLink($$[$0-1], $$[$0]);
 break;
-case 100: case 106:
+case 101: case 107:
 this.$ = $$[$0-3];yy.setLink($$[$0-3], $$[$0-2]);yy.setTooltip($$[$0-3], $$[$0]);
 break;
-case 101: case 107:
+case 102: case 108:
 this.$ = $$[$0-3];yy.setLink($$[$0-3], $$[$0-2], $$[$0]);
 break;
-case 102: case 108:
+case 103: case 109:
 this.$ = $$[$0-5];yy.setLink($$[$0-5], $$[$0-4], $$[$0]);yy.setTooltip($$[$0-5], $$[$0-2]);
 break;
-case 109:
+case 110:
 this.$ = $$[$0-4];yy.addVertex($$[$0-2],undefined,undefined,$$[$0]);
 break;
-case 110: case 112:
+case 111: case 113:
 this.$ = $$[$0-4];yy.updateLink($$[$0-2],$$[$0]);
 break;
-case 111:
+case 112:
 this.$ = $$[$0-4];yy.updateLink([$$[$0-2]],$$[$0]);
 break;
-case 113:
+case 114:
 this.$ = $$[$0-8];yy.updateLinkInterpolate([$$[$0-6]],$$[$0-2]);yy.updateLink([$$[$0-6]],$$[$0]);
 break;
-case 114:
+case 115:
 this.$ = $$[$0-8];yy.updateLinkInterpolate($$[$0-6],$$[$0-2]);yy.updateLink($$[$0-6],$$[$0]);
 break;
-case 115:
+case 116:
 this.$ = $$[$0-6];yy.updateLinkInterpolate([$$[$0-4]],$$[$0]);
 break;
-case 116:
+case 117:
 this.$ = $$[$0-6];yy.updateLinkInterpolate($$[$0-4],$$[$0]);
 break;
-case 117: case 119:
+case 118: case 120:
 this.$ = [$$[$0]]
 break;
-case 118: case 120:
+case 119: case 121:
 $$[$0-2].push($$[$0]);this.$ = $$[$0-2];
 break;
-case 122:
+case 123:
 this.$ = $$[$0-1] + $$[$0];
 break;
-case 144:
+case 145:
 this.$=$$[$0]
 break;
-case 145:
+case 146:
 this.$=$$[$0-1]+''+$$[$0]
 break;
-case 150:
+case 151:
 this.$='v';
 break;
-case 151:
+case 152:
 this.$='-';
+break;
+case 153:
+ this.$={stmt:'dir', value:'TB'};
+break;
+case 154:
+ this.$={stmt:'dir', value:'BT'};
+break;
+case 155:
+ this.$={stmt:'dir', value:'RL'};
+break;
+case 156:
+ this.$={stmt:'dir', value:'LR'};
 break;
 }
 },
-table: [{3:1,4:2,5:3,6:5,12:$V0,16:4,21:$V1,22:$V2,24:$V3},{1:[3]},{1:[2,1]},{3:10,4:2,5:3,6:5,12:$V0,16:4,21:$V1,22:$V2,24:$V3},o($V4,$V5,{17:11}),{7:12,13:[1,13]},{16:14,21:$V1,22:$V2,24:$V3},{16:15,21:$V1,22:$V2,24:$V3},{25:[1,16],26:[1,17]},{13:[2,5]},{1:[2,2]},{1:[2,9],18:18,19:19,20:$V6,21:$V7,22:$V8,23:$V9,32:24,33:25,34:26,35:27,36:28,37:29,38:$Va,44:31,45:37,46:$Vb,48:38,75:$Vc,76:$Vd,77:$Ve,78:$Vf,79:$Vg,80:$Vh,94:$Vi,95:$Vj,98:$Vk,99:$Vl,100:$Vm,102:$Vn,103:$Vo,107:39,109:$Vp,110:$Vq,111:$Vr,112:$Vs,113:$Vt,114:$Vu},{8:55,10:[1,56],15:$Vv},o([10,15],[2,6]),o($V4,[2,17]),o($V4,[2,18]),o($V4,[2,19]),{20:[1,59],21:[1,60],22:$Vw,27:58,30:61},o($Vx,[2,11]),o($Vx,[2,12]),o($Vx,[2,13]),o($Vx,[2,14]),o($Vx,[2,15]),o($Vx,[2,16]),{9:63,20:$Vy,21:$Vz,23:$VA,43:64,66:68,69:[1,69],70:[1,70]},{9:71,20:$Vy,21:$Vz,23:$VA},{9:72,20:$Vy,21:$Vz,23:$VA},{9:73,20:$Vy,21:$Vz,23:$VA},{9:74,20:$Vy,21:$Vz,23:$VA},{9:75,20:$Vy,21:$Vz,23:$VA},{9:77,20:$Vy,21:$Vz,22:[1,76],23:$VA},o($VB,[2,50],{30:78,22:$Vw}),{22:[1,79]},{22:[1,80]},{22:[1,81]},{22:[1,82]},{26:$VC,46:$VD,73:[1,86],80:$VE,86:85,87:[1,83],89:[1,84],94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,106:89,108:87,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},o($VS,[2,51],{47:[1,105]}),o($VT,[2,68],{107:116,40:[1,106],46:$Vb,49:[1,107],51:[1,108],53:[1,109],55:[1,110],57:[1,111],59:[1,112],61:[1,113],62:[1,114],64:[1,115],80:$Vh,94:$Vi,95:$Vj,98:$Vk,99:$Vl,100:$Vm,102:$Vn,103:$Vo,109:$Vp,110:$Vq,111:$Vr,112:$Vs,113:$Vt,114:$Vu}),o($VU,[2,144]),o($VU,[2,165]),o($VU,[2,166]),o($VU,[2,167]),o($VU,[2,168]),o($VU,[2,169]),o($VU,[2,170]),o($VU,[2,171]),o($VU,[2,172]),o($VU,[2,173]),o($VU,[2,174]),o($VU,[2,175]),o($VU,[2,176]),o($VU,[2,177]),o($VU,[2,178]),o($VU,[2,179]),{9:117,20:$Vy,21:$Vz,23:$VA},{11:118,14:[1,119]},o($VV,[2,8]),o($V4,[2,20]),o($V4,[2,26]),o($V4,[2,27]),{21:[1,120]},o($VW,[2,34],{30:121,22:$Vw}),o($Vx,[2,35]),{44:122,45:37,46:$Vb,48:38,80:$Vh,94:$Vi,95:$Vj,98:$Vk,99:$Vl,100:$Vm,102:$Vn,103:$Vo,107:39,109:$Vp,110:$Vq,111:$Vr,112:$Vs,113:$Vt,114:$Vu},o($VX,[2,44]),o($VX,[2,45]),o($VX,[2,46]),o($VY,[2,72],{67:123,68:[1,124],71:[1,125]}),{22:$VZ,24:$V_,26:$V$,38:$V01,39:126,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},o([46,68,71,80,94,95,98,99,100,102,103,109,110,111,112,113,114],[2,74]),o($Vx,[2,36]),o($Vx,[2,37]),o($Vx,[2,38]),o($Vx,[2,39]),o($Vx,[2,40]),{22:$VZ,24:$V_,26:$V$,38:$V01,39:150,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},o($Vg1,$V5,{17:151}),o($VB,[2,49],{46:$Vh1}),{26:$VC,46:$VD,80:$VE,86:153,91:[1,154],94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,106:89,108:87,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{84:[1,155],92:156,94:[1,157]},{26:$VC,46:$VD,80:$VE,84:[1,158],86:159,94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,106:89,108:87,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{26:$VC,46:$VD,80:$VE,86:160,94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,106:89,108:87,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},o($VV,[2,95],{22:[1,161],88:[1,162]}),o($VV,[2,99],{22:[1,163]}),o($VV,[2,103],{106:89,108:165,22:[1,164],26:$VC,46:$VD,80:$VE,94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR}),o($VV,[2,105],{22:[1,166]}),o($Vi1,[2,146]),o($Vi1,[2,148]),o($Vi1,[2,149]),o($Vi1,[2,150]),o($Vi1,[2,151]),o($Vj1,[2,152]),o($Vj1,[2,153]),o($Vj1,[2,154]),o($Vj1,[2,155]),o($Vj1,[2,156]),o($Vj1,[2,157]),o($Vj1,[2,158]),o($Vj1,[2,159]),o($Vj1,[2,160]),o($Vj1,[2,161]),o($Vj1,[2,162]),o($Vj1,[2,163]),o($Vj1,[2,164]),{46:$Vb,48:167,80:$Vh,94:$Vi,95:$Vj,98:$Vk,99:$Vl,100:$Vm,102:$Vn,103:$Vo,107:39,109:$Vp,110:$Vq,111:$Vr,112:$Vs,113:$Vt,114:$Vu},{22:$VZ,24:$V_,26:$V$,38:$V01,39:168,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,39:170,42:$V11,46:$VD,49:[1,169],61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,39:171,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,39:172,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,39:173,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,39:174,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,39:175,42:$V11,46:$VD,59:[1,176],61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,39:177,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,39:178,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,39:179,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},o($VU,[2,145]),o($Vk1,[2,3]),{8:180,15:$Vv},{15:[2,7]},o($V4,[2,28]),o($VW,[2,33]),o($VB,[2,47],{30:181,22:$Vw}),o($VY,[2,69],{22:[1,182]}),{22:[1,183]},{22:$VZ,24:$V_,26:$V$,38:$V01,39:184,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,42:$V11,46:$VD,61:$V21,69:$V31,70:[1,185],72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},o($Vj1,[2,76]),o($Vj1,[2,78]),o($Vj1,[2,134]),o($Vj1,[2,135]),o($Vj1,[2,136]),o($Vj1,[2,137]),o($Vj1,[2,138]),o($Vj1,[2,139]),o($Vj1,[2,140]),o($Vj1,[2,141]),o($Vj1,[2,142]),o($Vj1,[2,143]),o($Vj1,[2,79]),o($Vj1,[2,80]),o($Vj1,[2,81]),o($Vj1,[2,82]),o($Vj1,[2,83]),o($Vj1,[2,84]),o($Vj1,[2,85]),o($Vj1,[2,86]),o($Vj1,[2,87]),o($Vj1,[2,88]),o($Vj1,[2,89]),{9:188,20:$Vy,21:$Vz,22:$VZ,23:$VA,24:$V_,26:$V$,38:$V01,40:[1,187],42:$V11,46:$VD,61:$V21,69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{18:18,19:19,20:$V6,21:$V7,22:$V8,23:$V9,32:24,33:25,34:26,35:27,36:28,37:29,38:$Va,42:[1,189],44:31,45:37,46:$Vb,48:38,75:$Vc,76:$Vd,77:$Ve,78:$Vf,79:$Vg,80:$Vh,94:$Vi,95:$Vj,98:$Vk,99:$Vl,100:$Vm,102:$Vn,103:$Vo,107:39,109:$Vp,110:$Vq,111:$Vr,112:$Vs,113:$Vt,114:$Vu},{22:$Vw,30:190},{22:[1,191],26:$VC,46:$VD,80:$VE,94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,106:89,108:165,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:[1,192]},{22:[1,193]},{22:[1,194],95:[1,195]},o($Vl1,[2,117]),{22:[1,196]},{22:[1,197],26:$VC,46:$VD,80:$VE,94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,106:89,108:165,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:[1,198],26:$VC,46:$VD,80:$VE,94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,106:89,108:165,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{73:[1,199]},o($VV,[2,97],{22:[1,200]}),{73:[1,201],90:[1,202]},{73:[1,203]},o($Vi1,[2,147]),{73:[1,204],90:[1,205]},o($VS,[2,53],{107:116,46:$Vb,80:$Vh,94:$Vi,95:$Vj,98:$Vk,99:$Vl,100:$Vm,102:$Vn,103:$Vo,109:$Vp,110:$Vq,111:$Vr,112:$Vs,113:$Vt,114:$Vu}),{22:$VZ,24:$V_,26:$V$,38:$V01,41:[1,206],42:$V11,46:$VD,61:$V21,69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,39:207,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,42:$V11,46:$VD,50:[1,208],61:$V21,69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,42:$V11,46:$VD,52:[1,209],61:$V21,69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,42:$V11,46:$VD,54:[1,210],61:$V21,69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,42:$V11,46:$VD,56:[1,211],61:$V21,69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,42:$V11,46:$VD,58:[1,212],61:$V21,69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,42:$V11,46:$VD,60:[1,213],61:$V21,69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,39:214,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,41:[1,215],42:$V11,46:$VD,61:$V21,69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,42:$V11,46:$VD,61:$V21,63:[1,216],65:[1,217],69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{22:$VZ,24:$V_,26:$V$,38:$V01,42:$V11,46:$VD,61:$V21,63:[1,219],65:[1,218],69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{9:220,20:$Vy,21:$Vz,23:$VA},o($VB,[2,48],{46:$Vh1}),o($VY,[2,71]),o($VY,[2,70]),{22:$VZ,24:$V_,26:$V$,38:$V01,42:$V11,46:$VD,61:$V21,69:$V31,71:[1,221],72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},o($VY,[2,73]),o($Vj1,[2,77]),{22:$VZ,24:$V_,26:$V$,38:$V01,39:222,42:$V11,46:$VD,61:$V21,69:$V31,72:127,73:$V41,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},o($Vg1,$V5,{17:223}),o($Vx,[2,43]),{45:224,46:$Vb,48:38,80:$Vh,94:$Vi,95:$Vj,98:$Vk,99:$Vl,100:$Vm,102:$Vn,103:$Vo,107:39,109:$Vp,110:$Vq,111:$Vr,112:$Vs,113:$Vt,114:$Vu},{22:$Vm1,75:$Vn1,85:225,91:$Vo1,94:$Vp1,96:226,97:227,98:$Vq1,99:$Vr1,100:$Vs1,101:$Vt1,102:$Vu1,103:$Vv1,104:$Vw1},{22:$Vm1,75:$Vn1,85:239,91:$Vo1,94:$Vp1,96:226,97:227,98:$Vq1,99:$Vr1,100:$Vs1,101:$Vt1,102:$Vu1,103:$Vv1,104:$Vw1},{22:$Vm1,75:$Vn1,85:240,91:$Vo1,93:[1,241],94:$Vp1,96:226,97:227,98:$Vq1,99:$Vr1,100:$Vs1,101:$Vt1,102:$Vu1,103:$Vv1,104:$Vw1},{22:$Vm1,75:$Vn1,85:242,91:$Vo1,93:[1,243],94:$Vp1,96:226,97:227,98:$Vq1,99:$Vr1,100:$Vs1,101:$Vt1,102:$Vu1,103:$Vv1,104:$Vw1},{94:[1,244]},{22:$Vm1,75:$Vn1,85:245,91:$Vo1,94:$Vp1,96:226,97:227,98:$Vq1,99:$Vr1,100:$Vs1,101:$Vt1,102:$Vu1,103:$Vv1,104:$Vw1},{22:$Vm1,75:$Vn1,85:246,91:$Vo1,94:$Vp1,96:226,97:227,98:$Vq1,99:$Vr1,100:$Vs1,101:$Vt1,102:$Vu1,103:$Vv1,104:$Vw1},{26:$VC,46:$VD,80:$VE,86:247,94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,106:89,108:87,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},o($VV,[2,96]),{73:[1,248]},o($VV,[2,100],{22:[1,249]}),o($VV,[2,101]),o($VV,[2,104]),o($VV,[2,106],{22:[1,250]}),o($VV,[2,107]),o($VT,[2,54]),{22:$VZ,24:$V_,26:$V$,38:$V01,42:$V11,46:$VD,50:[1,251],61:$V21,69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},o($VT,[2,60]),o($VT,[2,56]),o($VT,[2,57]),o($VT,[2,58]),o($VT,[2,59]),o($VT,[2,61]),{22:$VZ,24:$V_,26:$V$,38:$V01,42:$V11,46:$VD,60:[1,252],61:$V21,69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},o($VT,[2,63]),o($VT,[2,64]),o($VT,[2,66]),o($VT,[2,65]),o($VT,[2,67]),o($Vk1,[2,4]),o([22,46,80,94,95,98,99,100,102,103,109,110,111,112,113,114],[2,75]),{22:$VZ,24:$V_,26:$V$,38:$V01,41:[1,253],42:$V11,46:$VD,61:$V21,69:$V31,72:186,74:138,75:$V51,76:$V61,77:$V71,78:$V81,79:$V91,80:$Va1,81:$Vb1,83:129,84:$Vc1,94:$VF,95:$VG,98:$VH,99:$VI,100:$Vd1,102:$VK,103:$VL,104:$Ve1,105:$Vf1,106:135,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{18:18,19:19,20:$V6,21:$V7,22:$V8,23:$V9,32:24,33:25,34:26,35:27,36:28,37:29,38:$Va,42:[1,254],44:31,45:37,46:$Vb,48:38,75:$Vc,76:$Vd,77:$Ve,78:$Vf,79:$Vg,80:$Vh,94:$Vi,95:$Vj,98:$Vk,99:$Vl,100:$Vm,102:$Vn,103:$Vo,107:39,109:$Vp,110:$Vq,111:$Vr,112:$Vs,113:$Vt,114:$Vu},o($VS,[2,52]),o($VV,[2,109],{95:$Vx1}),o($Vy1,[2,119],{97:256,22:$Vm1,75:$Vn1,91:$Vo1,94:$Vp1,98:$Vq1,99:$Vr1,100:$Vs1,101:$Vt1,102:$Vu1,103:$Vv1,104:$Vw1}),o($Vz1,[2,121]),o($Vz1,[2,123]),o($Vz1,[2,124]),o($Vz1,[2,125]),o($Vz1,[2,126]),o($Vz1,[2,127]),o($Vz1,[2,128]),o($Vz1,[2,129]),o($Vz1,[2,130]),o($Vz1,[2,131]),o($Vz1,[2,132]),o($Vz1,[2,133]),o($VV,[2,110],{95:$Vx1}),o($VV,[2,111],{95:$Vx1}),{22:[1,257]},o($VV,[2,112],{95:$Vx1}),{22:[1,258]},o($Vl1,[2,118]),o($VV,[2,92],{95:$Vx1}),o($VV,[2,93],{95:$Vx1}),o($VV,[2,94],{106:89,108:165,26:$VC,46:$VD,80:$VE,94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR}),o($VV,[2,98]),{90:[1,259]},{90:[1,260]},{50:[1,261]},{60:[1,262]},{9:263,20:$Vy,21:$Vz,23:$VA},o($Vx,[2,42]),{22:$Vm1,75:$Vn1,91:$Vo1,94:$Vp1,96:264,97:227,98:$Vq1,99:$Vr1,100:$Vs1,101:$Vt1,102:$Vu1,103:$Vv1,104:$Vw1},o($Vz1,[2,122]),{26:$VC,46:$VD,80:$VE,86:265,94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,106:89,108:87,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},{26:$VC,46:$VD,80:$VE,86:266,94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,106:89,108:87,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR},o($VV,[2,102]),o($VV,[2,108]),o($VT,[2,55]),o($VT,[2,62]),o($Vg1,$V5,{17:267}),o($Vy1,[2,120],{97:256,22:$Vm1,75:$Vn1,91:$Vo1,94:$Vp1,98:$Vq1,99:$Vr1,100:$Vs1,101:$Vt1,102:$Vu1,103:$Vv1,104:$Vw1}),o($VV,[2,115],{106:89,108:165,22:[1,268],26:$VC,46:$VD,80:$VE,94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR}),o($VV,[2,116],{106:89,108:165,22:[1,269],26:$VC,46:$VD,80:$VE,94:$VF,95:$VG,98:$VH,99:$VI,100:$VJ,102:$VK,103:$VL,109:$VM,110:$VN,111:$VO,112:$VP,113:$VQ,114:$VR}),{18:18,19:19,20:$V6,21:$V7,22:$V8,23:$V9,32:24,33:25,34:26,35:27,36:28,37:29,38:$Va,42:[1,270],44:31,45:37,46:$Vb,48:38,75:$Vc,76:$Vd,77:$Ve,78:$Vf,79:$Vg,80:$Vh,94:$Vi,95:$Vj,98:$Vk,99:$Vl,100:$Vm,102:$Vn,103:$Vo,107:39,109:$Vp,110:$Vq,111:$Vr,112:$Vs,113:$Vt,114:$Vu},{22:$Vm1,75:$Vn1,85:271,91:$Vo1,94:$Vp1,96:226,97:227,98:$Vq1,99:$Vr1,100:$Vs1,101:$Vt1,102:$Vu1,103:$Vv1,104:$Vw1},{22:$Vm1,75:$Vn1,85:272,91:$Vo1,94:$Vp1,96:226,97:227,98:$Vq1,99:$Vr1,100:$Vs1,101:$Vt1,102:$Vu1,103:$Vv1,104:$Vw1},o($Vx,[2,41]),o($VV,[2,113],{95:$Vx1}),o($VV,[2,114],{95:$Vx1})],
-defaultActions: {2:[2,1],9:[2,5],10:[2,2],119:[2,7]},
+table: [{3:1,4:2,5:3,6:5,12:$V0,16:4,21:$V1,22:$V2,24:$V3},{1:[3]},{1:[2,1]},{3:10,4:2,5:3,6:5,12:$V0,16:4,21:$V1,22:$V2,24:$V3},o($V4,$V5,{17:11}),{7:12,13:[1,13]},{16:14,21:$V1,22:$V2,24:$V3},{16:15,21:$V1,22:$V2,24:$V3},{25:[1,16],26:[1,17]},{13:[2,5]},{1:[2,2]},{1:[2,9],18:18,19:19,20:$V6,21:$V7,22:$V8,23:$V9,32:24,33:25,34:26,35:27,36:28,37:29,38:$Va,43:31,45:32,46:42,47:$Vb,49:43,76:$Vc,77:$Vd,78:$Ve,79:$Vf,80:$Vg,81:$Vh,95:$Vi,96:$Vj,99:$Vk,100:$Vl,101:$Vm,103:$Vn,104:$Vo,108:44,110:$Vp,111:$Vq,112:$Vr,113:$Vs,114:$Vt,115:$Vu,116:$Vv,117:$Vw,118:$Vx,119:$Vy},{8:60,10:[1,61],15:$Vz},o([10,15],[2,6]),o($V4,[2,17]),o($V4,[2,18]),o($V4,[2,19]),{20:[1,64],21:[1,65],22:$VA,27:63,30:66},o($VB,[2,11]),o($VB,[2,12]),o($VB,[2,13]),o($VB,[2,14]),o($VB,[2,15]),o($VB,[2,16]),{9:68,20:$VC,21:$VD,23:$VE,44:69,67:73,70:[1,74],71:[1,75]},{9:76,20:$VC,21:$VD,23:$VE},{9:77,20:$VC,21:$VD,23:$VE},{9:78,20:$VC,21:$VD,23:$VE},{9:79,20:$VC,21:$VD,23:$VE},{9:80,20:$VC,21:$VD,23:$VE},{9:82,20:$VC,21:$VD,22:[1,81],23:$VE},o($VB,[2,44]),o($VF,[2,51],{30:83,22:$VA}),{22:[1,84]},{22:[1,85]},{22:[1,86]},{22:[1,87]},{26:$VG,47:$VH,74:[1,91],81:$VI,87:90,88:[1,88],90:[1,89],95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,107:94,109:92,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},o($VB,[2,153]),o($VB,[2,154]),o($VB,[2,155]),o($VB,[2,156]),o($VW,[2,52],{48:[1,110]}),o($VX,[2,69],{108:121,40:[1,111],47:$Vb,50:[1,112],52:[1,113],54:[1,114],56:[1,115],58:[1,116],60:[1,117],62:[1,118],63:[1,119],65:[1,120],81:$Vh,95:$Vi,96:$Vj,99:$Vk,100:$Vl,101:$Vm,103:$Vn,104:$Vo,114:$Vt,115:$Vu,116:$Vv,117:$Vw,118:$Vx,119:$Vy}),o($VY,[2,145]),o($VY,[2,170]),o($VY,[2,171]),o($VY,[2,172]),o($VY,[2,173]),o($VY,[2,174]),o($VY,[2,175]),o($VY,[2,176]),o($VY,[2,177]),o($VY,[2,178]),o($VY,[2,179]),o($VY,[2,180]),o($VY,[2,181]),o($VY,[2,182]),o($VY,[2,183]),o($VY,[2,184]),{9:122,20:$VC,21:$VD,23:$VE},{11:123,14:[1,124]},o($VZ,[2,8]),o($V4,[2,20]),o($V4,[2,26]),o($V4,[2,27]),{21:[1,125]},o($V_,[2,34],{30:126,22:$VA}),o($VB,[2,35]),{45:127,46:42,47:$Vb,49:43,81:$Vh,95:$Vi,96:$Vj,99:$Vk,100:$Vl,101:$Vm,103:$Vn,104:$Vo,108:44,114:$Vt,115:$Vu,116:$Vv,117:$Vw,118:$Vx,119:$Vy},o($V$,[2,45]),o($V$,[2,46]),o($V$,[2,47]),o($V01,[2,73],{68:128,69:[1,129],72:[1,130]}),{22:$V11,24:$V21,26:$V31,38:$V41,39:131,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},o([47,69,72,81,95,96,99,100,101,103,104,114,115,116,117,118,119],[2,75]),o($VB,[2,36]),o($VB,[2,37]),o($VB,[2,38]),o($VB,[2,39]),o($VB,[2,40]),{22:$V11,24:$V21,26:$V31,38:$V41,39:155,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},o($Vk1,$V5,{17:156}),o($VF,[2,50],{47:$Vl1}),{26:$VG,47:$VH,81:$VI,87:158,92:[1,159],95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,107:94,109:92,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{85:[1,160],93:161,95:[1,162]},{26:$VG,47:$VH,81:$VI,85:[1,163],87:164,95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,107:94,109:92,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{26:$VG,47:$VH,81:$VI,87:165,95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,107:94,109:92,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},o($VZ,[2,96],{22:[1,166],89:[1,167]}),o($VZ,[2,100],{22:[1,168]}),o($VZ,[2,104],{107:94,109:170,22:[1,169],26:$VG,47:$VH,81:$VI,95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV}),o($VZ,[2,106],{22:[1,171]}),o($Vm1,[2,147]),o($Vm1,[2,149]),o($Vm1,[2,150]),o($Vm1,[2,151]),o($Vm1,[2,152]),o($Vn1,[2,157]),o($Vn1,[2,158]),o($Vn1,[2,159]),o($Vn1,[2,160]),o($Vn1,[2,161]),o($Vn1,[2,162]),o($Vn1,[2,163]),o($Vn1,[2,164]),o($Vn1,[2,165]),o($Vn1,[2,166]),o($Vn1,[2,167]),o($Vn1,[2,168]),o($Vn1,[2,169]),{47:$Vb,49:172,81:$Vh,95:$Vi,96:$Vj,99:$Vk,100:$Vl,101:$Vm,103:$Vn,104:$Vo,108:44,114:$Vt,115:$Vu,116:$Vv,117:$Vw,118:$Vx,119:$Vy},{22:$V11,24:$V21,26:$V31,38:$V41,39:173,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,39:175,42:$V51,47:$VH,50:[1,174],62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,39:176,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,39:177,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,39:178,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,39:179,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,39:180,42:$V51,47:$VH,60:[1,181],62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,39:182,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,39:183,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,39:184,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},o($VY,[2,146]),o($Vo1,[2,3]),{8:185,15:$Vz},{15:[2,7]},o($V4,[2,28]),o($V_,[2,33]),o($VF,[2,48],{30:186,22:$VA}),o($V01,[2,70],{22:[1,187]}),{22:[1,188]},{22:$V11,24:$V21,26:$V31,38:$V41,39:189,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,42:$V51,47:$VH,62:$V61,70:$V71,71:[1,190],73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},o($Vn1,[2,77]),o($Vn1,[2,79]),o($Vn1,[2,135]),o($Vn1,[2,136]),o($Vn1,[2,137]),o($Vn1,[2,138]),o($Vn1,[2,139]),o($Vn1,[2,140]),o($Vn1,[2,141]),o($Vn1,[2,142]),o($Vn1,[2,143]),o($Vn1,[2,144]),o($Vn1,[2,80]),o($Vn1,[2,81]),o($Vn1,[2,82]),o($Vn1,[2,83]),o($Vn1,[2,84]),o($Vn1,[2,85]),o($Vn1,[2,86]),o($Vn1,[2,87]),o($Vn1,[2,88]),o($Vn1,[2,89]),o($Vn1,[2,90]),{9:193,20:$VC,21:$VD,22:$V11,23:$VE,24:$V21,26:$V31,38:$V41,40:[1,192],42:$V51,47:$VH,62:$V61,70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{18:18,19:19,20:$V6,21:$V7,22:$V8,23:$V9,32:24,33:25,34:26,35:27,36:28,37:29,38:$Va,42:[1,194],43:31,45:32,46:42,47:$Vb,49:43,76:$Vc,77:$Vd,78:$Ve,79:$Vf,80:$Vg,81:$Vh,95:$Vi,96:$Vj,99:$Vk,100:$Vl,101:$Vm,103:$Vn,104:$Vo,108:44,110:$Vp,111:$Vq,112:$Vr,113:$Vs,114:$Vt,115:$Vu,116:$Vv,117:$Vw,118:$Vx,119:$Vy},{22:$VA,30:195},{22:[1,196],26:$VG,47:$VH,81:$VI,95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,107:94,109:170,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:[1,197]},{22:[1,198]},{22:[1,199],96:[1,200]},o($Vp1,[2,118]),{22:[1,201]},{22:[1,202],26:$VG,47:$VH,81:$VI,95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,107:94,109:170,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:[1,203],26:$VG,47:$VH,81:$VI,95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,107:94,109:170,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{74:[1,204]},o($VZ,[2,98],{22:[1,205]}),{74:[1,206],91:[1,207]},{74:[1,208]},o($Vm1,[2,148]),{74:[1,209],91:[1,210]},o($VW,[2,54],{108:121,47:$Vb,81:$Vh,95:$Vi,96:$Vj,99:$Vk,100:$Vl,101:$Vm,103:$Vn,104:$Vo,114:$Vt,115:$Vu,116:$Vv,117:$Vw,118:$Vx,119:$Vy}),{22:$V11,24:$V21,26:$V31,38:$V41,41:[1,211],42:$V51,47:$VH,62:$V61,70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,39:212,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,42:$V51,47:$VH,51:[1,213],62:$V61,70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,42:$V51,47:$VH,53:[1,214],62:$V61,70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,42:$V51,47:$VH,55:[1,215],62:$V61,70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,42:$V51,47:$VH,57:[1,216],62:$V61,70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,42:$V51,47:$VH,59:[1,217],62:$V61,70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,42:$V51,47:$VH,61:[1,218],62:$V61,70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,39:219,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,41:[1,220],42:$V51,47:$VH,62:$V61,70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,42:$V51,47:$VH,62:$V61,64:[1,221],66:[1,222],70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{22:$V11,24:$V21,26:$V31,38:$V41,42:$V51,47:$VH,62:$V61,64:[1,224],66:[1,223],70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{9:225,20:$VC,21:$VD,23:$VE},o($VF,[2,49],{47:$Vl1}),o($V01,[2,72]),o($V01,[2,71]),{22:$V11,24:$V21,26:$V31,38:$V41,42:$V51,47:$VH,62:$V61,70:$V71,72:[1,226],73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},o($V01,[2,74]),o($Vn1,[2,78]),{22:$V11,24:$V21,26:$V31,38:$V41,39:227,42:$V51,47:$VH,62:$V61,70:$V71,73:132,74:$V81,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},o($Vk1,$V5,{17:228}),o($VB,[2,43]),{46:229,47:$Vb,49:43,81:$Vh,95:$Vi,96:$Vj,99:$Vk,100:$Vl,101:$Vm,103:$Vn,104:$Vo,108:44,114:$Vt,115:$Vu,116:$Vv,117:$Vw,118:$Vx,119:$Vy},{22:$Vq1,76:$Vr1,86:230,92:$Vs1,95:$Vt1,97:231,98:232,99:$Vu1,100:$Vv1,101:$Vw1,102:$Vx1,103:$Vy1,104:$Vz1,105:$VA1},{22:$Vq1,76:$Vr1,86:244,92:$Vs1,95:$Vt1,97:231,98:232,99:$Vu1,100:$Vv1,101:$Vw1,102:$Vx1,103:$Vy1,104:$Vz1,105:$VA1},{22:$Vq1,76:$Vr1,86:245,92:$Vs1,94:[1,246],95:$Vt1,97:231,98:232,99:$Vu1,100:$Vv1,101:$Vw1,102:$Vx1,103:$Vy1,104:$Vz1,105:$VA1},{22:$Vq1,76:$Vr1,86:247,92:$Vs1,94:[1,248],95:$Vt1,97:231,98:232,99:$Vu1,100:$Vv1,101:$Vw1,102:$Vx1,103:$Vy1,104:$Vz1,105:$VA1},{95:[1,249]},{22:$Vq1,76:$Vr1,86:250,92:$Vs1,95:$Vt1,97:231,98:232,99:$Vu1,100:$Vv1,101:$Vw1,102:$Vx1,103:$Vy1,104:$Vz1,105:$VA1},{22:$Vq1,76:$Vr1,86:251,92:$Vs1,95:$Vt1,97:231,98:232,99:$Vu1,100:$Vv1,101:$Vw1,102:$Vx1,103:$Vy1,104:$Vz1,105:$VA1},{26:$VG,47:$VH,81:$VI,87:252,95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,107:94,109:92,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},o($VZ,[2,97]),{74:[1,253]},o($VZ,[2,101],{22:[1,254]}),o($VZ,[2,102]),o($VZ,[2,105]),o($VZ,[2,107],{22:[1,255]}),o($VZ,[2,108]),o($VX,[2,55]),{22:$V11,24:$V21,26:$V31,38:$V41,42:$V51,47:$VH,51:[1,256],62:$V61,70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},o($VX,[2,61]),o($VX,[2,57]),o($VX,[2,58]),o($VX,[2,59]),o($VX,[2,60]),o($VX,[2,62]),{22:$V11,24:$V21,26:$V31,38:$V41,42:$V51,47:$VH,61:[1,257],62:$V61,70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},o($VX,[2,64]),o($VX,[2,65]),o($VX,[2,67]),o($VX,[2,66]),o($VX,[2,68]),o($Vo1,[2,4]),o([22,47,81,95,96,99,100,101,103,104,114,115,116,117,118,119],[2,76]),{22:$V11,24:$V21,26:$V31,38:$V41,41:[1,258],42:$V51,47:$VH,62:$V61,70:$V71,73:191,75:143,76:$V91,77:$Va1,78:$Vb1,79:$Vc1,80:$Vd1,81:$Ve1,82:$Vf1,84:134,85:$Vg1,95:$VJ,96:$VK,99:$VL,100:$VM,101:$Vh1,103:$VO,104:$VP,105:$Vi1,106:$Vj1,107:140,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{18:18,19:19,20:$V6,21:$V7,22:$V8,23:$V9,32:24,33:25,34:26,35:27,36:28,37:29,38:$Va,42:[1,259],43:31,45:32,46:42,47:$Vb,49:43,76:$Vc,77:$Vd,78:$Ve,79:$Vf,80:$Vg,81:$Vh,95:$Vi,96:$Vj,99:$Vk,100:$Vl,101:$Vm,103:$Vn,104:$Vo,108:44,110:$Vp,111:$Vq,112:$Vr,113:$Vs,114:$Vt,115:$Vu,116:$Vv,117:$Vw,118:$Vx,119:$Vy},o($VW,[2,53]),o($VZ,[2,110],{96:$VB1}),o($VC1,[2,120],{98:261,22:$Vq1,76:$Vr1,92:$Vs1,95:$Vt1,99:$Vu1,100:$Vv1,101:$Vw1,102:$Vx1,103:$Vy1,104:$Vz1,105:$VA1}),o($VD1,[2,122]),o($VD1,[2,124]),o($VD1,[2,125]),o($VD1,[2,126]),o($VD1,[2,127]),o($VD1,[2,128]),o($VD1,[2,129]),o($VD1,[2,130]),o($VD1,[2,131]),o($VD1,[2,132]),o($VD1,[2,133]),o($VD1,[2,134]),o($VZ,[2,111],{96:$VB1}),o($VZ,[2,112],{96:$VB1}),{22:[1,262]},o($VZ,[2,113],{96:$VB1}),{22:[1,263]},o($Vp1,[2,119]),o($VZ,[2,93],{96:$VB1}),o($VZ,[2,94],{96:$VB1}),o($VZ,[2,95],{107:94,109:170,26:$VG,47:$VH,81:$VI,95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV}),o($VZ,[2,99]),{91:[1,264]},{91:[1,265]},{51:[1,266]},{61:[1,267]},{9:268,20:$VC,21:$VD,23:$VE},o($VB,[2,42]),{22:$Vq1,76:$Vr1,92:$Vs1,95:$Vt1,97:269,98:232,99:$Vu1,100:$Vv1,101:$Vw1,102:$Vx1,103:$Vy1,104:$Vz1,105:$VA1},o($VD1,[2,123]),{26:$VG,47:$VH,81:$VI,87:270,95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,107:94,109:92,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},{26:$VG,47:$VH,81:$VI,87:271,95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,107:94,109:92,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV},o($VZ,[2,103]),o($VZ,[2,109]),o($VX,[2,56]),o($VX,[2,63]),o($Vk1,$V5,{17:272}),o($VC1,[2,121],{98:261,22:$Vq1,76:$Vr1,92:$Vs1,95:$Vt1,99:$Vu1,100:$Vv1,101:$Vw1,102:$Vx1,103:$Vy1,104:$Vz1,105:$VA1}),o($VZ,[2,116],{107:94,109:170,22:[1,273],26:$VG,47:$VH,81:$VI,95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV}),o($VZ,[2,117],{107:94,109:170,22:[1,274],26:$VG,47:$VH,81:$VI,95:$VJ,96:$VK,99:$VL,100:$VM,101:$VN,103:$VO,104:$VP,114:$VQ,115:$VR,116:$VS,117:$VT,118:$VU,119:$VV}),{18:18,19:19,20:$V6,21:$V7,22:$V8,23:$V9,32:24,33:25,34:26,35:27,36:28,37:29,38:$Va,42:[1,275],43:31,45:32,46:42,47:$Vb,49:43,76:$Vc,77:$Vd,78:$Ve,79:$Vf,80:$Vg,81:$Vh,95:$Vi,96:$Vj,99:$Vk,100:$Vl,101:$Vm,103:$Vn,104:$Vo,108:44,110:$Vp,111:$Vq,112:$Vr,113:$Vs,114:$Vt,115:$Vu,116:$Vv,117:$Vw,118:$Vx,119:$Vy},{22:$Vq1,76:$Vr1,86:276,92:$Vs1,95:$Vt1,97:231,98:232,99:$Vu1,100:$Vv1,101:$Vw1,102:$Vx1,103:$Vy1,104:$Vz1,105:$VA1},{22:$Vq1,76:$Vr1,86:277,92:$Vs1,95:$Vt1,97:231,98:232,99:$Vu1,100:$Vv1,101:$Vw1,102:$Vx1,103:$Vy1,104:$Vz1,105:$VA1},o($VB,[2,41]),o($VZ,[2,114],{96:$VB1}),o($VZ,[2,115],{96:$VB1})],
+defaultActions: {2:[2,1],9:[2,5],10:[2,2],124:[2,7]},
 parseError: function parseError (str, hash) {
     if (hash.recoverable) {
         this.trace(str);
@@ -59811,23 +60232,23 @@ case 8:this.popState();
 break;
 case 9:return "STR";
 break;
-case 10:return 75;
+case 10:return 76;
 break;
-case 11:return 84;
+case 11:return 85;
 break;
-case 12:return 76;
+case 12:return 77;
 break;
-case 13:return 93;
+case 13:return 94;
 break;
-case 14:return 77;
+case 14:return 78;
 break;
-case 15:return 78;
+case 15:return 79;
 break;
 case 16:this.begin("href");
 break;
 case 17:this.popState();
 break;
-case 18:return 89;
+case 18:return 90;
 break;
 case 19:this.begin("callbackname");
 break;
@@ -59835,17 +60256,17 @@ case 20:this.popState();
 break;
 case 21:this.popState(); this.begin("callbackargs");
 break;
-case 22:return 87;
+case 22:return 88;
 break;
 case 23:this.popState();
 break;
-case 24:return 88;
+case 24:return 89;
 break;
 case 25:this.begin("click");
 break;
 case 26:this.popState();
 break;
-case 27:return 79;
+case 27:return 80;
 break;
 case 28:if(yy.lex.firstGraph()){this.begin("dir");}  return 24;
 break;
@@ -59855,13 +60276,13 @@ case 30:return 38;
 break;
 case 31:return 42;
 break;
-case 32:return 90;
+case 32:return 91;
 break;
-case 33:return 90;
+case 33:return 91;
 break;
-case 34:return 90;
+case 34:return 91;
 break;
-case 35:return 90;
+case 35:return 91;
 break;
 case 36:   this.popState();  return 25; 
 break;
@@ -59885,114 +60306,122 @@ case 45:   this.popState();  return 26;
 break;
 case 46:   this.popState();  return 26; 
 break;
-case 47: return 94;
+case 47:return 110;
 break;
-case 48:return 102;
+case 48:return 111;
 break;
-case 49:return 47;
+case 49:return 112;
 break;
-case 50:return 99;
+case 50:return 113;
 break;
-case 51:return 46;
+case 51: return 95;
 break;
-case 52:return 20;
+case 52:return 103;
 break;
-case 53:return 95;
+case 53:return 48;
 break;
-case 54:return 113;
+case 54:return 100;
 break;
-case 55:return 70;
+case 55:return 47;
 break;
-case 56:return 70;
+case 56:return 20;
 break;
-case 57:return 70;
+case 57:return 96;
 break;
-case 58:return 69;
+case 58:return 118;
 break;
-case 59:return 69;
+case 59:return 71;
 break;
-case 60:return 69;
+case 60:return 71;
 break;
-case 61:return 51;
+case 61:return 71;
 break;
-case 62:return 52;
+case 62:return 70;
 break;
-case 63:return 53;
+case 63:return 70;
 break;
-case 64:return 54;
+case 64:return 70;
 break;
-case 65:return 55;
+case 65:return 52;
 break;
-case 66:return 56;
+case 66:return 53;
 break;
-case 67:return 57;
+case 67:return 54;
 break;
-case 68:return 58;
+case 68:return 55;
 break;
-case 69:return 100;
+case 69:return 56;
 break;
-case 70:return 103;
+case 70:return 57;
 break;
-case 71:return 114;
+case 71:return 58;
 break;
-case 72:return 111;
+case 72:return 59;
 break;
-case 73:return 104;
+case 73:return 101;
 break;
-case 74:return 112;
+case 74:return 104;
 break;
-case 75:return 112;
+case 75:return 119;
 break;
-case 76:return 105;
+case 76:return 116;
 break;
-case 77:return 61;
+case 77:return 105;
 break;
-case 78:return 81;
+case 78:return 117;
 break;
-case 79:return 'SEP';
+case 79:return 117;
 break;
-case 80:return 80;
+case 80:return 106;
 break;
-case 81:return 98;
+case 81:return 62;
 break;
-case 82:return 63;
+case 82:return 82;
 break;
-case 83:return 62;
+case 83:return 'SEP';
 break;
-case 84:return 65;
+case 84:return 81;
 break;
-case 85:return 64;
+case 85:return 99;
 break;
-case 86:return 109;
+case 86:return 64;
 break;
-case 87:return 110;
+case 87:return 63;
 break;
-case 88:return 71;
+case 88:return 66;
 break;
-case 89:return 49;
+case 89:return 65;
 break;
-case 90:return 50;
+case 90:return 114;
 break;
-case 91:return 40;
+case 91:return 115;
 break;
-case 92:return 41;
+case 92:return 72;
 break;
-case 93:return 59
+case 93:return 50;
 break;
-case 94:return 60
+case 94:return 51;
 break;
-case 95:return 120;
+case 95:return 40;
 break;
-case 96:return 21;
+case 96:return 41;
 break;
-case 97:return 22;
+case 97:return 60
 break;
-case 98:return 23;
+case 98:return 61
+break;
+case 99:return 125;
+break;
+case 100:return 21;
+break;
+case 101:return 22;
+break;
+case 102:return 23;
 break;
 }
 },
-rules: [/^(?:%%\{)/,/^(?:((?:(?!\}%%)[^:.])*))/,/^(?::)/,/^(?:\}%%)/,/^(?:((?:(?!\}%%).|\n)*))/,/^(?:%%(?!\{)[^\n]*)/,/^(?:[^\}]%%[^\n]*)/,/^(?:["])/,/^(?:["])/,/^(?:[^"]*)/,/^(?:style\b)/,/^(?:default\b)/,/^(?:linkStyle\b)/,/^(?:interpolate\b)/,/^(?:classDef\b)/,/^(?:class\b)/,/^(?:href[\s]+["])/,/^(?:["])/,/^(?:[^"]*)/,/^(?:call[\s]+)/,/^(?:\([\s]*\))/,/^(?:\()/,/^(?:[^(]*)/,/^(?:\))/,/^(?:[^)]*)/,/^(?:click[\s]+)/,/^(?:[\s\n])/,/^(?:[^\s\n]*)/,/^(?:graph\b)/,/^(?:flowchart\b)/,/^(?:subgraph\b)/,/^(?:end\b\s*)/,/^(?:_self\b)/,/^(?:_blank\b)/,/^(?:_parent\b)/,/^(?:_top\b)/,/^(?:(\r?\n)*\s*\n)/,/^(?:\s*LR\b)/,/^(?:\s*RL\b)/,/^(?:\s*TB\b)/,/^(?:\s*BT\b)/,/^(?:\s*TD\b)/,/^(?:\s*BR\b)/,/^(?:\s*<)/,/^(?:\s*>)/,/^(?:\s*\^)/,/^(?:\s*v\b)/,/^(?:[0-9]+)/,/^(?:#)/,/^(?::::)/,/^(?::)/,/^(?:&)/,/^(?:;)/,/^(?:,)/,/^(?:\*)/,/^(?:\s*[xo<]?--+[-xo>]\s*)/,/^(?:\s*[xo<]?==+[=xo>]\s*)/,/^(?:\s*[xo<]?-?\.+-[xo>]?\s*)/,/^(?:\s*[xo<]?--\s*)/,/^(?:\s*[xo<]?==\s*)/,/^(?:\s*[xo<]?-\.\s*)/,/^(?:\(-)/,/^(?:-\))/,/^(?:\(\[)/,/^(?:\]\))/,/^(?:\[\[)/,/^(?:\]\])/,/^(?:\[\()/,/^(?:\)\])/,/^(?:-)/,/^(?:\.)/,/^(?:[\_])/,/^(?:\+)/,/^(?:%)/,/^(?:=)/,/^(?:=)/,/^(?:<)/,/^(?:>)/,/^(?:\^)/,/^(?:\\\|)/,/^(?:v\b)/,/^(?:[A-Za-z]+)/,/^(?:\\\])/,/^(?:\[\/)/,/^(?:\/\])/,/^(?:\[\\)/,/^(?:[!"#$%&'*+,-.`?\\_/])/,/^(?:[\u00AA\u00B5\u00BA\u00C0-\u00D6\u00D8-\u00F6]|[\u00F8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0370-\u0374\u0376\u0377]|[\u037A-\u037D\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5]|[\u03F7-\u0481\u048A-\u0527\u0531-\u0556\u0559\u0561-\u0587\u05D0-\u05EA]|[\u05F0-\u05F2\u0620-\u064A\u066E\u066F\u0671-\u06D3\u06D5\u06E5\u06E6\u06EE]|[\u06EF\u06FA-\u06FC\u06FF\u0710\u0712-\u072F\u074D-\u07A5\u07B1\u07CA-\u07EA]|[\u07F4\u07F5\u07FA\u0800-\u0815\u081A\u0824\u0828\u0840-\u0858\u08A0]|[\u08A2-\u08AC\u0904-\u0939\u093D\u0950\u0958-\u0961\u0971-\u0977]|[\u0979-\u097F\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2]|[\u09B6-\u09B9\u09BD\u09CE\u09DC\u09DD\u09DF-\u09E1\u09F0\u09F1\u0A05-\u0A0A]|[\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39]|[\u0A59-\u0A5C\u0A5E\u0A72-\u0A74\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8]|[\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABD\u0AD0\u0AE0\u0AE1\u0B05-\u0B0C]|[\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3D\u0B5C]|[\u0B5D\u0B5F-\u0B61\u0B71\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99]|[\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BD0]|[\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C33\u0C35-\u0C39\u0C3D]|[\u0C58\u0C59\u0C60\u0C61\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3]|[\u0CB5-\u0CB9\u0CBD\u0CDE\u0CE0\u0CE1\u0CF1\u0CF2\u0D05-\u0D0C\u0D0E-\u0D10]|[\u0D12-\u0D3A\u0D3D\u0D4E\u0D60\u0D61\u0D7A-\u0D7F\u0D85-\u0D96\u0D9A-\u0DB1]|[\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0E01-\u0E30\u0E32\u0E33\u0E40-\u0E46\u0E81]|[\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3]|[\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB0\u0EB2\u0EB3\u0EBD\u0EC0-\u0EC4\u0EC6]|[\u0EDC-\u0EDF\u0F00\u0F40-\u0F47\u0F49-\u0F6C\u0F88-\u0F8C\u1000-\u102A]|[\u103F\u1050-\u1055\u105A-\u105D\u1061\u1065\u1066\u106E-\u1070\u1075-\u1081]|[\u108E\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D]|[\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0]|[\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310]|[\u1312-\u1315\u1318-\u135A\u1380-\u138F\u13A0-\u13F4\u1401-\u166C]|[\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u1700-\u170C\u170E-\u1711]|[\u1720-\u1731\u1740-\u1751\u1760-\u176C\u176E-\u1770\u1780-\u17B3\u17D7]|[\u17DC\u1820-\u1877\u1880-\u18A8\u18AA\u18B0-\u18F5\u1900-\u191C]|[\u1950-\u196D\u1970-\u1974\u1980-\u19AB\u19C1-\u19C7\u1A00-\u1A16]|[\u1A20-\u1A54\u1AA7\u1B05-\u1B33\u1B45-\u1B4B\u1B83-\u1BA0\u1BAE\u1BAF]|[\u1BBA-\u1BE5\u1C00-\u1C23\u1C4D-\u1C4F\u1C5A-\u1C7D\u1CE9-\u1CEC]|[\u1CEE-\u1CF1\u1CF5\u1CF6\u1D00-\u1DBF\u1E00-\u1F15\u1F18-\u1F1D]|[\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D]|[\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3]|[\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u2071\u207F]|[\u2090-\u209C\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124\u2126\u2128]|[\u212A-\u212D\u212F-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2183\u2184]|[\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CEE\u2CF2\u2CF3]|[\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D80-\u2D96\u2DA0-\u2DA6]|[\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE]|[\u2DD0-\u2DD6\u2DD8-\u2DDE\u2E2F\u3005\u3006\u3031-\u3035\u303B\u303C]|[\u3041-\u3096\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D]|[\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FCC]|[\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA61F\uA62A\uA62B]|[\uA640-\uA66E\uA67F-\uA697\uA6A0-\uA6E5\uA717-\uA71F\uA722-\uA788]|[\uA78B-\uA78E\uA790-\uA793\uA7A0-\uA7AA\uA7F8-\uA801\uA803-\uA805]|[\uA807-\uA80A\uA80C-\uA822\uA840-\uA873\uA882-\uA8B3\uA8F2-\uA8F7\uA8FB]|[\uA90A-\uA925\uA930-\uA946\uA960-\uA97C\uA984-\uA9B2\uA9CF\uAA00-\uAA28]|[\uAA40-\uAA42\uAA44-\uAA4B\uAA60-\uAA76\uAA7A\uAA80-\uAAAF\uAAB1\uAAB5]|[\uAAB6\uAAB9-\uAABD\uAAC0\uAAC2\uAADB-\uAADD\uAAE0-\uAAEA\uAAF2-\uAAF4]|[\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E]|[\uABC0-\uABE2\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D]|[\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D\uFB1F-\uFB28\uFB2A-\uFB36]|[\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D]|[\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE70-\uFE74\uFE76-\uFEFC]|[\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF]|[\uFFD2-\uFFD7\uFFDA-\uFFDC])/,/^(?:\|)/,/^(?:\()/,/^(?:\))/,/^(?:\[)/,/^(?:\])/,/^(?:\{)/,/^(?:\})/,/^(?:")/,/^(?:(\r?\n)+)/,/^(?:\s)/,/^(?:$)/],
-conditions: {"close_directive":{"rules":[],"inclusive":false},"arg_directive":{"rules":[3,4],"inclusive":false},"type_directive":{"rules":[2,3],"inclusive":false},"open_directive":{"rules":[1],"inclusive":false},"callbackargs":{"rules":[23,24],"inclusive":false},"callbackname":{"rules":[20,21,22],"inclusive":false},"href":{"rules":[17,18],"inclusive":false},"click":{"rules":[26,27],"inclusive":false},"vertex":{"rules":[],"inclusive":false},"dir":{"rules":[36,37,38,39,40,41,42,43,44,45,46],"inclusive":false},"string":{"rules":[8,9],"inclusive":false},"INITIAL":{"rules":[0,5,6,7,10,11,12,13,14,15,16,19,25,28,29,30,31,32,33,34,35,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98],"inclusive":true}}
+rules: [/^(?:%%\{)/,/^(?:((?:(?!\}%%)[^:.])*))/,/^(?::)/,/^(?:\}%%)/,/^(?:((?:(?!\}%%).|\n)*))/,/^(?:%%(?!\{)[^\n]*)/,/^(?:[^\}]%%[^\n]*)/,/^(?:["])/,/^(?:["])/,/^(?:[^"]*)/,/^(?:style\b)/,/^(?:default\b)/,/^(?:linkStyle\b)/,/^(?:interpolate\b)/,/^(?:classDef\b)/,/^(?:class\b)/,/^(?:href[\s]+["])/,/^(?:["])/,/^(?:[^"]*)/,/^(?:call[\s]+)/,/^(?:\([\s]*\))/,/^(?:\()/,/^(?:[^(]*)/,/^(?:\))/,/^(?:[^)]*)/,/^(?:click[\s]+)/,/^(?:[\s\n])/,/^(?:[^\s\n]*)/,/^(?:graph\b)/,/^(?:flowchart\b)/,/^(?:subgraph\b)/,/^(?:end\b\s*)/,/^(?:_self\b)/,/^(?:_blank\b)/,/^(?:_parent\b)/,/^(?:_top\b)/,/^(?:(\r?\n)*\s*\n)/,/^(?:\s*LR\b)/,/^(?:\s*RL\b)/,/^(?:\s*TB\b)/,/^(?:\s*BT\b)/,/^(?:\s*TD\b)/,/^(?:\s*BR\b)/,/^(?:\s*<)/,/^(?:\s*>)/,/^(?:\s*\^)/,/^(?:\s*v\b)/,/^(?:.*direction\s+TB[^\n]*)/,/^(?:.*direction\s+BT[^\n]*)/,/^(?:.*direction\s+RL[^\n]*)/,/^(?:.*direction\s+LR[^\n]*)/,/^(?:[0-9]+)/,/^(?:#)/,/^(?::::)/,/^(?::)/,/^(?:&)/,/^(?:;)/,/^(?:,)/,/^(?:\*)/,/^(?:\s*[xo<]?--+[-xo>]\s*)/,/^(?:\s*[xo<]?==+[=xo>]\s*)/,/^(?:\s*[xo<]?-?\.+-[xo>]?\s*)/,/^(?:\s*[xo<]?--\s*)/,/^(?:\s*[xo<]?==\s*)/,/^(?:\s*[xo<]?-\.\s*)/,/^(?:\(-)/,/^(?:-\))/,/^(?:\(\[)/,/^(?:\]\))/,/^(?:\[\[)/,/^(?:\]\])/,/^(?:\[\()/,/^(?:\)\])/,/^(?:-)/,/^(?:\.)/,/^(?:[\_])/,/^(?:\+)/,/^(?:%)/,/^(?:=)/,/^(?:=)/,/^(?:<)/,/^(?:>)/,/^(?:\^)/,/^(?:\\\|)/,/^(?:v\b)/,/^(?:[A-Za-z]+)/,/^(?:\\\])/,/^(?:\[\/)/,/^(?:\/\])/,/^(?:\[\\)/,/^(?:[!"#$%&'*+,-.`?\\_/])/,/^(?:[\u00AA\u00B5\u00BA\u00C0-\u00D6\u00D8-\u00F6]|[\u00F8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0370-\u0374\u0376\u0377]|[\u037A-\u037D\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5]|[\u03F7-\u0481\u048A-\u0527\u0531-\u0556\u0559\u0561-\u0587\u05D0-\u05EA]|[\u05F0-\u05F2\u0620-\u064A\u066E\u066F\u0671-\u06D3\u06D5\u06E5\u06E6\u06EE]|[\u06EF\u06FA-\u06FC\u06FF\u0710\u0712-\u072F\u074D-\u07A5\u07B1\u07CA-\u07EA]|[\u07F4\u07F5\u07FA\u0800-\u0815\u081A\u0824\u0828\u0840-\u0858\u08A0]|[\u08A2-\u08AC\u0904-\u0939\u093D\u0950\u0958-\u0961\u0971-\u0977]|[\u0979-\u097F\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2]|[\u09B6-\u09B9\u09BD\u09CE\u09DC\u09DD\u09DF-\u09E1\u09F0\u09F1\u0A05-\u0A0A]|[\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39]|[\u0A59-\u0A5C\u0A5E\u0A72-\u0A74\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8]|[\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABD\u0AD0\u0AE0\u0AE1\u0B05-\u0B0C]|[\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3D\u0B5C]|[\u0B5D\u0B5F-\u0B61\u0B71\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99]|[\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BD0]|[\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C33\u0C35-\u0C39\u0C3D]|[\u0C58\u0C59\u0C60\u0C61\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3]|[\u0CB5-\u0CB9\u0CBD\u0CDE\u0CE0\u0CE1\u0CF1\u0CF2\u0D05-\u0D0C\u0D0E-\u0D10]|[\u0D12-\u0D3A\u0D3D\u0D4E\u0D60\u0D61\u0D7A-\u0D7F\u0D85-\u0D96\u0D9A-\u0DB1]|[\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0E01-\u0E30\u0E32\u0E33\u0E40-\u0E46\u0E81]|[\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3]|[\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB0\u0EB2\u0EB3\u0EBD\u0EC0-\u0EC4\u0EC6]|[\u0EDC-\u0EDF\u0F00\u0F40-\u0F47\u0F49-\u0F6C\u0F88-\u0F8C\u1000-\u102A]|[\u103F\u1050-\u1055\u105A-\u105D\u1061\u1065\u1066\u106E-\u1070\u1075-\u1081]|[\u108E\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D]|[\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0]|[\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310]|[\u1312-\u1315\u1318-\u135A\u1380-\u138F\u13A0-\u13F4\u1401-\u166C]|[\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u1700-\u170C\u170E-\u1711]|[\u1720-\u1731\u1740-\u1751\u1760-\u176C\u176E-\u1770\u1780-\u17B3\u17D7]|[\u17DC\u1820-\u1877\u1880-\u18A8\u18AA\u18B0-\u18F5\u1900-\u191C]|[\u1950-\u196D\u1970-\u1974\u1980-\u19AB\u19C1-\u19C7\u1A00-\u1A16]|[\u1A20-\u1A54\u1AA7\u1B05-\u1B33\u1B45-\u1B4B\u1B83-\u1BA0\u1BAE\u1BAF]|[\u1BBA-\u1BE5\u1C00-\u1C23\u1C4D-\u1C4F\u1C5A-\u1C7D\u1CE9-\u1CEC]|[\u1CEE-\u1CF1\u1CF5\u1CF6\u1D00-\u1DBF\u1E00-\u1F15\u1F18-\u1F1D]|[\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D]|[\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3]|[\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u2071\u207F]|[\u2090-\u209C\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124\u2126\u2128]|[\u212A-\u212D\u212F-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2183\u2184]|[\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CEE\u2CF2\u2CF3]|[\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D80-\u2D96\u2DA0-\u2DA6]|[\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE]|[\u2DD0-\u2DD6\u2DD8-\u2DDE\u2E2F\u3005\u3006\u3031-\u3035\u303B\u303C]|[\u3041-\u3096\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D]|[\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FCC]|[\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA61F\uA62A\uA62B]|[\uA640-\uA66E\uA67F-\uA697\uA6A0-\uA6E5\uA717-\uA71F\uA722-\uA788]|[\uA78B-\uA78E\uA790-\uA793\uA7A0-\uA7AA\uA7F8-\uA801\uA803-\uA805]|[\uA807-\uA80A\uA80C-\uA822\uA840-\uA873\uA882-\uA8B3\uA8F2-\uA8F7\uA8FB]|[\uA90A-\uA925\uA930-\uA946\uA960-\uA97C\uA984-\uA9B2\uA9CF\uAA00-\uAA28]|[\uAA40-\uAA42\uAA44-\uAA4B\uAA60-\uAA76\uAA7A\uAA80-\uAAAF\uAAB1\uAAB5]|[\uAAB6\uAAB9-\uAABD\uAAC0\uAAC2\uAADB-\uAADD\uAAE0-\uAAEA\uAAF2-\uAAF4]|[\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E]|[\uABC0-\uABE2\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D]|[\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D\uFB1F-\uFB28\uFB2A-\uFB36]|[\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D]|[\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE70-\uFE74\uFE76-\uFEFC]|[\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF]|[\uFFD2-\uFFD7\uFFDA-\uFFDC])/,/^(?:\|)/,/^(?:\()/,/^(?:\))/,/^(?:\[)/,/^(?:\])/,/^(?:\{)/,/^(?:\})/,/^(?:")/,/^(?:(\r?\n)+)/,/^(?:\s)/,/^(?:$)/],
+conditions: {"close_directive":{"rules":[],"inclusive":false},"arg_directive":{"rules":[3,4],"inclusive":false},"type_directive":{"rules":[2,3],"inclusive":false},"open_directive":{"rules":[1],"inclusive":false},"callbackargs":{"rules":[23,24],"inclusive":false},"callbackname":{"rules":[20,21,22],"inclusive":false},"href":{"rules":[17,18],"inclusive":false},"click":{"rules":[26,27],"inclusive":false},"vertex":{"rules":[],"inclusive":false},"dir":{"rules":[36,37,38,39,40,41,42,43,44,45,46],"inclusive":false},"string":{"rules":[8,9],"inclusive":false},"INITIAL":{"rules":[0,5,6,7,10,11,12,13,14,15,16,19,25,28,29,30,31,32,33,34,35,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102],"inclusive":true}}
 });
 return lexer;
 })();
@@ -60046,7 +60475,7 @@ var getStyles = function getStyles(options) {
 /*!***************************************!*\
   !*** ./src/diagrams/gantt/ganttDb.js ***!
   \***************************************/
-/*! exports provided: parseDirective, clear, setAxisFormat, getAxisFormat, setTodayMarker, getTodayMarker, setDateFormat, enableInclusiveEndDates, endDatesAreInclusive, getDateFormat, setExcludes, getExcludes, setTitle, getTitle, addSection, getSections, getTasks, addTask, findTaskById, addTaskOrg, setLink, setClass, setClickEvent, bindFunctions, default */
+/*! exports provided: parseDirective, clear, setAxisFormat, getAxisFormat, setTodayMarker, getTodayMarker, setDateFormat, enableInclusiveEndDates, endDatesAreInclusive, enableTopAxis, topAxisEnabled, getDateFormat, setExcludes, getExcludes, setTitle, getTitle, addSection, getSections, getTasks, addTask, findTaskById, addTaskOrg, setLink, setClass, setClickEvent, bindFunctions, default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -60060,6 +60489,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "setDateFormat", function() { return setDateFormat; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "enableInclusiveEndDates", function() { return enableInclusiveEndDates; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "endDatesAreInclusive", function() { return endDatesAreInclusive; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "enableTopAxis", function() { return enableTopAxis; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "topAxisEnabled", function() { return topAxisEnabled; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getDateFormat", function() { return getDateFormat; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "setExcludes", function() { return setExcludes; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getExcludes", function() { return getExcludes; });
@@ -60083,13 +60514,17 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../config */ "./src/config.js");
 /* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../utils */ "./src/utils.js");
 /* harmony import */ var _mermaidAPI__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../mermaidAPI */ "./src/mermaidAPI.js");
-function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
 
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 
-function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 
-function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
 
 
@@ -60107,7 +60542,8 @@ var tasks = [];
 var currentSection = '';
 var tags = ['active', 'done', 'crit', 'milestone'];
 var funs = [];
-var inclusiveEndDates = false; // The serial order of the task in the script
+var inclusiveEndDates = false;
+var topAxis = false; // The serial order of the task in the script
 
 var lastOrder = 0;
 var parseDirective = function parseDirective(statement, context, type) {
@@ -60128,6 +60564,7 @@ var clear = function clear() {
   todayMarker = '';
   excludes = [];
   inclusiveEndDates = false;
+  topAxis = false;
   lastOrder = 0;
 };
 var setAxisFormat = function setAxisFormat(txt) {
@@ -60150,6 +60587,12 @@ var enableInclusiveEndDates = function enableInclusiveEndDates() {
 };
 var endDatesAreInclusive = function endDatesAreInclusive() {
   return inclusiveEndDates;
+};
+var enableTopAxis = function enableTopAxis() {
+  topAxis = true;
+};
+var topAxisEnabled = function topAxisEnabled() {
+  return topAxis;
 };
 var getDateFormat = function getDateFormat() {
   return dateFormat;
@@ -60701,6 +61144,8 @@ var bindFunctions = function bindFunctions(element) {
   getDateFormat: getDateFormat,
   enableInclusiveEndDates: enableInclusiveEndDates,
   endDatesAreInclusive: endDatesAreInclusive,
+  enableTopAxis: enableTopAxis,
+  topAxisEnabled: topAxisEnabled,
   setAxisFormat: setAxisFormat,
   getAxisFormat: getAxisFormat,
   setTodayMarker: setTodayMarker,
@@ -61026,8 +61471,13 @@ var draw = function draw(text, id) {
   }
 
   function makeGrid(theSidePad, theTopPad, w, h) {
-    var xAxis = Object(d3__WEBPACK_IMPORTED_MODULE_0__["axisBottom"])(timeScale).tickSize(-h + theTopPad + conf.gridLineStartPadding).tickFormat(Object(d3__WEBPACK_IMPORTED_MODULE_0__["timeFormat"])(_parser_gantt__WEBPACK_IMPORTED_MODULE_1__["parser"].yy.getAxisFormat() || conf.axisFormat || '%Y-%m-%d'));
-    svg.append('g').attr('class', 'grid').attr('transform', 'translate(' + theSidePad + ', ' + (h - 50) + ')').call(xAxis).selectAll('text').style('text-anchor', 'middle').attr('fill', '#000').attr('stroke', 'none').attr('font-size', 10).attr('dy', '1em');
+    var bottomXAxis = Object(d3__WEBPACK_IMPORTED_MODULE_0__["axisBottom"])(timeScale).tickSize(-h + theTopPad + conf.gridLineStartPadding).tickFormat(Object(d3__WEBPACK_IMPORTED_MODULE_0__["timeFormat"])(_parser_gantt__WEBPACK_IMPORTED_MODULE_1__["parser"].yy.getAxisFormat() || conf.axisFormat || '%Y-%m-%d'));
+    svg.append('g').attr('class', 'grid').attr('transform', 'translate(' + theSidePad + ', ' + (h - 50) + ')').call(bottomXAxis).selectAll('text').style('text-anchor', 'middle').attr('fill', '#000').attr('stroke', 'none').attr('font-size', 10).attr('dy', '1em');
+
+    if (_ganttDb__WEBPACK_IMPORTED_MODULE_3__["default"].topAxisEnabled() || conf.topAxis) {
+      var topXAxis = Object(d3__WEBPACK_IMPORTED_MODULE_0__["axisTop"])(timeScale).tickSize(-h + theTopPad + conf.gridLineStartPadding).tickFormat(Object(d3__WEBPACK_IMPORTED_MODULE_0__["timeFormat"])(_parser_gantt__WEBPACK_IMPORTED_MODULE_1__["parser"].yy.getAxisFormat() || conf.axisFormat || '%Y-%m-%d'));
+      svg.append('g').attr('class', 'grid').attr('transform', 'translate(' + theSidePad + ', ' + theTopPad + ')').call(topXAxis).selectAll('text').style('text-anchor', 'middle').attr('fill', '#000').attr('stroke', 'none').attr('font-size', 10); // .attr('dy', '1em');
+    }
   }
 
   function vertLabels(theGap, theTopPad) {
@@ -61215,12 +61665,12 @@ var draw = function draw(text, id) {
   }
 */
 var parser = (function(){
-var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,3],$V1=[1,5],$V2=[7,9,11,12,13,14,15,16,17,18,20,27,32],$V3=[1,15],$V4=[1,16],$V5=[1,17],$V6=[1,18],$V7=[1,19],$V8=[1,20],$V9=[1,21],$Va=[1,23],$Vb=[1,25],$Vc=[1,28],$Vd=[5,7,9,11,12,13,14,15,16,17,18,20,27,32];
+var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,3],$V1=[1,5],$V2=[7,9,11,12,13,14,15,16,17,18,19,21,28,33],$V3=[1,15],$V4=[1,16],$V5=[1,17],$V6=[1,18],$V7=[1,19],$V8=[1,20],$V9=[1,21],$Va=[1,22],$Vb=[1,24],$Vc=[1,26],$Vd=[1,29],$Ve=[5,7,9,11,12,13,14,15,16,17,18,19,21,28,33];
 var parser = {trace: function trace () { },
 yy: {},
-symbols_: {"error":2,"start":3,"directive":4,"gantt":5,"document":6,"EOF":7,"line":8,"SPACE":9,"statement":10,"NL":11,"dateFormat":12,"inclusiveEndDates":13,"axisFormat":14,"excludes":15,"todayMarker":16,"title":17,"section":18,"clickStatement":19,"taskTxt":20,"taskData":21,"openDirective":22,"typeDirective":23,"closeDirective":24,":":25,"argDirective":26,"click":27,"callbackname":28,"callbackargs":29,"href":30,"clickStatementDebug":31,"open_directive":32,"type_directive":33,"arg_directive":34,"close_directive":35,"$accept":0,"$end":1},
-terminals_: {2:"error",5:"gantt",7:"EOF",9:"SPACE",11:"NL",12:"dateFormat",13:"inclusiveEndDates",14:"axisFormat",15:"excludes",16:"todayMarker",17:"title",18:"section",20:"taskTxt",21:"taskData",25:":",27:"click",28:"callbackname",29:"callbackargs",30:"href",32:"open_directive",33:"type_directive",34:"arg_directive",35:"close_directive"},
-productions_: [0,[3,2],[3,3],[6,0],[6,2],[8,2],[8,1],[8,1],[8,1],[10,1],[10,1],[10,1],[10,1],[10,1],[10,1],[10,1],[10,1],[10,2],[10,1],[4,4],[4,6],[19,2],[19,3],[19,3],[19,4],[19,3],[19,4],[19,2],[31,2],[31,3],[31,3],[31,4],[31,3],[31,4],[31,2],[22,1],[23,1],[26,1],[24,1]],
+symbols_: {"error":2,"start":3,"directive":4,"gantt":5,"document":6,"EOF":7,"line":8,"SPACE":9,"statement":10,"NL":11,"dateFormat":12,"inclusiveEndDates":13,"topAxis":14,"axisFormat":15,"excludes":16,"todayMarker":17,"title":18,"section":19,"clickStatement":20,"taskTxt":21,"taskData":22,"openDirective":23,"typeDirective":24,"closeDirective":25,":":26,"argDirective":27,"click":28,"callbackname":29,"callbackargs":30,"href":31,"clickStatementDebug":32,"open_directive":33,"type_directive":34,"arg_directive":35,"close_directive":36,"$accept":0,"$end":1},
+terminals_: {2:"error",5:"gantt",7:"EOF",9:"SPACE",11:"NL",12:"dateFormat",13:"inclusiveEndDates",14:"topAxis",15:"axisFormat",16:"excludes",17:"todayMarker",18:"title",19:"section",21:"taskTxt",22:"taskData",26:":",28:"click",29:"callbackname",30:"callbackargs",31:"href",33:"open_directive",34:"type_directive",35:"arg_directive",36:"close_directive"},
+productions_: [0,[3,2],[3,3],[6,0],[6,2],[8,2],[8,1],[8,1],[8,1],[10,1],[10,1],[10,1],[10,1],[10,1],[10,1],[10,1],[10,1],[10,1],[10,2],[10,1],[4,4],[4,6],[20,2],[20,3],[20,3],[20,4],[20,3],[20,4],[20,2],[32,2],[32,3],[32,3],[32,4],[32,3],[32,4],[32,2],[23,1],[24,1],[27,1],[25,1]],
 performAction: function anonymous(yytext, yyleng, yylineno, yy, yystate /* action[1] */, $$ /* vstack */, _$ /* lstack */) {
 /* this == yyval */
 
@@ -61248,69 +61698,72 @@ case 10:
 yy.enableInclusiveEndDates();this.$=$$[$0].substr(18);
 break;
 case 11:
-yy.setAxisFormat($$[$0].substr(11));this.$=$$[$0].substr(11);
+yy.TopAxis();this.$=$$[$0].substr(8);
 break;
 case 12:
-yy.setExcludes($$[$0].substr(9));this.$=$$[$0].substr(9);
+yy.setAxisFormat($$[$0].substr(11));this.$=$$[$0].substr(11);
 break;
 case 13:
-yy.setTodayMarker($$[$0].substr(12));this.$=$$[$0].substr(12);
+yy.setExcludes($$[$0].substr(9));this.$=$$[$0].substr(9);
 break;
 case 14:
-yy.setTitle($$[$0].substr(6));this.$=$$[$0].substr(6);
+yy.setTodayMarker($$[$0].substr(12));this.$=$$[$0].substr(12);
 break;
 case 15:
+yy.setTitle($$[$0].substr(6));this.$=$$[$0].substr(6);
+break;
+case 16:
 yy.addSection($$[$0].substr(8));this.$=$$[$0].substr(8);
 break;
-case 17:
+case 18:
 yy.addTask($$[$0-1],$$[$0]);this.$='task';
 break;
-case 21:
+case 22:
 this.$ = $$[$0-1];yy.setClickEvent($$[$0-1], $$[$0], null);
 break;
-case 22:
+case 23:
 this.$ = $$[$0-2];yy.setClickEvent($$[$0-2], $$[$0-1], $$[$0]);
 break;
-case 23:
+case 24:
 this.$ = $$[$0-2];yy.setClickEvent($$[$0-2], $$[$0-1], null);yy.setLink($$[$0-2],$$[$0]);
 break;
-case 24:
+case 25:
 this.$ = $$[$0-3];yy.setClickEvent($$[$0-3], $$[$0-2], $$[$0-1]);yy.setLink($$[$0-3],$$[$0]);
 break;
-case 25:
+case 26:
 this.$ = $$[$0-2];yy.setClickEvent($$[$0-2], $$[$0], null);yy.setLink($$[$0-2],$$[$0-1]);
 break;
-case 26:
+case 27:
 this.$ = $$[$0-3];yy.setClickEvent($$[$0-3], $$[$0-1], $$[$0]);yy.setLink($$[$0-3],$$[$0-2]);
 break;
-case 27:
+case 28:
 this.$ = $$[$0-1];yy.setLink($$[$0-1], $$[$0]);
 break;
-case 28: case 34:
+case 29: case 35:
 this.$=$$[$0-1] + ' ' + $$[$0];
 break;
-case 29: case 30: case 32:
+case 30: case 31: case 33:
 this.$=$$[$0-2] + ' ' + $$[$0-1] + ' ' + $$[$0];
 break;
-case 31: case 33:
+case 32: case 34:
 this.$=$$[$0-3] + ' ' + $$[$0-2] + ' ' + $$[$0-1] + ' ' + $$[$0];
 break;
-case 35:
+case 36:
  yy.parseDirective('%%{', 'open_directive'); 
 break;
-case 36:
+case 37:
  yy.parseDirective($$[$0], 'type_directive'); 
 break;
-case 37:
+case 38:
  $$[$0] = $$[$0].trim().replace(/'/g, '"'); yy.parseDirective($$[$0], 'arg_directive'); 
 break;
-case 38:
+case 39:
  yy.parseDirective('}%%', 'close_directive', 'gantt'); 
 break;
 }
 },
-table: [{3:1,4:2,5:$V0,22:4,32:$V1},{1:[3]},{3:6,4:2,5:$V0,22:4,32:$V1},o($V2,[2,3],{6:7}),{23:8,33:[1,9]},{33:[2,35]},{1:[2,1]},{4:24,7:[1,10],8:11,9:[1,12],10:13,11:[1,14],12:$V3,13:$V4,14:$V5,15:$V6,16:$V7,17:$V8,18:$V9,19:22,20:$Va,22:4,27:$Vb,32:$V1},{24:26,25:[1,27],35:$Vc},o([25,35],[2,36]),o($V2,[2,8],{1:[2,2]}),o($V2,[2,4]),{4:24,10:29,12:$V3,13:$V4,14:$V5,15:$V6,16:$V7,17:$V8,18:$V9,19:22,20:$Va,22:4,27:$Vb,32:$V1},o($V2,[2,6]),o($V2,[2,7]),o($V2,[2,9]),o($V2,[2,10]),o($V2,[2,11]),o($V2,[2,12]),o($V2,[2,13]),o($V2,[2,14]),o($V2,[2,15]),o($V2,[2,16]),{21:[1,30]},o($V2,[2,18]),{28:[1,31],30:[1,32]},{11:[1,33]},{26:34,34:[1,35]},{11:[2,38]},o($V2,[2,5]),o($V2,[2,17]),o($V2,[2,21],{29:[1,36],30:[1,37]}),o($V2,[2,27],{28:[1,38]}),o($Vd,[2,19]),{24:39,35:$Vc},{35:[2,37]},o($V2,[2,22],{30:[1,40]}),o($V2,[2,23]),o($V2,[2,25],{29:[1,41]}),{11:[1,42]},o($V2,[2,24]),o($V2,[2,26]),o($Vd,[2,20])],
-defaultActions: {5:[2,35],6:[2,1],28:[2,38],35:[2,37]},
+table: [{3:1,4:2,5:$V0,23:4,33:$V1},{1:[3]},{3:6,4:2,5:$V0,23:4,33:$V1},o($V2,[2,3],{6:7}),{24:8,34:[1,9]},{34:[2,36]},{1:[2,1]},{4:25,7:[1,10],8:11,9:[1,12],10:13,11:[1,14],12:$V3,13:$V4,14:$V5,15:$V6,16:$V7,17:$V8,18:$V9,19:$Va,20:23,21:$Vb,23:4,28:$Vc,33:$V1},{25:27,26:[1,28],36:$Vd},o([26,36],[2,37]),o($V2,[2,8],{1:[2,2]}),o($V2,[2,4]),{4:25,10:30,12:$V3,13:$V4,14:$V5,15:$V6,16:$V7,17:$V8,18:$V9,19:$Va,20:23,21:$Vb,23:4,28:$Vc,33:$V1},o($V2,[2,6]),o($V2,[2,7]),o($V2,[2,9]),o($V2,[2,10]),o($V2,[2,11]),o($V2,[2,12]),o($V2,[2,13]),o($V2,[2,14]),o($V2,[2,15]),o($V2,[2,16]),o($V2,[2,17]),{22:[1,31]},o($V2,[2,19]),{29:[1,32],31:[1,33]},{11:[1,34]},{27:35,35:[1,36]},{11:[2,39]},o($V2,[2,5]),o($V2,[2,18]),o($V2,[2,22],{30:[1,37],31:[1,38]}),o($V2,[2,28],{29:[1,39]}),o($Ve,[2,20]),{25:40,36:$Vd},{36:[2,38]},o($V2,[2,23],{31:[1,41]}),o($V2,[2,24]),o($V2,[2,26],{30:[1,42]}),{11:[1,43]},o($V2,[2,25]),o($V2,[2,27]),o($Ve,[2,21])],
+defaultActions: {5:[2,36],6:[2,1],29:[2,39],36:[2,38]},
 parseError: function parseError (str, hash) {
     if (hash.recoverable) {
         this.trace(str);
@@ -61789,15 +62242,15 @@ options: {"case-insensitive":true},
 performAction: function anonymous(yy,yy_,$avoiding_name_collisions,YY_START) {
 var YYSTATE=YY_START;
 switch($avoiding_name_collisions) {
-case 0: this.begin('open_directive'); return 32; 
+case 0: this.begin('open_directive'); return 33; 
 break;
-case 1: this.begin('type_directive'); return 33; 
+case 1: this.begin('type_directive'); return 34; 
 break;
-case 2: this.popState(); this.begin('arg_directive'); return 25; 
+case 2: this.popState(); this.begin('arg_directive'); return 26; 
 break;
-case 3: this.popState(); this.popState(); return 35; 
+case 3: this.popState(); this.popState(); return 36; 
 break;
-case 4:return 34;
+case 4:return 35;
 break;
 case 5:/* skip comments */
 break;
@@ -61817,7 +62270,7 @@ case 12:this.begin("href");
 break;
 case 13:this.popState();
 break;
-case 14:return 30;
+case 14:return 31;
 break;
 case 15:this.begin("callbackname");
 break;
@@ -61825,17 +62278,17 @@ case 16:this.popState();
 break;
 case 17:this.popState(); this.begin("callbackargs");
 break;
-case 18:return 28;
+case 18:return 29;
 break;
 case 19:this.popState();
 break;
-case 20:return 29;
+case 20:return 30;
 break;
 case 21:this.begin("click");
 break;
 case 22:this.popState();
 break;
-case 23:return 27;
+case 23:return 28;
 break;
 case 24:return 5;
 break;
@@ -61849,26 +62302,28 @@ case 28:return 15;
 break;
 case 29:return 16;
 break;
-case 30:return 'date';
+case 30:return 17;
 break;
-case 31:return 17;
+case 31:return 'date';
 break;
 case 32:return 18;
 break;
-case 33:return 20;
+case 33:return 19;
 break;
 case 34:return 21;
 break;
-case 35:return 25;
+case 35:return 22;
 break;
-case 36:return 7;
+case 36:return 26;
 break;
-case 37:return 'INVALID';
+case 37:return 7;
+break;
+case 38:return 'INVALID';
 break;
 }
 },
-rules: [/^(?:%%\{)/i,/^(?:((?:(?!\}%%)[^:.])*))/i,/^(?::)/i,/^(?:\}%%)/i,/^(?:((?:(?!\}%%).|\n)*))/i,/^(?:%%(?!\{)*[^\n]*)/i,/^(?:[^\}]%%*[^\n]*)/i,/^(?:%%*[^\n]*[\n]*)/i,/^(?:[\n]+)/i,/^(?:\s+)/i,/^(?:#[^\n]*)/i,/^(?:%[^\n]*)/i,/^(?:href[\s]+["])/i,/^(?:["])/i,/^(?:[^"]*)/i,/^(?:call[\s]+)/i,/^(?:\([\s]*\))/i,/^(?:\()/i,/^(?:[^(]*)/i,/^(?:\))/i,/^(?:[^)]*)/i,/^(?:click[\s]+)/i,/^(?:[\s\n])/i,/^(?:[^\s\n]*)/i,/^(?:gantt\b)/i,/^(?:dateFormat\s[^#\n;]+)/i,/^(?:inclusiveEndDates\b)/i,/^(?:axisFormat\s[^#\n;]+)/i,/^(?:excludes\s[^#\n;]+)/i,/^(?:todayMarker\s[^\n;]+)/i,/^(?:\d\d\d\d-\d\d-\d\d\b)/i,/^(?:title\s[^#\n;]+)/i,/^(?:section\s[^#:\n;]+)/i,/^(?:[^#:\n;]+)/i,/^(?::[^#\n;]+)/i,/^(?::)/i,/^(?:$)/i,/^(?:.)/i],
-conditions: {"close_directive":{"rules":[],"inclusive":false},"arg_directive":{"rules":[3,4],"inclusive":false},"type_directive":{"rules":[2,3],"inclusive":false},"open_directive":{"rules":[1],"inclusive":false},"callbackargs":{"rules":[19,20],"inclusive":false},"callbackname":{"rules":[16,17,18],"inclusive":false},"href":{"rules":[13,14],"inclusive":false},"click":{"rules":[22,23],"inclusive":false},"INITIAL":{"rules":[0,5,6,7,8,9,10,11,12,15,21,24,25,26,27,28,29,30,31,32,33,34,35,36,37],"inclusive":true}}
+rules: [/^(?:%%\{)/i,/^(?:((?:(?!\}%%)[^:.])*))/i,/^(?::)/i,/^(?:\}%%)/i,/^(?:((?:(?!\}%%).|\n)*))/i,/^(?:%%(?!\{)*[^\n]*)/i,/^(?:[^\}]%%*[^\n]*)/i,/^(?:%%*[^\n]*[\n]*)/i,/^(?:[\n]+)/i,/^(?:\s+)/i,/^(?:#[^\n]*)/i,/^(?:%[^\n]*)/i,/^(?:href[\s]+["])/i,/^(?:["])/i,/^(?:[^"]*)/i,/^(?:call[\s]+)/i,/^(?:\([\s]*\))/i,/^(?:\()/i,/^(?:[^(]*)/i,/^(?:\))/i,/^(?:[^)]*)/i,/^(?:click[\s]+)/i,/^(?:[\s\n])/i,/^(?:[^\s\n]*)/i,/^(?:gantt\b)/i,/^(?:dateFormat\s[^#\n;]+)/i,/^(?:inclusiveEndDates\b)/i,/^(?:topAxis\b)/i,/^(?:axisFormat\s[^#\n;]+)/i,/^(?:excludes\s[^#\n;]+)/i,/^(?:todayMarker\s[^\n;]+)/i,/^(?:\d\d\d\d-\d\d-\d\d\b)/i,/^(?:title\s[^#\n;]+)/i,/^(?:section\s[^#:\n;]+)/i,/^(?:[^#:\n;]+)/i,/^(?::[^#\n;]+)/i,/^(?::)/i,/^(?:$)/i,/^(?:.)/i],
+conditions: {"close_directive":{"rules":[],"inclusive":false},"arg_directive":{"rules":[3,4],"inclusive":false},"type_directive":{"rules":[2,3],"inclusive":false},"open_directive":{"rules":[1],"inclusive":false},"callbackargs":{"rules":[19,20],"inclusive":false},"callbackname":{"rules":[16,17,18],"inclusive":false},"href":{"rules":[13,14],"inclusive":false},"click":{"rules":[22,23],"inclusive":false},"INITIAL":{"rules":[0,5,6,7,8,9,10,11,12,15,21,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38],"inclusive":true}}
 });
 return lexer;
 })();
@@ -64078,42 +64533,45 @@ var getStyles = function getStyles() {
   }
 */
 var parser = (function(){
-var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,4],$V1=[1,5],$V2=[1,6],$V3=[1,7],$V4=[1,9],$V5=[1,10,12,19,20,21,22],$V6=[1,6,10,12,19,20,21,22],$V7=[19,20,21],$V8=[1,22],$V9=[6,19,20,21,22];
+var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,4],$V1=[1,5],$V2=[1,6],$V3=[1,7],$V4=[1,9],$V5=[1,11,13,20,21,22,23],$V6=[2,5],$V7=[1,6,11,13,20,21,22,23],$V8=[20,21,22],$V9=[2,8],$Va=[1,18],$Vb=[1,19],$Vc=[1,24],$Vd=[6,20,21,22,23];
 var parser = {trace: function trace () { },
 yy: {},
-symbols_: {"error":2,"start":3,"eol":4,"directive":5,"PIE":6,"document":7,"line":8,"statement":9,"txt":10,"value":11,"title":12,"title_value":13,"openDirective":14,"typeDirective":15,"closeDirective":16,":":17,"argDirective":18,"NEWLINE":19,";":20,"EOF":21,"open_directive":22,"type_directive":23,"arg_directive":24,"close_directive":25,"$accept":0,"$end":1},
-terminals_: {2:"error",6:"PIE",10:"txt",11:"value",12:"title",13:"title_value",17:":",19:"NEWLINE",20:";",21:"EOF",22:"open_directive",23:"type_directive",24:"arg_directive",25:"close_directive"},
-productions_: [0,[3,2],[3,2],[3,2],[7,0],[7,2],[8,2],[9,0],[9,2],[9,2],[9,1],[5,3],[5,5],[4,1],[4,1],[4,1],[14,1],[15,1],[18,1],[16,1]],
+symbols_: {"error":2,"start":3,"eol":4,"directive":5,"PIE":6,"document":7,"showData":8,"line":9,"statement":10,"txt":11,"value":12,"title":13,"title_value":14,"openDirective":15,"typeDirective":16,"closeDirective":17,":":18,"argDirective":19,"NEWLINE":20,";":21,"EOF":22,"open_directive":23,"type_directive":24,"arg_directive":25,"close_directive":26,"$accept":0,"$end":1},
+terminals_: {2:"error",6:"PIE",8:"showData",11:"txt",12:"value",13:"title",14:"title_value",18:":",20:"NEWLINE",21:";",22:"EOF",23:"open_directive",24:"type_directive",25:"arg_directive",26:"close_directive"},
+productions_: [0,[3,2],[3,2],[3,2],[3,3],[7,0],[7,2],[9,2],[10,0],[10,2],[10,2],[10,1],[5,3],[5,5],[4,1],[4,1],[4,1],[15,1],[16,1],[19,1],[17,1]],
 performAction: function anonymous(yytext, yyleng, yylineno, yy, yystate /* action[1] */, $$ /* vstack */, _$ /* lstack */) {
 /* this == yyval */
 
 var $0 = $$.length - 1;
 switch (yystate) {
-case 6:
+case 4:
+yy.setShowData(true);
+break;
+case 7:
  this.$ = $$[$0-1] 
 break;
-case 8:
+case 9:
  yy.addSection($$[$0-1],yy.cleanupValue($$[$0])); 
 break;
-case 9:
+case 10:
  this.$=$$[$0].trim();yy.setTitle(this.$); 
 break;
-case 16:
+case 17:
  yy.parseDirective('%%{', 'open_directive'); 
 break;
-case 17:
+case 18:
  yy.parseDirective($$[$0], 'type_directive'); 
 break;
-case 18:
+case 19:
  $$[$0] = $$[$0].trim().replace(/'/g, '"'); yy.parseDirective($$[$0], 'arg_directive'); 
 break;
-case 19:
+case 20:
  yy.parseDirective('}%%', 'close_directive', 'pie'); 
 break;
 }
 },
-table: [{3:1,4:2,5:3,6:$V0,14:8,19:$V1,20:$V2,21:$V3,22:$V4},{1:[3]},{3:10,4:2,5:3,6:$V0,14:8,19:$V1,20:$V2,21:$V3,22:$V4},{3:11,4:2,5:3,6:$V0,14:8,19:$V1,20:$V2,21:$V3,22:$V4},o($V5,[2,4],{7:12}),o($V6,[2,13]),o($V6,[2,14]),o($V6,[2,15]),{15:13,23:[1,14]},{23:[2,16]},{1:[2,1]},{1:[2,2]},o($V7,[2,7],{14:8,8:15,9:16,5:19,1:[2,3],10:[1,17],12:[1,18],22:$V4}),{16:20,17:[1,21],25:$V8},o([17,25],[2,17]),o($V5,[2,5]),{4:23,19:$V1,20:$V2,21:$V3},{11:[1,24]},{13:[1,25]},o($V7,[2,10]),o($V9,[2,11]),{18:26,24:[1,27]},o($V9,[2,19]),o($V5,[2,6]),o($V7,[2,8]),o($V7,[2,9]),{16:28,25:$V8},{25:[2,18]},o($V9,[2,12])],
-defaultActions: {9:[2,16],10:[2,1],11:[2,2],27:[2,18]},
+table: [{3:1,4:2,5:3,6:$V0,15:8,20:$V1,21:$V2,22:$V3,23:$V4},{1:[3]},{3:10,4:2,5:3,6:$V0,15:8,20:$V1,21:$V2,22:$V3,23:$V4},{3:11,4:2,5:3,6:$V0,15:8,20:$V1,21:$V2,22:$V3,23:$V4},o($V5,$V6,{7:12,8:[1,13]}),o($V7,[2,14]),o($V7,[2,15]),o($V7,[2,16]),{16:14,24:[1,15]},{24:[2,17]},{1:[2,1]},{1:[2,2]},o($V8,$V9,{15:8,9:16,10:17,5:20,1:[2,3],11:$Va,13:$Vb,23:$V4}),o($V5,$V6,{7:21}),{17:22,18:[1,23],26:$Vc},o([18,26],[2,18]),o($V5,[2,6]),{4:25,20:$V1,21:$V2,22:$V3},{12:[1,26]},{14:[1,27]},o($V8,[2,11]),o($V8,$V9,{15:8,9:16,10:17,5:20,1:[2,4],11:$Va,13:$Vb,23:$V4}),o($Vd,[2,12]),{19:28,25:[1,29]},o($Vd,[2,20]),o($V5,[2,7]),o($V8,[2,9]),o($V8,[2,10]),{17:30,26:$Vc},{26:[2,19]},o($Vd,[2,13])],
+defaultActions: {9:[2,17],10:[2,1],11:[2,2],29:[2,19]},
 parseError: function parseError (str, hash) {
     if (hash.recoverable) {
         this.trace(str);
@@ -64592,27 +65050,27 @@ options: {"case-insensitive":true},
 performAction: function anonymous(yy,yy_,$avoiding_name_collisions,YY_START) {
 var YYSTATE=YY_START;
 switch($avoiding_name_collisions) {
-case 0: this.begin('open_directive'); return 22; 
+case 0: this.begin('open_directive'); return 23; 
 break;
-case 1: this.begin('type_directive'); return 23; 
+case 1: this.begin('type_directive'); return 24; 
 break;
-case 2: this.popState(); this.begin('arg_directive'); return 17; 
+case 2: this.popState(); this.begin('arg_directive'); return 18; 
 break;
-case 3: this.popState(); this.popState(); return 25; 
+case 3: this.popState(); this.popState(); return 26; 
 break;
-case 4:return 24;
+case 4:return 25;
 break;
 case 5:/* skip comments */
 break;
 case 6:/* skip comments */{ /*console.log('');*/ }
 break;
-case 7:return 19;
+case 7:return 20;
 break;
 case 8:/* do nothing */
 break;
 case 9:/* ignore */
 break;
-case 10: this.begin("title");return 12; 
+case 10: this.begin("title");return 13; 
 break;
 case 11: this.popState(); return "title_value"; 
 break;
@@ -64624,14 +65082,16 @@ case 14: return "txt";
 break;
 case 15:return 6;
 break;
-case 16:return "value";
+case 16:return 8;
 break;
-case 17:return 21;
+case 17:return "value";
+break;
+case 18:return 22;
 break;
 }
 },
-rules: [/^(?:%%\{)/i,/^(?:((?:(?!\}%%)[^:.])*))/i,/^(?::)/i,/^(?:\}%%)/i,/^(?:((?:(?!\}%%).|\n)*))/i,/^(?:%%(?!\{)[^\n]*)/i,/^(?:[^\}]%%[^\n]*)/i,/^(?:[\n\r]+)/i,/^(?:%%[^\n]*)/i,/^(?:[\s]+)/i,/^(?:title\b)/i,/^(?:(?!\n||)*[^\n]*)/i,/^(?:["])/i,/^(?:["])/i,/^(?:[^"]*)/i,/^(?:pie\b)/i,/^(?::[\s]*[\d]+(?:\.[\d]+)?)/i,/^(?:$)/i],
-conditions: {"close_directive":{"rules":[],"inclusive":false},"arg_directive":{"rules":[3,4],"inclusive":false},"type_directive":{"rules":[2,3],"inclusive":false},"open_directive":{"rules":[1],"inclusive":false},"title":{"rules":[11],"inclusive":false},"string":{"rules":[13,14],"inclusive":false},"INITIAL":{"rules":[0,5,6,7,8,9,10,12,15,16,17],"inclusive":true}}
+rules: [/^(?:%%\{)/i,/^(?:((?:(?!\}%%)[^:.])*))/i,/^(?::)/i,/^(?:\}%%)/i,/^(?:((?:(?!\}%%).|\n)*))/i,/^(?:%%(?!\{)[^\n]*)/i,/^(?:[^\}]%%[^\n]*)/i,/^(?:[\n\r]+)/i,/^(?:%%[^\n]*)/i,/^(?:[\s]+)/i,/^(?:title\b)/i,/^(?:(?!\n||)*[^\n]*)/i,/^(?:["])/i,/^(?:["])/i,/^(?:[^"]*)/i,/^(?:pie\b)/i,/^(?:showData\b)/i,/^(?::[\s]*[\d]+(?:\.[\d]+)?)/i,/^(?:$)/i],
+conditions: {"close_directive":{"rules":[],"inclusive":false},"arg_directive":{"rules":[3,4],"inclusive":false},"type_directive":{"rules":[2,3],"inclusive":false},"open_directive":{"rules":[1],"inclusive":false},"title":{"rules":[11],"inclusive":false},"string":{"rules":[13,14],"inclusive":false},"INITIAL":{"rules":[0,5,6,7,8,9,10,12,15,16,17,18],"inclusive":true}}
 });
 return lexer;
 })();
@@ -64685,6 +65145,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var sections = {};
 var title = '';
+var showData = false;
 var parseDirective = function parseDirective(statement, context, type) {
   _mermaidAPI__WEBPACK_IMPORTED_MODULE_1__["default"].parseDirective(this, statement, context, type);
 };
@@ -64704,6 +65165,14 @@ var setTitle = function setTitle(txt) {
   title = txt;
 };
 
+var setShowData = function setShowData(toggle) {
+  showData = toggle;
+};
+
+var getShowData = function getShowData() {
+  return showData;
+};
+
 var getTitle = function getTitle() {
   return title;
 };
@@ -64720,6 +65189,7 @@ var cleanupValue = function cleanupValue(value) {
 var clear = function clear() {
   sections = {};
   title = '';
+  showData = false;
 }; // export const parseError = (err, hash) => {
 //   global.mermaidAPI.parseError(err, hash)
 // }
@@ -64735,7 +65205,9 @@ var clear = function clear() {
   cleanupValue: cleanupValue,
   clear: clear,
   setTitle: setTitle,
-  getTitle: getTitle // parseError
+  getTitle: getTitle,
+  setShowData: setShowData,
+  getShowData: getShowData // parseError
 
 });
 
@@ -64745,12 +65217,11 @@ var clear = function clear() {
 /*!*****************************************!*\
   !*** ./src/diagrams/pie/pieRenderer.js ***!
   \*****************************************/
-/*! exports provided: setConf, draw, default */
+/*! exports provided: draw, default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "setConf", function() { return setConf; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "draw", function() { return draw; });
 /* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! d3 */ "./node_modules/d3/index.js");
 /* harmony import */ var _pieDb__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./pieDb */ "./src/diagrams/pie/pieDb.js");
@@ -64758,6 +65229,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _parser_pie__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_parser_pie__WEBPACK_IMPORTED_MODULE_2__);
 /* harmony import */ var _logger__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../logger */ "./src/logger.js");
 /* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../utils */ "./src/utils.js");
+/* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../config */ "./src/config.js");
 /**
  * Created by AshishJ on 11-09-2019.
  */
@@ -64766,13 +65238,8 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-var conf = {};
-var setConf = function setConf(cnf) {
-  var keys = Object.keys(cnf);
-  keys.forEach(function (key) {
-    conf[key] = cnf[key];
-  });
-};
+
+var conf = _config__WEBPACK_IMPORTED_MODULE_5__["getConfig"]();
 /**
  * Draws a Pie Chart with the data given in text.
  * @param text
@@ -64783,6 +65250,7 @@ var width;
 var height = 450;
 var draw = function draw(txt, id) {
   try {
+    conf = _config__WEBPACK_IMPORTED_MODULE_5__["getConfig"]();
     var parser = _parser_pie__WEBPACK_IMPORTED_MODULE_2___default.a.parser;
     parser.yy = _pieDb__WEBPACK_IMPORTED_MODULE_1__["default"];
     _logger__WEBPACK_IMPORTED_MODULE_3__["log"].debug('Rendering info diagram\n' + txt); // Parse the Pie Chart definition
@@ -64801,8 +65269,12 @@ var draw = function draw(txt, id) {
       width = conf.useWidth;
     }
 
+    if (typeof conf.pie.useWidth !== 'undefined') {
+      width = conf.pie.useWidth;
+    }
+
     var diagram = Object(d3__WEBPACK_IMPORTED_MODULE_0__["select"])('#' + id);
-    Object(_utils__WEBPACK_IMPORTED_MODULE_4__["configureSvgSize"])(diagram, height, width, conf.useMaxWidth); // Set viewBox
+    Object(_utils__WEBPACK_IMPORTED_MODULE_4__["configureSvgSize"])(diagram, height, width, conf.pie.useMaxWidth); // Set viewBox
 
     elem.setAttribute('viewBox', '0 0 ' + width + ' ' + height); // Fetch the default direction, use TD if none was found
 
@@ -64815,9 +65287,11 @@ var draw = function draw(txt, id) {
     var sum = 0;
     Object.keys(data).forEach(function (key) {
       sum += data[key];
-    }); // Set the color scale
+    });
+    var themeVariables = conf.themeVariables;
+    var myGeneratedColors = [themeVariables.pie1, themeVariables.pie2, themeVariables.pie3, themeVariables.pie4, themeVariables.pie5, themeVariables.pie6, themeVariables.pie7, themeVariables.pie8, themeVariables.pie9, themeVariables.pie10, themeVariables.pie11, themeVariables.pie12]; // Set the color scale
 
-    var color = Object(d3__WEBPACK_IMPORTED_MODULE_0__["scaleOrdinal"])().domain(data).range(d3__WEBPACK_IMPORTED_MODULE_0__["schemeSet2"]); // Compute the position of each group on the pie:
+    var color = Object(d3__WEBPACK_IMPORTED_MODULE_0__["scaleOrdinal"])().domain(data).range(myGeneratedColors); // Compute the position of each group on the pie:
 
     var pie = Object(d3__WEBPACK_IMPORTED_MODULE_0__["pie"])().value(function (d) {
       return d.value;
@@ -64828,7 +65302,7 @@ var draw = function draw(txt, id) {
 
     svg.selectAll('mySlices').data(dataReady).enter().append('path').attr('d', arcGenerator).attr('fill', function (d) {
       return color(d.data.key);
-    }).attr('stroke', 'black').style('stroke-width', '2px').style('opacity', 0.7); // Now add the percentage.
+    }).attr('class', 'pieCircle'); // Now add the percentage.
     // Use the centroid method to get the best coordinates.
 
     svg.selectAll('mySlices').data(dataReady.filter(function (value) {
@@ -64837,7 +65311,7 @@ var draw = function draw(txt, id) {
       return (d.data.value / sum * 100).toFixed(0) + '%';
     }).attr('transform', function (d) {
       return 'translate(' + arcGenerator.centroid(d) + ')';
-    }).style('text-anchor', 'middle').attr('class', 'slice').style('font-size', 17);
+    }).style('text-anchor', 'middle').attr('class', 'slice');
     svg.append('text').text(parser.yy.getTitle()).attr('x', 0).attr('y', -(height - 50) / 2).attr('class', 'pieTitleText'); // Add the legends/annotations for each section
 
     var legend = svg.selectAll('.legend').data(color.domain()).enter().append('g').attr('class', 'legend').attr('transform', function (d, i) {
@@ -64848,8 +65322,14 @@ var draw = function draw(txt, id) {
       return 'translate(' + horz + ',' + vert + ')';
     });
     legend.append('rect').attr('width', legendRectSize).attr('height', legendRectSize).style('fill', color).style('stroke', color);
-    legend.append('text').attr('x', legendRectSize + legendSpacing).attr('y', legendRectSize - legendSpacing).text(function (d) {
-      return d;
+    legend.data(dataReady.filter(function (value) {
+      return value.data.value !== 0;
+    })).append('text').attr('x', legendRectSize + legendSpacing).attr('y', legendRectSize - legendSpacing).text(function (d) {
+      if (parser.yy.getShowData() || conf.showData || conf.pie.showData) {
+        return d.data.key + ' [' + d.data.value + ']';
+      } else {
+        return d.data.key;
+      }
     });
   } catch (e) {
     _logger__WEBPACK_IMPORTED_MODULE_3__["log"].error('Error while rendering info diagram');
@@ -64857,7 +65337,6 @@ var draw = function draw(txt, id) {
   }
 };
 /* harmony default export */ __webpack_exports__["default"] = ({
-  setConf: setConf,
   draw: draw
 });
 
@@ -64873,7 +65352,7 @@ var draw = function draw(txt, id) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 var getStyles = function getStyles(options) {
-  return ".pieTitleText {\n    text-anchor: middle;\n    font-size: 25px;\n    fill: ".concat(options.taskTextDarkColor, ";\n    font-family: ").concat(options.fontFamily, ";\n  }\n  .slice {\n    font-family: ").concat(options.fontFamily, ";\n    fill: ").concat(options.textColor, ";\n    // fill: white;\n  }\n  .legend text {\n    fill: ").concat(options.taskTextDarkColor, ";\n    font-family: ").concat(options.fontFamily, ";\n    font-size: 17px;\n  }\n");
+  return "\n  .pieCircle{\n    stroke: ".concat(options.pieStrokeColor, ";\n    stroke-width : ").concat(options.pieStrokeWidth, ";\n    opacity : ").concat(options.pieOpacity, ";\n  }\n  .pieTitleText {\n    text-anchor: middle;\n    font-size: ").concat(options.pieTitleTextSize, ";\n    fill: ").concat(options.pieTitleTextColor, ";\n    font-family: ").concat(options.fontFamily, ";\n  }\n  .slice {\n    font-family: ").concat(options.fontFamily, ";\n    fill: ").concat(options.pieSectionTextColor, ";\n    font-size:").concat(options.pieSectionTextSize, ";\n    // fill: white;\n  }\n  .legend text {\n    fill: ").concat(options.pieLegendTextColor, ";\n    font-family: ").concat(options.fontFamily, ";\n    font-size: ").concat(options.pieLegendTextSize, ";\n  }\n");
 };
 
 /* harmony default export */ __webpack_exports__["default"] = (getStyles);
@@ -64961,126 +65440,126 @@ var getStyles = function getStyles(options) {
   }
 */
 var parser = (function(){
-var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,3],$V1=[1,5],$V2=[1,14],$V3=[2,9],$V4=[1,18],$V5=[1,19],$V6=[1,20],$V7=[1,21],$V8=[1,22],$V9=[1,23],$Va=[1,16],$Vb=[1,24],$Vc=[1,25],$Vd=[1,28],$Ve=[66,67],$Vf=[6,8,35,36,37,38,39,40,48,55,57,66,67],$Vg=[5,14],$Vh=[1,47],$Vi=[1,48],$Vj=[1,49],$Vk=[1,50],$Vl=[1,51],$Vm=[1,52],$Vn=[1,53],$Vo=[57,58],$Vp=[1,65],$Vq=[1,61],$Vr=[1,62],$Vs=[1,63],$Vt=[1,64],$Vu=[1,66],$Vv=[1,70],$Vw=[1,71],$Vx=[1,68],$Vy=[1,69],$Vz=[6,8,35,36,37,38,39,40,48,66,67];
+var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,3],$V1=[1,5],$V2=[1,17],$V3=[2,10],$V4=[1,21],$V5=[1,22],$V6=[1,23],$V7=[1,24],$V8=[1,25],$V9=[1,26],$Va=[1,19],$Vb=[1,27],$Vc=[1,28],$Vd=[1,31],$Ve=[66,67],$Vf=[5,8,14,35,36,37,38,39,40,48,55,57,66,67],$Vg=[5,6,8,14,35,36,37,38,39,40,48,66,67],$Vh=[1,51],$Vi=[1,52],$Vj=[1,53],$Vk=[1,54],$Vl=[1,55],$Vm=[1,56],$Vn=[1,57],$Vo=[57,58],$Vp=[1,69],$Vq=[1,65],$Vr=[1,66],$Vs=[1,67],$Vt=[1,68],$Vu=[1,70],$Vv=[1,74],$Vw=[1,75],$Vx=[1,72],$Vy=[1,73],$Vz=[5,8,14,35,36,37,38,39,40,48,66,67];
 var parser = {trace: function trace () { },
 yy: {},
-symbols_: {"error":2,"start":3,"directive":4,"RD":5,"NEWLINE":6,"diagram":7,"EOF":8,"openDirective":9,"typeDirective":10,"closeDirective":11,":":12,"argDirective":13,"open_directive":14,"type_directive":15,"arg_directive":16,"close_directive":17,"requirementDef":18,"elementDef":19,"relationshipDef":20,"requirementType":21,"requirementName":22,"STRUCT_START":23,"requirementBody":24,"ID":25,"COLONSEP":26,"id":27,"TEXT":28,"text":29,"RISK":30,"riskLevel":31,"VERIFYMTHD":32,"verifyType":33,"STRUCT_STOP":34,"REQUIREMENT":35,"FUNCTIONAL_REQUIREMENT":36,"INTERFACE_REQUIREMENT":37,"PERFORMANCE_REQUIREMENT":38,"PHYSICAL_REQUIREMENT":39,"DESIGN_CONSTRAINT":40,"LOW_RISK":41,"MED_RISK":42,"HIGH_RISK":43,"VERIFY_ANALYSIS":44,"VERIFY_DEMONSTRATION":45,"VERIFY_INSPECTION":46,"VERIFY_TEST":47,"ELEMENT":48,"elementName":49,"elementBody":50,"TYPE":51,"type":52,"DOCREF":53,"ref":54,"END_ARROW_L":55,"relationship":56,"LINE":57,"END_ARROW_R":58,"CONTAINS":59,"COPIES":60,"DERIVES":61,"SATISFIES":62,"VERIFIES":63,"REFINES":64,"TRACES":65,"unqString":66,"qString":67,"$accept":0,"$end":1},
-terminals_: {2:"error",5:"RD",6:"NEWLINE",8:"EOF",12:":",14:"open_directive",15:"type_directive",16:"arg_directive",17:"close_directive",23:"STRUCT_START",25:"ID",26:"COLONSEP",28:"TEXT",30:"RISK",32:"VERIFYMTHD",34:"STRUCT_STOP",35:"REQUIREMENT",36:"FUNCTIONAL_REQUIREMENT",37:"INTERFACE_REQUIREMENT",38:"PERFORMANCE_REQUIREMENT",39:"PHYSICAL_REQUIREMENT",40:"DESIGN_CONSTRAINT",41:"LOW_RISK",42:"MED_RISK",43:"HIGH_RISK",44:"VERIFY_ANALYSIS",45:"VERIFY_DEMONSTRATION",46:"VERIFY_INSPECTION",47:"VERIFY_TEST",48:"ELEMENT",51:"TYPE",53:"DOCREF",55:"END_ARROW_L",57:"LINE",58:"END_ARROW_R",59:"CONTAINS",60:"COPIES",61:"DERIVES",62:"SATISFIES",63:"VERIFIES",64:"REFINES",65:"TRACES",66:"unqString",67:"qString"},
-productions_: [0,[3,2],[3,4],[4,3],[4,5],[9,1],[10,1],[13,1],[11,1],[7,0],[7,2],[7,2],[7,2],[7,2],[18,5],[24,5],[24,5],[24,5],[24,5],[24,2],[24,1],[21,1],[21,1],[21,1],[21,1],[21,1],[21,1],[31,1],[31,1],[31,1],[33,1],[33,1],[33,1],[33,1],[19,5],[50,5],[50,5],[50,2],[50,1],[20,5],[20,5],[56,1],[56,1],[56,1],[56,1],[56,1],[56,1],[56,1],[22,1],[22,1],[27,1],[27,1],[29,1],[29,1],[49,1],[49,1],[52,1],[52,1],[54,1],[54,1]],
+symbols_: {"error":2,"start":3,"directive":4,"NEWLINE":5,"RD":6,"diagram":7,"EOF":8,"openDirective":9,"typeDirective":10,"closeDirective":11,":":12,"argDirective":13,"open_directive":14,"type_directive":15,"arg_directive":16,"close_directive":17,"requirementDef":18,"elementDef":19,"relationshipDef":20,"requirementType":21,"requirementName":22,"STRUCT_START":23,"requirementBody":24,"ID":25,"COLONSEP":26,"id":27,"TEXT":28,"text":29,"RISK":30,"riskLevel":31,"VERIFYMTHD":32,"verifyType":33,"STRUCT_STOP":34,"REQUIREMENT":35,"FUNCTIONAL_REQUIREMENT":36,"INTERFACE_REQUIREMENT":37,"PERFORMANCE_REQUIREMENT":38,"PHYSICAL_REQUIREMENT":39,"DESIGN_CONSTRAINT":40,"LOW_RISK":41,"MED_RISK":42,"HIGH_RISK":43,"VERIFY_ANALYSIS":44,"VERIFY_DEMONSTRATION":45,"VERIFY_INSPECTION":46,"VERIFY_TEST":47,"ELEMENT":48,"elementName":49,"elementBody":50,"TYPE":51,"type":52,"DOCREF":53,"ref":54,"END_ARROW_L":55,"relationship":56,"LINE":57,"END_ARROW_R":58,"CONTAINS":59,"COPIES":60,"DERIVES":61,"SATISFIES":62,"VERIFIES":63,"REFINES":64,"TRACES":65,"unqString":66,"qString":67,"$accept":0,"$end":1},
+terminals_: {2:"error",5:"NEWLINE",6:"RD",8:"EOF",12:":",14:"open_directive",15:"type_directive",16:"arg_directive",17:"close_directive",23:"STRUCT_START",25:"ID",26:"COLONSEP",28:"TEXT",30:"RISK",32:"VERIFYMTHD",34:"STRUCT_STOP",35:"REQUIREMENT",36:"FUNCTIONAL_REQUIREMENT",37:"INTERFACE_REQUIREMENT",38:"PERFORMANCE_REQUIREMENT",39:"PHYSICAL_REQUIREMENT",40:"DESIGN_CONSTRAINT",41:"LOW_RISK",42:"MED_RISK",43:"HIGH_RISK",44:"VERIFY_ANALYSIS",45:"VERIFY_DEMONSTRATION",46:"VERIFY_INSPECTION",47:"VERIFY_TEST",48:"ELEMENT",51:"TYPE",53:"DOCREF",55:"END_ARROW_L",57:"LINE",58:"END_ARROW_R",59:"CONTAINS",60:"COPIES",61:"DERIVES",62:"SATISFIES",63:"VERIFIES",64:"REFINES",65:"TRACES",66:"unqString",67:"qString"},
+productions_: [0,[3,3],[3,2],[3,4],[4,3],[4,5],[9,1],[10,1],[13,1],[11,1],[7,0],[7,2],[7,2],[7,2],[7,2],[7,2],[18,5],[24,5],[24,5],[24,5],[24,5],[24,2],[24,1],[21,1],[21,1],[21,1],[21,1],[21,1],[21,1],[31,1],[31,1],[31,1],[33,1],[33,1],[33,1],[33,1],[19,5],[50,5],[50,5],[50,2],[50,1],[20,5],[20,5],[56,1],[56,1],[56,1],[56,1],[56,1],[56,1],[56,1],[22,1],[22,1],[27,1],[27,1],[29,1],[29,1],[49,1],[49,1],[52,1],[52,1],[54,1],[54,1]],
 performAction: function anonymous(yytext, yyleng, yylineno, yy, yystate /* action[1] */, $$ /* vstack */, _$ /* lstack */) {
 /* this == yyval */
 
 var $0 = $$.length - 1;
 switch (yystate) {
-case 5:
+case 6:
  yy.parseDirective('%%{', 'open_directive'); 
 break;
-case 6:
+case 7:
  yy.parseDirective($$[$0], 'type_directive'); 
 break;
-case 7:
+case 8:
  $$[$0] = $$[$0].trim().replace(/'/g, '"'); yy.parseDirective($$[$0], 'arg_directive'); 
 break;
-case 8:
+case 9:
  yy.parseDirective('}%%', 'close_directive', 'pie'); 
 break;
-case 9:
+case 10:
  this.$ = [] 
 break;
-case 14:
+case 16:
  yy.addRequirement($$[$0-3], $$[$0-4]) 
 break;
-case 15:
+case 17:
  yy.setNewReqId($$[$0-2]); 
 break;
-case 16:
+case 18:
  yy.setNewReqText($$[$0-2]); 
 break;
-case 17:
+case 19:
  yy.setNewReqRisk($$[$0-2]); 
 break;
-case 18:
+case 20:
  yy.setNewReqVerifyMethod($$[$0-2]); 
 break;
-case 21:
+case 23:
  this.$=yy.RequirementType.REQUIREMENT;
 break;
-case 22:
+case 24:
  this.$=yy.RequirementType.FUNCTIONAL_REQUIREMENT;
 break;
-case 23:
+case 25:
  this.$=yy.RequirementType.INTERFACE_REQUIREMENT;
 break;
-case 24:
+case 26:
  this.$=yy.RequirementType.PERFORMANCE_REQUIREMENT;
 break;
-case 25:
+case 27:
  this.$=yy.RequirementType.PHYSICAL_REQUIREMENT;
 break;
-case 26:
+case 28:
  this.$=yy.RequirementType.DESIGN_CONSTRAINT;
 break;
-case 27:
+case 29:
  this.$=yy.RiskLevel.LOW_RISK;
 break;
-case 28:
+case 30:
  this.$=yy.RiskLevel.MED_RISK;
 break;
-case 29:
+case 31:
  this.$=yy.RiskLevel.HIGH_RISK;
 break;
-case 30:
+case 32:
  this.$=yy.VerifyType.VERIFY_ANALYSIS;
 break;
-case 31:
+case 33:
  this.$=yy.VerifyType.VERIFY_DEMONSTRATION;
 break;
-case 32:
+case 34:
  this.$=yy.VerifyType.VERIFY_INSPECTION;
 break;
-case 33:
+case 35:
  this.$=yy.VerifyType.VERIFY_TEST;
 break;
-case 34:
+case 36:
  yy.addElement($$[$0-3]) 
 break;
-case 35:
+case 37:
  yy.setNewElementType($$[$0-2]); 
 break;
-case 36:
+case 38:
  yy.setNewElementDocRef($$[$0-2]); 
 break;
-case 39:
+case 41:
   yy.addRelationship($$[$0-2], $$[$0], $$[$0-4]) 
 break;
-case 40:
+case 42:
  yy.addRelationship($$[$0-2], $$[$0-4], $$[$0]) 
 break;
-case 41:
+case 43:
  this.$=yy.Relationships.CONTAINS;
 break;
-case 42:
+case 44:
  this.$=yy.Relationships.COPIES;
 break;
-case 43:
+case 45:
  this.$=yy.Relationships.DERIVES;
 break;
-case 44:
+case 46:
  this.$=yy.Relationships.SATISFIES;
 break;
-case 45:
+case 47:
  this.$=yy.Relationships.VERIFIES;
 break;
-case 46:
+case 48:
  this.$=yy.Relationships.REFINES;
 break;
-case 47:
+case 49:
  this.$=yy.Relationships.TRACES;
 break;
 }
 },
-table: [{3:1,4:2,5:$V0,9:4,14:$V1},{1:[3]},{3:6,4:2,5:$V0,9:4,14:$V1},{6:[1,7]},{10:8,15:[1,9]},{15:[2,5]},{1:[2,1]},{6:$V2,7:10,8:$V3,18:11,19:12,20:13,21:15,27:17,35:$V4,36:$V5,37:$V6,38:$V7,39:$V8,40:$V9,48:$Va,66:$Vb,67:$Vc},{11:26,12:[1,27],17:$Vd},o([12,17],[2,6]),{8:[1,29]},{6:$V2,7:30,8:$V3,18:11,19:12,20:13,21:15,27:17,35:$V4,36:$V5,37:$V6,38:$V7,39:$V8,40:$V9,48:$Va,66:$Vb,67:$Vc},{6:$V2,7:31,8:$V3,18:11,19:12,20:13,21:15,27:17,35:$V4,36:$V5,37:$V6,38:$V7,39:$V8,40:$V9,48:$Va,66:$Vb,67:$Vc},{6:$V2,7:32,8:$V3,18:11,19:12,20:13,21:15,27:17,35:$V4,36:$V5,37:$V6,38:$V7,39:$V8,40:$V9,48:$Va,66:$Vb,67:$Vc},{6:$V2,7:33,8:$V3,18:11,19:12,20:13,21:15,27:17,35:$V4,36:$V5,37:$V6,38:$V7,39:$V8,40:$V9,48:$Va,66:$Vb,67:$Vc},{22:34,66:[1,35],67:[1,36]},{49:37,66:[1,38],67:[1,39]},{55:[1,40],57:[1,41]},o($Ve,[2,21]),o($Ve,[2,22]),o($Ve,[2,23]),o($Ve,[2,24]),o($Ve,[2,25]),o($Ve,[2,26]),o($Vf,[2,50]),o($Vf,[2,51]),o($Vg,[2,3]),{13:42,16:[1,43]},o($Vg,[2,8]),{1:[2,2]},{8:[2,10]},{8:[2,11]},{8:[2,12]},{8:[2,13]},{23:[1,44]},{23:[2,48]},{23:[2,49]},{23:[1,45]},{23:[2,54]},{23:[2,55]},{56:46,59:$Vh,60:$Vi,61:$Vj,62:$Vk,63:$Vl,64:$Vm,65:$Vn},{56:54,59:$Vh,60:$Vi,61:$Vj,62:$Vk,63:$Vl,64:$Vm,65:$Vn},{11:55,17:$Vd},{17:[2,7]},{6:[1,56]},{6:[1,57]},{57:[1,58]},o($Vo,[2,41]),o($Vo,[2,42]),o($Vo,[2,43]),o($Vo,[2,44]),o($Vo,[2,45]),o($Vo,[2,46]),o($Vo,[2,47]),{58:[1,59]},o($Vg,[2,4]),{6:$Vp,24:60,25:$Vq,28:$Vr,30:$Vs,32:$Vt,34:$Vu},{6:$Vv,34:$Vw,50:67,51:$Vx,53:$Vy},{27:72,66:$Vb,67:$Vc},{27:73,66:$Vb,67:$Vc},o($Vz,[2,14]),{26:[1,74]},{26:[1,75]},{26:[1,76]},{26:[1,77]},{6:$Vp,24:78,25:$Vq,28:$Vr,30:$Vs,32:$Vt,34:$Vu},o($Vz,[2,20]),o($Vz,[2,34]),{26:[1,79]},{26:[1,80]},{6:$Vv,34:$Vw,50:81,51:$Vx,53:$Vy},o($Vz,[2,38]),o($Vz,[2,39]),o($Vz,[2,40]),{27:82,66:$Vb,67:$Vc},{29:83,66:[1,84],67:[1,85]},{31:86,41:[1,87],42:[1,88],43:[1,89]},{33:90,44:[1,91],45:[1,92],46:[1,93],47:[1,94]},o($Vz,[2,19]),{52:95,66:[1,96],67:[1,97]},{54:98,66:[1,99],67:[1,100]},o($Vz,[2,37]),{6:[1,101]},{6:[1,102]},{6:[2,52]},{6:[2,53]},{6:[1,103]},{6:[2,27]},{6:[2,28]},{6:[2,29]},{6:[1,104]},{6:[2,30]},{6:[2,31]},{6:[2,32]},{6:[2,33]},{6:[1,105]},{6:[2,56]},{6:[2,57]},{6:[1,106]},{6:[2,58]},{6:[2,59]},{6:$Vp,24:107,25:$Vq,28:$Vr,30:$Vs,32:$Vt,34:$Vu},{6:$Vp,24:108,25:$Vq,28:$Vr,30:$Vs,32:$Vt,34:$Vu},{6:$Vp,24:109,25:$Vq,28:$Vr,30:$Vs,32:$Vt,34:$Vu},{6:$Vp,24:110,25:$Vq,28:$Vr,30:$Vs,32:$Vt,34:$Vu},{6:$Vv,34:$Vw,50:111,51:$Vx,53:$Vy},{6:$Vv,34:$Vw,50:112,51:$Vx,53:$Vy},o($Vz,[2,15]),o($Vz,[2,16]),o($Vz,[2,17]),o($Vz,[2,18]),o($Vz,[2,35]),o($Vz,[2,36])],
-defaultActions: {5:[2,5],6:[2,1],29:[2,2],30:[2,10],31:[2,11],32:[2,12],33:[2,13],35:[2,48],36:[2,49],38:[2,54],39:[2,55],43:[2,7],84:[2,52],85:[2,53],87:[2,27],88:[2,28],89:[2,29],91:[2,30],92:[2,31],93:[2,32],94:[2,33],96:[2,56],97:[2,57],99:[2,58],100:[2,59]},
+table: [{3:1,4:2,6:$V0,9:4,14:$V1},{1:[3]},{3:7,4:2,5:[1,6],6:$V0,9:4,14:$V1},{5:[1,8]},{10:9,15:[1,10]},{15:[2,6]},{3:11,4:2,6:$V0,9:4,14:$V1},{1:[2,2]},{4:16,5:$V2,7:12,8:$V3,9:4,14:$V1,18:13,19:14,20:15,21:18,27:20,35:$V4,36:$V5,37:$V6,38:$V7,39:$V8,40:$V9,48:$Va,66:$Vb,67:$Vc},{11:29,12:[1,30],17:$Vd},o([12,17],[2,7]),{1:[2,1]},{8:[1,32]},{4:16,5:$V2,7:33,8:$V3,9:4,14:$V1,18:13,19:14,20:15,21:18,27:20,35:$V4,36:$V5,37:$V6,38:$V7,39:$V8,40:$V9,48:$Va,66:$Vb,67:$Vc},{4:16,5:$V2,7:34,8:$V3,9:4,14:$V1,18:13,19:14,20:15,21:18,27:20,35:$V4,36:$V5,37:$V6,38:$V7,39:$V8,40:$V9,48:$Va,66:$Vb,67:$Vc},{4:16,5:$V2,7:35,8:$V3,9:4,14:$V1,18:13,19:14,20:15,21:18,27:20,35:$V4,36:$V5,37:$V6,38:$V7,39:$V8,40:$V9,48:$Va,66:$Vb,67:$Vc},{4:16,5:$V2,7:36,8:$V3,9:4,14:$V1,18:13,19:14,20:15,21:18,27:20,35:$V4,36:$V5,37:$V6,38:$V7,39:$V8,40:$V9,48:$Va,66:$Vb,67:$Vc},{4:16,5:$V2,7:37,8:$V3,9:4,14:$V1,18:13,19:14,20:15,21:18,27:20,35:$V4,36:$V5,37:$V6,38:$V7,39:$V8,40:$V9,48:$Va,66:$Vb,67:$Vc},{22:38,66:[1,39],67:[1,40]},{49:41,66:[1,42],67:[1,43]},{55:[1,44],57:[1,45]},o($Ve,[2,23]),o($Ve,[2,24]),o($Ve,[2,25]),o($Ve,[2,26]),o($Ve,[2,27]),o($Ve,[2,28]),o($Vf,[2,52]),o($Vf,[2,53]),o($Vg,[2,4]),{13:46,16:[1,47]},o($Vg,[2,9]),{1:[2,3]},{8:[2,11]},{8:[2,12]},{8:[2,13]},{8:[2,14]},{8:[2,15]},{23:[1,48]},{23:[2,50]},{23:[2,51]},{23:[1,49]},{23:[2,56]},{23:[2,57]},{56:50,59:$Vh,60:$Vi,61:$Vj,62:$Vk,63:$Vl,64:$Vm,65:$Vn},{56:58,59:$Vh,60:$Vi,61:$Vj,62:$Vk,63:$Vl,64:$Vm,65:$Vn},{11:59,17:$Vd},{17:[2,8]},{5:[1,60]},{5:[1,61]},{57:[1,62]},o($Vo,[2,43]),o($Vo,[2,44]),o($Vo,[2,45]),o($Vo,[2,46]),o($Vo,[2,47]),o($Vo,[2,48]),o($Vo,[2,49]),{58:[1,63]},o($Vg,[2,5]),{5:$Vp,24:64,25:$Vq,28:$Vr,30:$Vs,32:$Vt,34:$Vu},{5:$Vv,34:$Vw,50:71,51:$Vx,53:$Vy},{27:76,66:$Vb,67:$Vc},{27:77,66:$Vb,67:$Vc},o($Vz,[2,16]),{26:[1,78]},{26:[1,79]},{26:[1,80]},{26:[1,81]},{5:$Vp,24:82,25:$Vq,28:$Vr,30:$Vs,32:$Vt,34:$Vu},o($Vz,[2,22]),o($Vz,[2,36]),{26:[1,83]},{26:[1,84]},{5:$Vv,34:$Vw,50:85,51:$Vx,53:$Vy},o($Vz,[2,40]),o($Vz,[2,41]),o($Vz,[2,42]),{27:86,66:$Vb,67:$Vc},{29:87,66:[1,88],67:[1,89]},{31:90,41:[1,91],42:[1,92],43:[1,93]},{33:94,44:[1,95],45:[1,96],46:[1,97],47:[1,98]},o($Vz,[2,21]),{52:99,66:[1,100],67:[1,101]},{54:102,66:[1,103],67:[1,104]},o($Vz,[2,39]),{5:[1,105]},{5:[1,106]},{5:[2,54]},{5:[2,55]},{5:[1,107]},{5:[2,29]},{5:[2,30]},{5:[2,31]},{5:[1,108]},{5:[2,32]},{5:[2,33]},{5:[2,34]},{5:[2,35]},{5:[1,109]},{5:[2,58]},{5:[2,59]},{5:[1,110]},{5:[2,60]},{5:[2,61]},{5:$Vp,24:111,25:$Vq,28:$Vr,30:$Vs,32:$Vt,34:$Vu},{5:$Vp,24:112,25:$Vq,28:$Vr,30:$Vs,32:$Vt,34:$Vu},{5:$Vp,24:113,25:$Vq,28:$Vr,30:$Vs,32:$Vt,34:$Vu},{5:$Vp,24:114,25:$Vq,28:$Vr,30:$Vs,32:$Vt,34:$Vu},{5:$Vv,34:$Vw,50:115,51:$Vx,53:$Vy},{5:$Vv,34:$Vw,50:116,51:$Vx,53:$Vy},o($Vz,[2,17]),o($Vz,[2,18]),o($Vz,[2,19]),o($Vz,[2,20]),o($Vz,[2,37]),o($Vz,[2,38])],
+defaultActions: {5:[2,6],7:[2,2],11:[2,1],32:[2,3],33:[2,11],34:[2,12],35:[2,13],36:[2,14],37:[2,15],39:[2,50],40:[2,51],42:[2,56],43:[2,57],47:[2,8],88:[2,54],89:[2,55],91:[2,29],92:[2,30],93:[2,31],95:[2,32],96:[2,33],97:[2,34],98:[2,35],100:[2,58],101:[2,59],103:[2,60],104:[2,61]},
 parseError: function parseError (str, hash) {
     if (hash.recoverable) {
         this.trace(str);
@@ -65569,7 +66048,7 @@ case 3: this.popState(); this.popState(); return 17;
 break;
 case 4:return 16;
 break;
-case 5:return 6;
+case 5:return 5;
 break;
 case 6:/* skip all whitespace */
 break;
@@ -65579,7 +66058,7 @@ case 8:/* skip comments */
 break;
 case 9:return 8;
 break;
-case 10:return 5;
+case 10:return 6;
 break;
 case 11:return 23;
 break;
@@ -65880,10 +66359,14 @@ var ReqMarkers = {
 
 var insertLineEndings = function insertLineEndings(parentNode, conf) {
   var containsNode = parentNode.append('defs').append('marker').attr('id', ReqMarkers.CONTAINS + '_line_ending').attr('refX', 0).attr('refY', conf.line_height / 2).attr('markerWidth', conf.line_height).attr('markerHeight', conf.line_height).attr('orient', 'auto').append('g');
-  containsNode.append('circle').attr('cx', conf.line_height / 2).attr('cy', conf.line_height / 2).attr('r', conf.line_height / 2).attr('stroke', conf.rect_border_color).attr('stroke-width', 1).attr('fill', 'none');
-  containsNode.append('line').attr('x1', 0).attr('x2', conf.line_height).attr('y1', conf.line_height / 2).attr('y2', conf.line_height / 2).attr('stroke', conf.rect_border_color).attr('stroke-width', 1);
-  containsNode.append('line').attr('y1', 0).attr('y2', conf.line_height).attr('x1', conf.line_height / 2).attr('x2', conf.line_height / 2).attr('stroke', conf.rect_border_color).attr('stroke-width', 1);
-  parentNode.append('defs').append('marker').attr('id', ReqMarkers.ARROW + '_line_ending').attr('refX', conf.line_height).attr('refY', 0.5 * conf.line_height).attr('markerWidth', conf.line_height).attr('markerHeight', conf.line_height).attr('orient', 'auto').append('path').attr('d', "M0,0 \n      L".concat(conf.line_height, ",").concat(conf.line_height / 2, " \n      M").concat(conf.line_height, ",").concat(conf.line_height / 2, " \n      L0,").concat(conf.line_height)).attr('stroke-width', 1).attr('stroke', conf.rect_border_color);
+  containsNode.append('circle').attr('cx', conf.line_height / 2).attr('cy', conf.line_height / 2).attr('r', conf.line_height / 2) // .attr('stroke', conf.rect_border_color)
+  // .attr('stroke-width', 1)
+  .attr('fill', 'none');
+  containsNode.append('line').attr('x1', 0).attr('x2', conf.line_height).attr('y1', conf.line_height / 2).attr('y2', conf.line_height / 2) // .attr('stroke', conf.rect_border_color)
+  .attr('stroke-width', 1);
+  containsNode.append('line').attr('y1', 0).attr('y2', conf.line_height).attr('x1', conf.line_height / 2).attr('x2', conf.line_height / 2) // .attr('stroke', conf.rect_border_color)
+  .attr('stroke-width', 1);
+  parentNode.append('defs').append('marker').attr('id', ReqMarkers.ARROW + '_line_ending').attr('refX', conf.line_height).attr('refY', 0.5 * conf.line_height).attr('markerWidth', conf.line_height).attr('markerHeight', conf.line_height).attr('orient', 'auto').append('path').attr('d', "M0,0\n      L".concat(conf.line_height, ",").concat(conf.line_height / 2, "\n      M").concat(conf.line_height, ",").concat(conf.line_height / 2, "\n      L0,").concat(conf.line_height)).attr('stroke-width', 1); // .attr('stroke', conf.rect_border_color);
 };
 
 /* harmony default export */ __webpack_exports__["default"] = ({
@@ -65911,17 +66394,16 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var dagre__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(dagre__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var graphlib__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! graphlib */ "./node_modules/graphlib/index.js");
 /* harmony import */ var graphlib__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(graphlib__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../config */ "./src/config.js");
-/* harmony import */ var _logger__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../logger */ "./src/logger.js");
-/* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../utils */ "./src/utils.js");
-/* harmony import */ var _common_common__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../common/common */ "./src/diagrams/common/common.js");
-/* harmony import */ var _parser_requirementDiagram__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./parser/requirementDiagram */ "./src/diagrams/requirement/parser/requirementDiagram.jison");
-/* harmony import */ var _parser_requirementDiagram__WEBPACK_IMPORTED_MODULE_7___default = /*#__PURE__*/__webpack_require__.n(_parser_requirementDiagram__WEBPACK_IMPORTED_MODULE_7__);
-/* harmony import */ var _requirementDb__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./requirementDb */ "./src/diagrams/requirement/requirementDb.js");
-/* harmony import */ var _requirementMarkers__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./requirementMarkers */ "./src/diagrams/requirement/requirementMarkers.js");
+/* harmony import */ var _logger__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../logger */ "./src/logger.js");
+/* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../utils */ "./src/utils.js");
+/* harmony import */ var _common_common__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../common/common */ "./src/diagrams/common/common.js");
+/* harmony import */ var _parser_requirementDiagram__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./parser/requirementDiagram */ "./src/diagrams/requirement/parser/requirementDiagram.jison");
+/* harmony import */ var _parser_requirementDiagram__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__webpack_require__.n(_parser_requirementDiagram__WEBPACK_IMPORTED_MODULE_6__);
+/* harmony import */ var _requirementDb__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./requirementDb */ "./src/diagrams/requirement/requirementDb.js");
+/* harmony import */ var _requirementMarkers__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./requirementMarkers */ "./src/diagrams/requirement/requirementMarkers.js");
 
 
-
+ // import * as configApi from '../../config';
 
 
 
@@ -65944,12 +66426,16 @@ var setConf = function setConf(cnf) {
 };
 
 var newRectNode = function newRectNode(parentNode, id) {
-  return parentNode.insert('rect', '#' + id).attr('class', 'req reqBox').attr('fill', conf.rect_fill).attr('fill-opacity', '100%').attr('stroke', conf.rect_border_color).attr('stroke-size', conf.rect_border_size).attr('x', 0).attr('y', 0).attr('width', conf.rect_min_width + 'px').attr('height', conf.rect_min_height + 'px');
+  return parentNode.insert('rect', '#' + id).attr('class', 'req reqBox').attr('x', 0).attr('y', 0).attr('width', conf.rect_min_width + 'px').attr('height', conf.rect_min_height + 'px');
 };
 
 var newTitleNode = function newTitleNode(parentNode, id, txts) {
   var x = conf.rect_min_width / 2;
-  var title = parentNode.append('text').attr('class', 'req reqLabel reqTitle').attr('id', id).attr('x', x).attr('y', conf.rect_padding).attr('dominant-baseline', 'hanging').attr('style', 'font-family: ' + _config__WEBPACK_IMPORTED_MODULE_3__["getConfig"]().fontFamily + '; font-size: ' + conf.fontSize + 'px');
+  var title = parentNode.append('text').attr('class', 'req reqLabel reqTitle').attr('id', id).attr('x', x).attr('y', conf.rect_padding).attr('dominant-baseline', 'hanging'); // .attr(
+  //   'style',
+  //   'font-family: ' + configApi.getConfig().fontFamily + '; font-size: ' + conf.fontSize + 'px'
+  // )
+
   var i = 0;
   txts.forEach(function (textStr) {
     if (i == 0) {
@@ -65963,7 +66449,7 @@ var newTitleNode = function newTitleNode(parentNode, id, txts) {
   var yPadding = 1.5 * conf.rect_padding;
   var linePadding = i * conf.line_height * 0.75;
   var totalY = yPadding + linePadding;
-  parentNode.append('line').attr('x1', '0').attr('x2', conf.rect_min_width).attr('y1', totalY).attr('y2', totalY).attr('style', "stroke: ".concat(conf.rect_border_color, "; stroke-width: 1"));
+  parentNode.append('line').attr('class', 'req-title-line').attr('x1', '0').attr('x2', conf.rect_min_width).attr('y1', totalY).attr('y2', totalY);
   return {
     titleNode: title,
     y: totalY
@@ -65971,7 +66457,11 @@ var newTitleNode = function newTitleNode(parentNode, id, txts) {
 };
 
 var newBodyNode = function newBodyNode(parentNode, id, txts, yStart) {
-  var body = parentNode.append('text').attr('class', 'req reqLabel').attr('id', id).attr('x', conf.rect_padding).attr('y', yStart).attr('dominant-baseline', 'hanging').attr('style', 'font-family: ' + _config__WEBPACK_IMPORTED_MODULE_3__["getConfig"]().fontFamily + '; font-size: ' + conf.fontSize + 'px');
+  var body = parentNode.append('text').attr('class', 'req reqLabel').attr('id', id).attr('x', conf.rect_padding).attr('y', yStart).attr('dominant-baseline', 'hanging'); // .attr(
+  //   'style',
+  //   'font-family: ' + configApi.getConfig().fontFamily + '; font-size: ' + conf.fontSize + 'px'
+  // );
+
   var currentRow = 0;
   var charLimit = 30;
   var wrappedTxts = [];
@@ -66008,7 +66498,8 @@ var addEdgeLabel = function addEdgeLabel(parentNode, svgPath, conf, txt) {
 
   var labelId = 'rel' + relCnt;
   relCnt++;
-  var labelNode = parentNode.append('text').attr('class', 'er relationshipLabel').attr('id', labelId).attr('x', labelPoint.x).attr('y', labelPoint.y).attr('text-anchor', 'middle').attr('dominant-baseline', 'middle').attr('style', 'font-family: ' + conf.fontFamily + '; font-size: ' + conf.fontSize + 'px').text(txt); // Figure out how big the opaque 'container' rectangle needs to be
+  var labelNode = parentNode.append('text').attr('class', 'req relationshipLabel').attr('id', labelId).attr('x', labelPoint.x).attr('y', labelPoint.y).attr('text-anchor', 'middle').attr('dominant-baseline', 'middle') // .attr('style', 'font-family: ' + conf.fontFamily + '; font-size: ' + conf.fontSize + 'px')
+  .text(txt); // Figure out how big the opaque 'container' rectangle needs to be
 
   var labelBBox = labelNode.node().getBBox(); // Insert the opaque rectangle before the text label
 
@@ -66025,13 +66516,13 @@ var drawRelationshipFromLayout = function drawRelationshipFromLayout(svg, rel, g
     return d.y;
   }); // Insert the line at the right place
 
-  var svgPath = svg.insert('path', '#' + insert).attr('class', 'er relationshipLine').attr('d', lineFunction(edge.points)).attr('stroke', conf.rect_border_color).attr('fill', 'none');
+  var svgPath = svg.insert('path', '#' + insert).attr('class', 'er relationshipLine').attr('d', lineFunction(edge.points)).attr('fill', 'none');
 
-  if (rel.type == _requirementDb__WEBPACK_IMPORTED_MODULE_8__["default"].Relationships.CONTAINS) {
-    svgPath.attr('marker-start', 'url(' + _common_common__WEBPACK_IMPORTED_MODULE_6__["default"].getUrl(conf.arrowMarkerAbsolute) + '#' + rel.type + '_line_ending' + ')');
+  if (rel.type == _requirementDb__WEBPACK_IMPORTED_MODULE_7__["default"].Relationships.CONTAINS) {
+    svgPath.attr('marker-start', 'url(' + _common_common__WEBPACK_IMPORTED_MODULE_5__["default"].getUrl(conf.arrowMarkerAbsolute) + '#' + rel.type + '_line_ending' + ')');
   } else {
     svgPath.attr('stroke-dasharray', '10,7');
-    svgPath.attr('marker-end', 'url(' + _common_common__WEBPACK_IMPORTED_MODULE_6__["default"].getUrl(conf.arrowMarkerAbsolute) + '#' + _requirementMarkers__WEBPACK_IMPORTED_MODULE_9__["default"].ReqMarkers.ARROW + '_line_ending' + ')');
+    svgPath.attr('marker-end', 'url(' + _common_common__WEBPACK_IMPORTED_MODULE_5__["default"].getUrl(conf.arrowMarkerAbsolute) + '#' + _requirementMarkers__WEBPACK_IMPORTED_MODULE_8__["default"].ReqMarkers.ARROW + '_line_ending' + ')');
   }
 
   addEdgeLabel(svg, svgPath, conf, "<<".concat(rel.type, ">>"));
@@ -66042,8 +66533,7 @@ var drawReqs = function drawReqs(reqs, graph, svgNode) {
   Object.keys(reqs).forEach(function (reqName) {
     var req = reqs[reqName];
     reqName = elementString(reqName);
-    console.log('reqName: ', reqName);
-    _logger__WEBPACK_IMPORTED_MODULE_4__["log"].info('Added new requirement: ', reqName);
+    _logger__WEBPACK_IMPORTED_MODULE_3__["log"].info('Added new requirement: ', reqName);
     var groupNode = svgNode.append('g').attr('id', reqName);
     var textId = 'req-' + reqName;
     var rectNode = newRectNode(groupNode, textId);
@@ -66072,7 +66562,7 @@ var drawElements = function drawElements(els, graph, svgNode) {
     var nodes = [];
     var titleNodeInfo = newTitleNode(groupNode, textId + '_title', ["<<Element>>", "".concat(elName)]);
     nodes.push(titleNodeInfo.titleNode);
-    var bodyNode = newBodyNode(groupNode, textId + '_body', ["Type: ".concat(el.type || 'Not Specified'), "Doc Ref: ".concat(el.docref || 'None')], titleNodeInfo.y);
+    var bodyNode = newBodyNode(groupNode, textId + '_body', ["Type: ".concat(el.type || 'Not Specified'), "Doc Ref: ".concat(el.docRef || 'None')], titleNodeInfo.y);
     nodes.push(bodyNode);
     var rectBBox = rectNode.node().getBBox(); // Add the entity to the graph
 
@@ -66111,10 +66601,11 @@ var elementString = function elementString(str) {
 };
 
 var draw = function draw(text, id) {
-  _parser_requirementDiagram__WEBPACK_IMPORTED_MODULE_7__["parser"].yy = _requirementDb__WEBPACK_IMPORTED_MODULE_8__["default"];
-  _parser_requirementDiagram__WEBPACK_IMPORTED_MODULE_7__["parser"].parse(text);
+  _parser_requirementDiagram__WEBPACK_IMPORTED_MODULE_6__["parser"].yy = _requirementDb__WEBPACK_IMPORTED_MODULE_7__["default"];
+  _parser_requirementDiagram__WEBPACK_IMPORTED_MODULE_6__["parser"].yy.clear();
+  _parser_requirementDiagram__WEBPACK_IMPORTED_MODULE_6__["parser"].parse(text);
   var svg = Object(d3__WEBPACK_IMPORTED_MODULE_0__["select"])("[id='".concat(id, "']"));
-  _requirementMarkers__WEBPACK_IMPORTED_MODULE_9__["default"].insertLineEndings(svg, conf);
+  _requirementMarkers__WEBPACK_IMPORTED_MODULE_8__["default"].insertLineEndings(svg, conf);
   var g = new graphlib__WEBPACK_IMPORTED_MODULE_2___default.a.Graph({
     multigraph: false,
     compound: false,
@@ -66129,9 +66620,9 @@ var draw = function draw(text, id) {
   }).setDefaultEdgeLabel(function () {
     return {};
   });
-  var requirements = _requirementDb__WEBPACK_IMPORTED_MODULE_8__["default"].getRequirements();
-  var elements = _requirementDb__WEBPACK_IMPORTED_MODULE_8__["default"].getElements();
-  var relationships = _requirementDb__WEBPACK_IMPORTED_MODULE_8__["default"].getRelationships();
+  var requirements = _requirementDb__WEBPACK_IMPORTED_MODULE_7__["default"].getRequirements();
+  var elements = _requirementDb__WEBPACK_IMPORTED_MODULE_7__["default"].getElements();
+  var relationships = _requirementDb__WEBPACK_IMPORTED_MODULE_7__["default"].getRelationships();
   drawReqs(requirements, g, svg);
   drawElements(elements, g, svg);
   addRelationships(relationships, g);
@@ -66145,7 +66636,7 @@ var draw = function draw(text, id) {
   var svgBounds = svg.node().getBBox();
   var width = svgBounds.width + padding * 2;
   var height = svgBounds.height + padding * 2;
-  Object(_utils__WEBPACK_IMPORTED_MODULE_5__["configureSvgSize"])(svg, height, width, conf.useMaxWidth);
+  Object(_utils__WEBPACK_IMPORTED_MODULE_4__["configureSvgSize"])(svg, height, width, conf.useMaxWidth);
   svg.attr('viewBox', "".concat(svgBounds.x - padding, " ").concat(svgBounds.y - padding, " ").concat(width, " ").concat(height));
 };
 /* harmony default export */ __webpack_exports__["default"] = ({
@@ -66164,9 +66655,10 @@ var draw = function draw(text, id) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-var getStyles = function getStyles() {
-  return "";
-};
+var getStyles = function getStyles(options) {
+  return "\n\n  marker {\n    fill: ".concat(options.relationColor, ";\n    stroke: ").concat(options.relationColor, ";\n  }\n\n  marker.cross {\n    stroke: ").concat(options.lineColor, ";\n  }\n\n  svg {\n    font-family: ").concat(options.fontFamily, ";\n    font-size: ").concat(options.fontSize, ";\n  }\n\n  .reqBox {\n    fill: ").concat(options.requirementBackground, ";\n    fill-opacity: 100%;\n    stroke: ").concat(options.requirementBorderColor, ";\n    stroke-width: ").concat(options.requirementBorderSize, ";\n  }\n  \n  .reqTitle, .reqLabel{\n    fill:  ").concat(options.requirementTextColor, ";\n  }\n  .reqLabelBox {\n    fill: ").concat(options.relationLabelBackground, ";\n    fill-opacity: 100%;\n  }\n\n  .req-title-line {\n    stroke: ").concat(options.requirementBorderColor, ";\n    stroke-width: ").concat(options.requirementBorderSize, ";\n  }\n  .relationshipLine {\n    stroke: ").concat(options.relationColor, ";\n    stroke-width: 1;\n  }\n  .relationshipLabel {\n    fill: ").concat(options.relationLabelColor, ";\n  }\n\n");
+}; // fill', conf.rect_fill)
+
 
 /* harmony default export */ __webpack_exports__["default"] = (getStyles);
 
@@ -68839,7 +69331,7 @@ var _drawTextCandidateFunc = function () {
   function byFo(content, g, x, y, width, height, textAttrs, conf) {
     var s = g.append('switch');
     var f = s.append('foreignObject').attr('x', x).attr('y', y).attr('width', width).attr('height', height);
-    var text = f.append('div').style('display', 'table').style('height', '100%').style('width', '100%');
+    var text = f.append('xhtml:div').style('display', 'table').style('height', '100%').style('width', '100%');
     text.append('div').style('display', 'table-cell').style('text-align', 'center').style('vertical-align', 'middle').text(content);
     byTspan(content, s, x, y, width, height, textAttrs, conf);
 
@@ -68995,12 +69487,12 @@ var size = function size() {
   }
 */
 var parser = (function(){
-var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,2],$V1=[1,3],$V2=[1,5],$V3=[1,7],$V4=[2,5],$V5=[1,15],$V6=[1,17],$V7=[1,19],$V8=[1,20],$V9=[1,21],$Va=[1,22],$Vb=[1,28],$Vc=[1,23],$Vd=[1,24],$Ve=[1,25],$Vf=[1,26],$Vg=[1,29],$Vh=[1,32],$Vi=[1,4,5,14,15,17,19,20,22,23,24,25,26,36,39],$Vj=[1,4,5,12,13,14,15,17,19,20,22,23,24,25,26,36,39],$Vk=[1,4,5,7,14,15,17,19,20,22,23,24,25,26,36,39],$Vl=[4,5,14,15,17,19,20,22,23,24,25,26,36,39];
+var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,2],$V1=[1,3],$V2=[1,5],$V3=[1,7],$V4=[2,5],$V5=[1,15],$V6=[1,17],$V7=[1,19],$V8=[1,20],$V9=[1,21],$Va=[1,22],$Vb=[1,30],$Vc=[1,23],$Vd=[1,24],$Ve=[1,25],$Vf=[1,26],$Vg=[1,27],$Vh=[1,32],$Vi=[1,33],$Vj=[1,34],$Vk=[1,35],$Vl=[1,31],$Vm=[1,38],$Vn=[1,4,5,14,15,17,19,20,22,23,24,25,26,27,36,37,38,39,42,45],$Vo=[1,4,5,12,13,14,15,17,19,20,22,23,24,25,26,27,36,37,38,39,42,45],$Vp=[1,4,5,7,14,15,17,19,20,22,23,24,25,26,27,36,37,38,39,42,45],$Vq=[4,5,14,15,17,19,20,22,23,24,25,26,27,36,37,38,39,42,45];
 var parser = {trace: function trace () { },
 yy: {},
-symbols_: {"error":2,"start":3,"SPACE":4,"NL":5,"directive":6,"SD":7,"document":8,"line":9,"statement":10,"idStatement":11,"DESCR":12,"-->":13,"HIDE_EMPTY":14,"scale":15,"WIDTH":16,"COMPOSIT_STATE":17,"STRUCT_START":18,"STRUCT_STOP":19,"STATE_DESCR":20,"AS":21,"ID":22,"FORK":23,"JOIN":24,"CONCURRENT":25,"note":26,"notePosition":27,"NOTE_TEXT":28,"openDirective":29,"typeDirective":30,"closeDirective":31,":":32,"argDirective":33,"eol":34,";":35,"EDGE_STATE":36,"left_of":37,"right_of":38,"open_directive":39,"type_directive":40,"arg_directive":41,"close_directive":42,"$accept":0,"$end":1},
-terminals_: {2:"error",4:"SPACE",5:"NL",7:"SD",12:"DESCR",13:"-->",14:"HIDE_EMPTY",15:"scale",16:"WIDTH",17:"COMPOSIT_STATE",18:"STRUCT_START",19:"STRUCT_STOP",20:"STATE_DESCR",21:"AS",22:"ID",23:"FORK",24:"JOIN",25:"CONCURRENT",26:"note",28:"NOTE_TEXT",32:":",35:";",36:"EDGE_STATE",37:"left_of",38:"right_of",39:"open_directive",40:"type_directive",41:"arg_directive",42:"close_directive"},
-productions_: [0,[3,2],[3,2],[3,2],[3,2],[8,0],[8,2],[9,2],[9,1],[9,1],[10,1],[10,2],[10,3],[10,4],[10,1],[10,2],[10,1],[10,4],[10,3],[10,6],[10,1],[10,1],[10,1],[10,4],[10,4],[10,1],[6,3],[6,5],[34,1],[34,1],[11,1],[11,1],[27,1],[27,1],[29,1],[30,1],[33,1],[31,1]],
+symbols_: {"error":2,"start":3,"SPACE":4,"NL":5,"directive":6,"SD":7,"document":8,"line":9,"statement":10,"idStatement":11,"DESCR":12,"-->":13,"HIDE_EMPTY":14,"scale":15,"WIDTH":16,"COMPOSIT_STATE":17,"STRUCT_START":18,"STRUCT_STOP":19,"STATE_DESCR":20,"AS":21,"ID":22,"FORK":23,"JOIN":24,"CHOICE":25,"CONCURRENT":26,"note":27,"notePosition":28,"NOTE_TEXT":29,"direction":30,"openDirective":31,"typeDirective":32,"closeDirective":33,":":34,"argDirective":35,"direction_tb":36,"direction_bt":37,"direction_rl":38,"direction_lr":39,"eol":40,";":41,"EDGE_STATE":42,"left_of":43,"right_of":44,"open_directive":45,"type_directive":46,"arg_directive":47,"close_directive":48,"$accept":0,"$end":1},
+terminals_: {2:"error",4:"SPACE",5:"NL",7:"SD",12:"DESCR",13:"-->",14:"HIDE_EMPTY",15:"scale",16:"WIDTH",17:"COMPOSIT_STATE",18:"STRUCT_START",19:"STRUCT_STOP",20:"STATE_DESCR",21:"AS",22:"ID",23:"FORK",24:"JOIN",25:"CHOICE",26:"CONCURRENT",27:"note",29:"NOTE_TEXT",34:":",36:"direction_tb",37:"direction_bt",38:"direction_rl",39:"direction_lr",41:";",42:"EDGE_STATE",43:"left_of",44:"right_of",45:"open_directive",46:"type_directive",47:"arg_directive",48:"close_directive"},
+productions_: [0,[3,2],[3,2],[3,2],[3,2],[8,0],[8,2],[9,2],[9,1],[9,1],[10,1],[10,2],[10,3],[10,4],[10,1],[10,2],[10,1],[10,4],[10,3],[10,6],[10,1],[10,1],[10,1],[10,1],[10,4],[10,4],[10,1],[10,1],[6,3],[6,5],[30,1],[30,1],[30,1],[30,1],[40,1],[40,1],[11,1],[11,1],[28,1],[28,1],[31,1],[32,1],[35,1],[33,1]],
 performAction: function anonymous(yytext, yyleng, yylineno, yy, yystate /* action[1] */, $$ /* vstack */, _$ /* lstack */) {
 /* this == yyval */
 
@@ -69046,7 +69538,6 @@ case 13:
 break;
 case 17:
 
-
         /* console.warn('Adding document for state without id ', $$[$0-3]);*/
         this.$={ stmt: 'state', id: $$[$0-3], type: 'default', description: '', doc: $$[$0-1] }
     
@@ -69066,7 +69557,7 @@ case 18:
 break;
 case 19:
 
-         //console.warn('Adding document for state with id ', $$[$0-3], $$[$0-2]); yy.addDocument($$[$0-3]);
+         // console.warn('Adding document for state with id zxzx', $$[$0-3], $$[$0-2], yy.getDirection()); yy.addDocument($$[$0-3]);
          this.$={ stmt: 'state', id: $$[$0-3], type: 'default', description: $$[$0-5], doc: $$[$0-1] }
     
 break;
@@ -69082,34 +69573,51 @@ case 21:
 break;
 case 22:
 
-        this.$={ stmt: 'state', id: yy.getDividerId(), type: 'divider' }
+        this.$={ stmt: 'state', id: $$[$0], type: 'choice' }
     
 break;
 case 23:
 
-        /*console.warn('got NOTE, position: ', $$[$0-2].trim(), 'id = ', $$[$0-1].trim(), 'note: ', $$[$0]);*/
+        this.$={ stmt: 'state', id: yy.getDividerId(), type: 'divider' }
+    
+break;
+case 24:
+
+        /* console.warn('got NOTE, position: ', $$[$0-2].trim(), 'id = ', $$[$0-1].trim(), 'note: ', $$[$0]);*/
         this.$={ stmt: 'state', id: $$[$0-1].trim(), note:{position: $$[$0-2].trim(), text: $$[$0].trim()}};
     
 break;
-case 30: case 31:
+case 30:
+ yy.setDirection('TB');this.$={stmt:'dir', value:'TB'};
+break;
+case 31:
+ yy.setDirection('BT');this.$={stmt:'dir', value:'BT'};
+break;
+case 32:
+ yy.setDirection('RL'); this.$={stmt:'dir', value:'RL'};
+break;
+case 33:
+ yy.setDirection('LR');this.$={stmt:'dir', value:'LR'};
+break;
+case 36: case 37:
 this.$=$$[$0];
 break;
-case 34:
+case 40:
  yy.parseDirective('%%{', 'open_directive'); 
 break;
-case 35:
+case 41:
  yy.parseDirective($$[$0], 'type_directive'); 
 break;
-case 36:
+case 42:
  $$[$0] = $$[$0].trim().replace(/'/g, '"'); yy.parseDirective($$[$0], 'arg_directive'); 
 break;
-case 37:
+case 43:
  yy.parseDirective('}%%', 'close_directive', 'state'); 
 break;
 }
 },
-table: [{3:1,4:$V0,5:$V1,6:4,7:$V2,29:6,39:$V3},{1:[3]},{3:8,4:$V0,5:$V1,6:4,7:$V2,29:6,39:$V3},{3:9,4:$V0,5:$V1,6:4,7:$V2,29:6,39:$V3},{3:10,4:$V0,5:$V1,6:4,7:$V2,29:6,39:$V3},o([1,4,5,14,15,17,20,22,23,24,25,26,36,39],$V4,{8:11}),{30:12,40:[1,13]},{40:[2,34]},{1:[2,1]},{1:[2,2]},{1:[2,3]},{1:[2,4],4:$V5,5:$V6,6:27,9:14,10:16,11:18,14:$V7,15:$V8,17:$V9,20:$Va,22:$Vb,23:$Vc,24:$Vd,25:$Ve,26:$Vf,29:6,36:$Vg,39:$V3},{31:30,32:[1,31],42:$Vh},o([32,42],[2,35]),o($Vi,[2,6]),{6:27,10:33,11:18,14:$V7,15:$V8,17:$V9,20:$Va,22:$Vb,23:$Vc,24:$Vd,25:$Ve,26:$Vf,29:6,36:$Vg,39:$V3},o($Vi,[2,8]),o($Vi,[2,9]),o($Vi,[2,10],{12:[1,34],13:[1,35]}),o($Vi,[2,14]),{16:[1,36]},o($Vi,[2,16],{18:[1,37]}),{21:[1,38]},o($Vi,[2,20]),o($Vi,[2,21]),o($Vi,[2,22]),{27:39,28:[1,40],37:[1,41],38:[1,42]},o($Vi,[2,25]),o($Vj,[2,30]),o($Vj,[2,31]),o($Vk,[2,26]),{33:43,41:[1,44]},o($Vk,[2,37]),o($Vi,[2,7]),o($Vi,[2,11]),{11:45,22:$Vb,36:$Vg},o($Vi,[2,15]),o($Vl,$V4,{8:46}),{22:[1,47]},{22:[1,48]},{21:[1,49]},{22:[2,32]},{22:[2,33]},{31:50,42:$Vh},{42:[2,36]},o($Vi,[2,12],{12:[1,51]}),{4:$V5,5:$V6,6:27,9:14,10:16,11:18,14:$V7,15:$V8,17:$V9,19:[1,52],20:$Va,22:$Vb,23:$Vc,24:$Vd,25:$Ve,26:$Vf,29:6,36:$Vg,39:$V3},o($Vi,[2,18],{18:[1,53]}),{28:[1,54]},{22:[1,55]},o($Vk,[2,27]),o($Vi,[2,13]),o($Vi,[2,17]),o($Vl,$V4,{8:56}),o($Vi,[2,23]),o($Vi,[2,24]),{4:$V5,5:$V6,6:27,9:14,10:16,11:18,14:$V7,15:$V8,17:$V9,19:[1,57],20:$Va,22:$Vb,23:$Vc,24:$Vd,25:$Ve,26:$Vf,29:6,36:$Vg,39:$V3},o($Vi,[2,19])],
-defaultActions: {7:[2,34],8:[2,1],9:[2,2],10:[2,3],41:[2,32],42:[2,33],44:[2,36]},
+table: [{3:1,4:$V0,5:$V1,6:4,7:$V2,31:6,45:$V3},{1:[3]},{3:8,4:$V0,5:$V1,6:4,7:$V2,31:6,45:$V3},{3:9,4:$V0,5:$V1,6:4,7:$V2,31:6,45:$V3},{3:10,4:$V0,5:$V1,6:4,7:$V2,31:6,45:$V3},o([1,4,5,14,15,17,20,22,23,24,25,26,27,36,37,38,39,42,45],$V4,{8:11}),{32:12,46:[1,13]},{46:[2,40]},{1:[2,1]},{1:[2,2]},{1:[2,3]},{1:[2,4],4:$V5,5:$V6,6:28,9:14,10:16,11:18,14:$V7,15:$V8,17:$V9,20:$Va,22:$Vb,23:$Vc,24:$Vd,25:$Ve,26:$Vf,27:$Vg,30:29,31:6,36:$Vh,37:$Vi,38:$Vj,39:$Vk,42:$Vl,45:$V3},{33:36,34:[1,37],48:$Vm},o([34,48],[2,41]),o($Vn,[2,6]),{6:28,10:39,11:18,14:$V7,15:$V8,17:$V9,20:$Va,22:$Vb,23:$Vc,24:$Vd,25:$Ve,26:$Vf,27:$Vg,30:29,31:6,36:$Vh,37:$Vi,38:$Vj,39:$Vk,42:$Vl,45:$V3},o($Vn,[2,8]),o($Vn,[2,9]),o($Vn,[2,10],{12:[1,40],13:[1,41]}),o($Vn,[2,14]),{16:[1,42]},o($Vn,[2,16],{18:[1,43]}),{21:[1,44]},o($Vn,[2,20]),o($Vn,[2,21]),o($Vn,[2,22]),o($Vn,[2,23]),{28:45,29:[1,46],43:[1,47],44:[1,48]},o($Vn,[2,26]),o($Vn,[2,27]),o($Vo,[2,36]),o($Vo,[2,37]),o($Vn,[2,30]),o($Vn,[2,31]),o($Vn,[2,32]),o($Vn,[2,33]),o($Vp,[2,28]),{35:49,47:[1,50]},o($Vp,[2,43]),o($Vn,[2,7]),o($Vn,[2,11]),{11:51,22:$Vb,42:$Vl},o($Vn,[2,15]),o($Vq,$V4,{8:52}),{22:[1,53]},{22:[1,54]},{21:[1,55]},{22:[2,38]},{22:[2,39]},{33:56,48:$Vm},{48:[2,42]},o($Vn,[2,12],{12:[1,57]}),{4:$V5,5:$V6,6:28,9:14,10:16,11:18,14:$V7,15:$V8,17:$V9,19:[1,58],20:$Va,22:$Vb,23:$Vc,24:$Vd,25:$Ve,26:$Vf,27:$Vg,30:29,31:6,36:$Vh,37:$Vi,38:$Vj,39:$Vk,42:$Vl,45:$V3},o($Vn,[2,18],{18:[1,59]}),{29:[1,60]},{22:[1,61]},o($Vp,[2,29]),o($Vn,[2,13]),o($Vn,[2,17]),o($Vq,$V4,{8:62}),o($Vn,[2,24]),o($Vn,[2,25]),{4:$V5,5:$V6,6:28,9:14,10:16,11:18,14:$V7,15:$V8,17:$V9,19:[1,63],20:$Va,22:$Vb,23:$Vc,24:$Vd,25:$Ve,26:$Vf,27:$Vg,30:29,31:6,36:$Vh,37:$Vi,38:$Vj,39:$Vk,42:$Vl,45:$V3},o($Vn,[2,19])],
+defaultActions: {7:[2,40],8:[2,1],9:[2,2],10:[2,3],47:[2,38],48:[2,39],50:[2,42]},
 parseError: function parseError (str, hash) {
     if (hash.recoverable) {
         this.trace(str);
@@ -69588,112 +70096,132 @@ options: {"case-insensitive":true},
 performAction: function anonymous(yy,yy_,$avoiding_name_collisions,YY_START) {
 var YYSTATE=YY_START;
 switch($avoiding_name_collisions) {
-case 0: this.begin('open_directive'); return 39; 
+case 0:return 36;
 break;
-case 1: this.begin('type_directive'); return 40; 
+case 1:return 37;
 break;
-case 2: this.popState(); this.begin('arg_directive'); return 32; 
+case 2:return 38;
 break;
-case 3: this.popState(); this.popState(); return 42; 
+case 3:return 39;
 break;
-case 4:return 41;
+case 4: this.begin('open_directive'); return 45; 
 break;
-case 5:/* skip comments */
+case 5: this.begin('type_directive'); return 46; 
 break;
-case 6:/* skip comments */{ console.log('Crap after close'); }
+case 6: this.popState(); this.begin('arg_directive'); return 34; 
 break;
-case 7:return 5;
+case 7: this.popState(); this.popState(); return 48; 
 break;
-case 8:/* skip all whitespace */
+case 8:return 47;
 break;
-case 9:/* skip same-line whitespace */
+case 9:/* skip comments */
 break;
-case 10:/* skip comments */
+case 10:/* skip comments */{ /*console.log('Crap after close');*/ }
 break;
-case 11:/* skip comments */
+case 11:return 5;
 break;
-case 12: this.pushState('SCALE'); /* console.log('Got scale', yy_.yytext);*/ return 15; 
+case 12:/* skip all whitespace */
 break;
-case 13:return 16;
+case 13:/* skip same-line whitespace */
 break;
-case 14:this.popState();
+case 14:/* skip comments */
 break;
-case 15: this.pushState('STATE'); 
+case 15:/* skip comments */
 break;
-case 16:this.popState();yy_.yytext=yy_.yytext.slice(0,-8).trim(); /*console.warn('Fork Fork: ',yy_.yytext);*/return 23;
+case 16: this.pushState('SCALE'); /* console.log('Got scale', yy_.yytext);*/ return 15; 
 break;
-case 17:this.popState();yy_.yytext=yy_.yytext.slice(0,-8).trim();/*console.warn('Fork Join: ',yy_.yytext);*/return 24;
+case 17:return 16;
 break;
-case 18:this.popState();yy_.yytext=yy_.yytext.slice(0,-8).trim();/*console.warn('Fork Fork: ',yy_.yytext);*/return 23;
+case 18:this.popState();
 break;
-case 19:this.popState();yy_.yytext=yy_.yytext.slice(0,-8).trim();/*console.warn('Fork Join: ',yy_.yytext);*/return 24;
+case 19: /*console.log('Starting STATE zxzx'+yy.getDirection());*/this.pushState('STATE'); 
 break;
-case 20:this.begin("STATE_STRING");
+case 20:this.popState();yy_.yytext=yy_.yytext.slice(0,-8).trim(); /*console.warn('Fork Fork: ',yy_.yytext);*/return 23;
 break;
-case 21:this.popState();this.pushState('STATE_ID');return "AS";
+case 21:this.popState();yy_.yytext=yy_.yytext.slice(0,-8).trim();/*console.warn('Fork Join: ',yy_.yytext);*/return 24;
 break;
-case 22:this.popState();/* console.log('STATE_ID', yy_.yytext);*/return "ID";
+case 22:this.popState();yy_.yytext=yy_.yytext.slice(0,-10).trim();/*console.warn('Fork Join: ',yy_.yytext);*/return 25;
 break;
-case 23:this.popState();
+case 23:this.popState();yy_.yytext=yy_.yytext.slice(0,-8).trim();/*console.warn('Fork Fork: ',yy_.yytext);*/return 23;
 break;
-case 24: /*console.log('Long description:', yy_.yytext);*/return "STATE_DESCR";
+case 24:this.popState();yy_.yytext=yy_.yytext.slice(0,-8).trim();/*console.warn('Fork Join: ',yy_.yytext);*/return 24;
 break;
-case 25:/*console.log('COMPOSIT_STATE', yy_.yytext);*/return 17;
+case 25:this.popState();yy_.yytext=yy_.yytext.slice(0,-10).trim();/*console.warn('Fork Join: ',yy_.yytext);*/return 25;
 break;
-case 26:this.popState();
+case 26: return 36;
 break;
-case 27:this.popState();this.pushState('struct'); /*console.log('begin struct', yy_.yytext);*/return 18;
+case 27: return 37;
 break;
-case 28: /*console.log('Ending struct');*/ this.popState(); return 19;
+case 28: return 38;
 break;
-case 29:/* nothing */
+case 29: return 39;
 break;
-case 30: this.begin('NOTE'); return 26; 
+case 30: /*console.log('Starting STATE_STRING zxzx');*/this.begin("STATE_STRING");
 break;
-case 31: this.popState();this.pushState('NOTE_ID');return 37;
+case 31:this.popState();this.pushState('STATE_ID');return "AS";
 break;
-case 32: this.popState();this.pushState('NOTE_ID');return 38;
+case 32:this.popState();/* console.log('STATE_ID', yy_.yytext);*/return "ID";
 break;
-case 33: this.popState();this.pushState('FLOATING_NOTE');
+case 33:this.popState();
 break;
-case 34:this.popState();this.pushState('FLOATING_NOTE_ID');return "AS";
+case 34: /*console.log('Long description:', yy_.yytext);*/return "STATE_DESCR";
 break;
-case 35:/**/
+case 35:/*console.log('COMPOSIT_STATE', yy_.yytext);*/return 17;
 break;
-case 36: /*console.log('Floating note text: ', yy_.yytext);*/return "NOTE_TEXT";
+case 36:this.popState();
 break;
-case 37:this.popState();/*console.log('Floating note ID', yy_.yytext);*/return "ID";
+case 37:this.popState();this.pushState('struct'); /*console.log('begin struct', yy_.yytext);*/return 18;
 break;
-case 38: this.popState();this.pushState('NOTE_TEXT');/*console.log('Got ID for note', yy_.yytext);*/return 22;
+case 38: /*console.log('Ending struct');*/ this.popState(); return 19;
 break;
-case 39: this.popState();/*console.log('Got NOTE_TEXT for note',yy_.yytext);*/yy_.yytext = yy_.yytext.substr(2).trim();return 28;
+case 39:/* nothing */
 break;
-case 40: this.popState();/*console.log('Got NOTE_TEXT for note',yy_.yytext);*/yy_.yytext = yy_.yytext.slice(0,-8).trim();return 28;
+case 40: this.begin('NOTE'); return 27; 
 break;
-case 41: /*console.log('Got state diagram', yy_.yytext,'#');*/return 7; 
+case 41: this.popState();this.pushState('NOTE_ID');return 43;
 break;
-case 42: /*console.log('Got state diagram', yy_.yytext,'#');*/return 7; 
+case 42: this.popState();this.pushState('NOTE_ID');return 44;
 break;
-case 43: /*console.log('HIDE_EMPTY', yy_.yytext,'#');*/return 14; 
+case 43: this.popState();this.pushState('FLOATING_NOTE');
 break;
-case 44: /*console.log('EDGE_STATE=',yy_.yytext);*/ return 36;
+case 44:this.popState();this.pushState('FLOATING_NOTE_ID');return "AS";
 break;
-case 45: /*console.log('=>ID=',yy_.yytext);*/ return 22;
+case 45:/**/
 break;
-case 46: yy_.yytext = yy_.yytext.trim(); /*console.log('Descr = ', yy_.yytext);*/ return 12; 
+case 46: /*console.log('Floating note text: ', yy_.yytext);*/return "NOTE_TEXT";
 break;
-case 47:return 13;
+case 47:this.popState();/*console.log('Floating note ID', yy_.yytext);*/return "ID";
 break;
-case 48:return 25;
+case 48: this.popState();this.pushState('NOTE_TEXT');/*console.log('Got ID for note', yy_.yytext);*/return 22;
 break;
-case 49:return 5;
+case 49: this.popState();/*console.log('Got NOTE_TEXT for note',yy_.yytext);*/yy_.yytext = yy_.yytext.substr(2).trim();return 29;
 break;
-case 50:return 'INVALID';
+case 50: this.popState();/*console.log('Got NOTE_TEXT for note',yy_.yytext);*/yy_.yytext = yy_.yytext.slice(0,-8).trim();return 29;
+break;
+case 51: /*console.log('Got state diagram', yy_.yytext,'#');*/return 7; 
+break;
+case 52: /*console.log('Got state diagram', yy_.yytext,'#');*/return 7; 
+break;
+case 53: /*console.log('HIDE_EMPTY', yy_.yytext,'#');*/return 14; 
+break;
+case 54: /*console.log('EDGE_STATE=',yy_.yytext);*/ return 42;
+break;
+case 55: /*console.log('=>ID=',yy_.yytext);*/ return 22;
+break;
+case 56: yy_.yytext = yy_.yytext.trim(); /*console.log('Descr = ', yy_.yytext);*/ return 12; 
+break;
+case 57:return 13;
+break;
+case 58:return 26;
+break;
+case 59:return 5;
+break;
+case 60:return 'INVALID';
 break;
 }
 },
-rules: [/^(?:%%\{)/i,/^(?:((?:(?!\}%%)[^:.])*))/i,/^(?::)/i,/^(?:\}%%)/i,/^(?:((?:(?!\}%%).|\n)*))/i,/^(?:%%(?!\{)[^\n]*)/i,/^(?:[^\}]%%[^\n]*)/i,/^(?:[\n]+)/i,/^(?:[\s]+)/i,/^(?:((?!\n)\s)+)/i,/^(?:#[^\n]*)/i,/^(?:%[^\n]*)/i,/^(?:scale\s+)/i,/^(?:\d+)/i,/^(?:\s+width\b)/i,/^(?:state\s+)/i,/^(?:.*<<fork>>)/i,/^(?:.*<<join>>)/i,/^(?:.*\[\[fork\]\])/i,/^(?:.*\[\[join\]\])/i,/^(?:["])/i,/^(?:\s*as\s+)/i,/^(?:[^\n\{]*)/i,/^(?:["])/i,/^(?:[^"]*)/i,/^(?:[^\n\s\{]+)/i,/^(?:\n)/i,/^(?:\{)/i,/^(?:\})/i,/^(?:[\n])/i,/^(?:note\s+)/i,/^(?:left of\b)/i,/^(?:right of\b)/i,/^(?:")/i,/^(?:\s*as\s*)/i,/^(?:["])/i,/^(?:[^"]*)/i,/^(?:[^\n]*)/i,/^(?:\s*[^:\n\s\-]+)/i,/^(?:\s*:[^:\n;]+)/i,/^(?:[\s\S]*?end note\b)/i,/^(?:stateDiagram\s+)/i,/^(?:stateDiagram-v2\s+)/i,/^(?:hide empty description\b)/i,/^(?:\[\*\])/i,/^(?:[^:\n\s\-\{]+)/i,/^(?:\s*:[^:\n;]+)/i,/^(?:-->)/i,/^(?:--)/i,/^(?:$)/i,/^(?:.)/i],
-conditions: {"LINE":{"rules":[9,10],"inclusive":false},"close_directive":{"rules":[9,10],"inclusive":false},"arg_directive":{"rules":[3,4,9,10],"inclusive":false},"type_directive":{"rules":[2,3,9,10],"inclusive":false},"open_directive":{"rules":[1,9,10],"inclusive":false},"struct":{"rules":[9,10,15,28,29,30,44,45,46,47,48],"inclusive":false},"FLOATING_NOTE_ID":{"rules":[37],"inclusive":false},"FLOATING_NOTE":{"rules":[34,35,36],"inclusive":false},"NOTE_TEXT":{"rules":[39,40],"inclusive":false},"NOTE_ID":{"rules":[38],"inclusive":false},"NOTE":{"rules":[31,32,33],"inclusive":false},"SCALE":{"rules":[13,14],"inclusive":false},"ALIAS":{"rules":[],"inclusive":false},"STATE_ID":{"rules":[22],"inclusive":false},"STATE_STRING":{"rules":[23,24],"inclusive":false},"FORK_STATE":{"rules":[],"inclusive":false},"STATE":{"rules":[9,10,16,17,18,19,20,21,25,26,27],"inclusive":false},"ID":{"rules":[9,10],"inclusive":false},"INITIAL":{"rules":[0,5,6,7,8,10,11,12,15,27,30,41,42,43,44,45,46,47,49,50],"inclusive":true}}
+rules: [/^(?:.*direction\s+TB[^\n]*)/i,/^(?:.*direction\s+BT[^\n]*)/i,/^(?:.*direction\s+RL[^\n]*)/i,/^(?:.*direction\s+LR[^\n]*)/i,/^(?:%%\{)/i,/^(?:((?:(?!\}%%)[^:.])*))/i,/^(?::)/i,/^(?:\}%%)/i,/^(?:((?:(?!\}%%).|\n)*))/i,/^(?:%%(?!\{)[^\n]*)/i,/^(?:[^\}]%%[^\n]*)/i,/^(?:[\n]+)/i,/^(?:[\s]+)/i,/^(?:((?!\n)\s)+)/i,/^(?:#[^\n]*)/i,/^(?:%[^\n]*)/i,/^(?:scale\s+)/i,/^(?:\d+)/i,/^(?:\s+width\b)/i,/^(?:state\s+)/i,/^(?:.*<<fork>>)/i,/^(?:.*<<join>>)/i,/^(?:.*<<choice>>)/i,/^(?:.*\[\[fork\]\])/i,/^(?:.*\[\[join\]\])/i,/^(?:.*\[\[choice\]\])/i,/^(?:.*direction\s+TB[^\n]*)/i,/^(?:.*direction\s+BT[^\n]*)/i,/^(?:.*direction\s+RL[^\n]*)/i,/^(?:.*direction\s+LR[^\n]*)/i,/^(?:["])/i,/^(?:\s*as\s+)/i,/^(?:[^\n\{]*)/i,/^(?:["])/i,/^(?:[^"]*)/i,/^(?:[^\n\s\{]+)/i,/^(?:\n)/i,/^(?:\{)/i,/^(?:\})/i,/^(?:[\n])/i,/^(?:note\s+)/i,/^(?:left of\b)/i,/^(?:right of\b)/i,/^(?:")/i,/^(?:\s*as\s*)/i,/^(?:["])/i,/^(?:[^"]*)/i,/^(?:[^\n]*)/i,/^(?:\s*[^:\n\s\-]+)/i,/^(?:\s*:[^:\n;]+)/i,/^(?:[\s\S]*?end note\b)/i,/^(?:stateDiagram\s+)/i,/^(?:stateDiagram-v2\s+)/i,/^(?:hide empty description\b)/i,/^(?:\[\*\])/i,/^(?:[^:\n\s\-\{]+)/i,/^(?:\s*:[^:\n;]+)/i,/^(?:-->)/i,/^(?:--)/i,/^(?:$)/i,/^(?:.)/i],
+conditions: {"LINE":{"rules":[13,14],"inclusive":false},"close_directive":{"rules":[13,14],"inclusive":false},"arg_directive":{"rules":[7,8,13,14],"inclusive":false},"type_directive":{"rules":[6,7,13,14],"inclusive":false},"open_directive":{"rules":[5,13,14],"inclusive":false},"struct":{"rules":[13,14,19,26,27,28,29,38,39,40,54,55,56,57,58],"inclusive":false},"FLOATING_NOTE_ID":{"rules":[47],"inclusive":false},"FLOATING_NOTE":{"rules":[44,45,46],"inclusive":false},"NOTE_TEXT":{"rules":[49,50],"inclusive":false},"NOTE_ID":{"rules":[48],"inclusive":false},"NOTE":{"rules":[41,42,43],"inclusive":false},"SCALE":{"rules":[17,18],"inclusive":false},"ALIAS":{"rules":[],"inclusive":false},"STATE_ID":{"rules":[32],"inclusive":false},"STATE_STRING":{"rules":[33,34],"inclusive":false},"FORK_STATE":{"rules":[],"inclusive":false},"STATE":{"rules":[13,14,20,21,22,23,24,25,30,31,35,36,37],"inclusive":false},"ID":{"rules":[13,14],"inclusive":false},"INITIAL":{"rules":[0,1,2,3,4,9,10,11,12,14,15,16,19,37,40,51,52,53,54,55,56,57,59,60],"inclusive":true}}
 });
 return lexer;
 })();
@@ -69751,6 +70279,12 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _common_common__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../common/common */ "./src/diagrams/common/common.js");
 /* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../config */ "./src/config.js");
 /* harmony import */ var _logger__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../../logger */ "./src/logger.js");
+function _createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it.return != null) it.return(); } finally { if (didErr) throw err; } } }; }
+
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
+
 
 
 
@@ -69954,12 +70488,12 @@ var _drawLongText = function _drawLongText(_text, x, y, g) {
   text = text.replace(/\n/g, '<br/>');
   var lines = text.split(_common_common__WEBPACK_IMPORTED_MODULE_4__["default"].lineBreakRegex);
   var tHeight = 1.25 * Object(_config__WEBPACK_IMPORTED_MODULE_5__["getConfig"])().state.noteMargin;
-  var _iteratorNormalCompletion = true;
-  var _didIteratorError = false;
-  var _iteratorError = undefined;
+
+  var _iterator = _createForOfIteratorHelper(lines),
+      _step;
 
   try {
-    for (var _iterator = lines[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+    for (_iterator.s(); !(_step = _iterator.n()).done;) {
       var _line = _step.value;
 
       var txt = _line.trim();
@@ -69979,18 +70513,9 @@ var _drawLongText = function _drawLongText(_text, x, y, g) {
       }
     }
   } catch (err) {
-    _didIteratorError = true;
-    _iteratorError = err;
+    _iterator.e(err);
   } finally {
-    try {
-      if (!_iteratorNormalCompletion && _iterator.return != null) {
-        _iterator.return();
-      }
-    } finally {
-      if (_didIteratorError) {
-        throw _iteratorError;
-      }
-    }
+    _iterator.f();
   }
 
   return {
@@ -70261,7 +70786,7 @@ var getRootDocV2 = function getRootDocV2() {
   return {
     id: 'root',
     doc: rootDoc
-  };
+  }; // Here
 };
 
 var extract = function extract(_doc) {
@@ -70433,8 +70958,14 @@ var getClasses = function getClasses() {
   return classes;
 };
 
+var direction = 'TB';
+
 var getDirection = function getDirection() {
-  return 'TB';
+  return direction;
+};
+
+var setDirection = function setDirection(dir) {
+  direction = dir;
 };
 
 var relationType = {
@@ -70462,6 +70993,7 @@ var trimColon = function trimColon(str) {
   getDirection: getDirection,
   addRelation: addRelation,
   getDividerId: getDividerId,
+  setDirection: setDirection,
   // addDescription,
   cleanupLabel: cleanupLabel,
   lineType: lineType,
@@ -70502,6 +71034,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+ // import { evaluate } from '../common/common';
 
 
 
@@ -70584,8 +71117,9 @@ var setupNode = function setupNode(g, parent, node, altFlag) {
 
 
     if (!nodeDb[node.id].type && node.doc) {
-      _logger__WEBPACK_IMPORTED_MODULE_6__["log"].info('Setting cluser for ', node.id);
+      _logger__WEBPACK_IMPORTED_MODULE_6__["log"].info('Setting cluster for ', node.id, getDir(node));
       nodeDb[node.id].type = 'group';
+      nodeDb[node.id].dir = getDir(node);
       nodeDb[node.id].shape = node.type === 'divider' ? 'divider' : 'roundedWithTitle';
       nodeDb[node.id].classes = nodeDb[node.id].classes + ' ' + (altFlag ? 'statediagram-cluster statediagram-cluster-alt' : 'statediagram-cluster');
     }
@@ -70594,11 +71128,15 @@ var setupNode = function setupNode(g, parent, node, altFlag) {
       labelStyle: '',
       shape: nodeDb[node.id].shape,
       labelText: nodeDb[node.id].description,
+      // typeof nodeDb[node.id].description === 'object'
+      //   ? nodeDb[node.id].description[0]
+      //   : nodeDb[node.id].description,
       classes: nodeDb[node.id].classes,
       //classStr,
       style: '',
       //styles.style,
       id: node.id,
+      dir: nodeDb[node.id].dir,
       domId: 'state-' + node.id + '-' + cnt,
       type: nodeDb[node.id].type,
       padding: 15 //getConfig().flowchart.padding
@@ -70615,7 +71153,7 @@ var setupNode = function setupNode(g, parent, node, altFlag) {
         //classStr,
         style: '',
         //styles.style,
-        id: node.id + '----note',
+        id: node.id + '----note-' + cnt,
         domId: 'state-' + node.id + '----note-' + cnt,
         type: nodeDb[node.id].type,
         padding: 15 //getConfig().flowchart.padding
@@ -70667,13 +71205,13 @@ var setupNode = function setupNode(g, parent, node, altFlag) {
 
   if (parent) {
     if (parent.id !== 'root') {
-      _logger__WEBPACK_IMPORTED_MODULE_6__["log"].info('Setting node ', node.id, ' to be child of its parent ', parent.id);
+      _logger__WEBPACK_IMPORTED_MODULE_6__["log"].trace('Setting node ', node.id, ' to be child of its parent ', parent.id);
       g.setParent(node.id, parent.id);
     }
   }
 
   if (node.doc) {
-    _logger__WEBPACK_IMPORTED_MODULE_6__["log"].info('Adding nodes children ');
+    _logger__WEBPACK_IMPORTED_MODULE_6__["log"].trace('Adding nodes children ');
     setupDoc(g, node, node.doc, !altFlag);
   }
 };
@@ -70681,7 +71219,7 @@ var setupNode = function setupNode(g, parent, node, altFlag) {
 var cnt = 0;
 
 var setupDoc = function setupDoc(g, parent, doc, altFlag) {
-  cnt = 0;
+  // cnt = 0;
   _logger__WEBPACK_IMPORTED_MODULE_6__["log"].trace('items', doc);
   doc.forEach(function (item) {
     if (item.stmt === 'state' || item.stmt === 'default') {
@@ -70709,6 +71247,22 @@ var setupDoc = function setupDoc(g, parent, doc, altFlag) {
     }
   });
 };
+
+var getDir = function getDir(nodes, defaultDir) {
+  var dir = defaultDir || 'TB';
+
+  if (nodes.doc) {
+    for (var i = 0; i < nodes.doc.length; i++) {
+      var node = nodes.doc[i];
+
+      if (node.stmt === 'dir') {
+        dir = node.value;
+      }
+    }
+  }
+
+  return dir;
+};
 /**
  * Draws a flowchart in the tag with id: id based on the graph definition in text.
  * @param text
@@ -70733,13 +71287,16 @@ var draw = function draw(text, id) {
 
   var conf = Object(_config__WEBPACK_IMPORTED_MODULE_4__["getConfig"])().state;
   var nodeSpacing = conf.nodeSpacing || 50;
-  var rankSpacing = conf.rankSpacing || 50; // Create the input mermaid.graph
+  var rankSpacing = conf.rankSpacing || 50;
+  _logger__WEBPACK_IMPORTED_MODULE_6__["log"].info(_stateDb__WEBPACK_IMPORTED_MODULE_2__["default"].getRootDocV2());
+  _stateDb__WEBPACK_IMPORTED_MODULE_2__["default"].extract(_stateDb__WEBPACK_IMPORTED_MODULE_2__["default"].getRootDocV2());
+  _logger__WEBPACK_IMPORTED_MODULE_6__["log"].info(_stateDb__WEBPACK_IMPORTED_MODULE_2__["default"].getRootDocV2()); // Create the input mermaid.graph
 
   var g = new graphlib__WEBPACK_IMPORTED_MODULE_0___default.a.Graph({
     multigraph: true,
     compound: true
   }).setGraph({
-    rankdir: 'TB',
+    rankdir: getDir(_stateDb__WEBPACK_IMPORTED_MODULE_2__["default"].getRootDocV2()),
     nodesep: nodeSpacing,
     ranksep: rankSpacing,
     marginx: 8,
@@ -70747,9 +71304,6 @@ var draw = function draw(text, id) {
   }).setDefaultEdgeLabel(function () {
     return {};
   });
-  _logger__WEBPACK_IMPORTED_MODULE_6__["log"].info(_stateDb__WEBPACK_IMPORTED_MODULE_2__["default"].getRootDocV2());
-  _stateDb__WEBPACK_IMPORTED_MODULE_2__["default"].extract(_stateDb__WEBPACK_IMPORTED_MODULE_2__["default"].getRootDocV2());
-  _logger__WEBPACK_IMPORTED_MODULE_6__["log"].info(_stateDb__WEBPACK_IMPORTED_MODULE_2__["default"].getRootDocV2());
   setupNode(g, undefined, _stateDb__WEBPACK_IMPORTED_MODULE_2__["default"].getRootDocV2(), true); // Set up an SVG group so that we can translate the final graph.
 
   var svg = Object(d3__WEBPACK_IMPORTED_MODULE_1__["select"])("[id=\"".concat(id, "\"]")); // Run the renderer. This is what draws the final graph.
@@ -70768,21 +71322,20 @@ var draw = function draw(text, id) {
   var vBox = "".concat(svgBounds.x - padding, " ").concat(svgBounds.y - padding, " ").concat(width, " ").concat(height);
   _logger__WEBPACK_IMPORTED_MODULE_6__["log"].debug("viewBox ".concat(vBox));
   svg.attr('viewBox', vBox); // Add label rects for non html labels
+  // if (!evaluate(conf.htmlLabels) || true) {
 
-  if (!conf.htmlLabels) {
-    var labels = document.querySelectorAll('[id="' + id + '"] .edgeLabel .label');
+  var labels = document.querySelectorAll('[id="' + id + '"] .edgeLabel .label');
 
-    for (var k = 0; k < labels.length; k++) {
-      var label = labels[k]; // Get dimensions of label
+  for (var k = 0; k < labels.length; k++) {
+    var label = labels[k]; // Get dimensions of label
 
-      var dim = label.getBBox();
-      var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rect.setAttribute('rx', 0);
-      rect.setAttribute('ry', 0);
-      rect.setAttribute('width', dim.width);
-      rect.setAttribute('height', dim.height);
-      label.insertBefore(rect, label.firstChild);
-    }
+    var dim = label.getBBox();
+    var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('rx', 0);
+    rect.setAttribute('ry', 0);
+    rect.setAttribute('width', dim.width);
+    rect.setAttribute('height', dim.height);
+    label.insertBefore(rect, label.firstChild); // }
   }
 };
 /* harmony default export */ __webpack_exports__["default"] = ({
@@ -71078,7 +71631,7 @@ var renderDoc = function renderDoc(doc, diagram, parentId, altBkg) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 var getStyles = function getStyles(options) {
-  return "g.stateGroup text {\n  fill: ".concat(options.nodeBorder, ";\n  stroke: none;\n  font-size: 10px;\n}\ng.stateGroup text {\n  fill: ").concat(options.textColor, ";\n  stroke: none;\n  font-size: 10px;\n\n}\ng.stateGroup .state-title {\n  font-weight: bolder;\n  fill: ").concat(options.labelColor, ";\n}\n\ng.stateGroup rect {\n  fill: ").concat(options.mainBkg, ";\n  stroke: ").concat(options.nodeBorder, ";\n}\n\ng.stateGroup line {\n  stroke: ").concat(options.lineColor, ";\n  stroke-width: 1;\n}\n\n.transition {\n  stroke: ").concat(options.lineColor, ";\n  stroke-width: 1;\n  fill: none;\n}\n\n.stateGroup .composit {\n  fill: ").concat(options.background, ";\n  border-bottom: 1px\n}\n\n.stateGroup .alt-composit {\n  fill: #e0e0e0;\n  border-bottom: 1px\n}\n\n.state-note {\n  stroke: ").concat(options.noteBorderColor, ";\n  fill: ").concat(options.noteBkgColor, ";\n\n  text {\n    fill: black;\n    stroke: none;\n    font-size: 10px;\n  }\n}\n\n.stateLabel .box {\n  stroke: none;\n  stroke-width: 0;\n  fill: ").concat(options.mainBkg, ";\n  opacity: 0.5;\n}\n\n.edgeLabel .label rect {\n  fill: ").concat(options.tertiaryColor, ";\n  opacity: 0.5;\n}\n.edgeLabel .label text {\n  fill: ").concat(options.tertiaryTextColor, ";\n}\n.label div .edgeLabel {\n  color: ").concat(options.tertiaryTextColor, ";\n}\n\n.stateLabel text {\n  fill: ").concat(options.labelColor, ";\n  font-size: 10px;\n  font-weight: bold;\n}\n\n.node circle.state-start {\n  fill: ").concat(options.lineColor, ";\n  stroke: black;\n}\n.node circle.state-end {\n  fill: ").concat(options.primaryBorderColor, ";\n  stroke: ").concat(options.background, ";\n  stroke-width: 1.5\n}\n.end-state-inner {\n  fill: ").concat(options.background, ";\n  // stroke: ").concat(options.background, ";\n  stroke-width: 1.5\n}\n\n.node rect {\n  fill: ").concat(options.mainBkg, ";\n  stroke: ").concat(options.nodeBorder, ";\n  stroke-width: 1px;\n}\n#statediagram-barbEnd {\n  fill: ").concat(options.lineColor, ";\n}\n\n.statediagram-cluster rect {\n  fill: ").concat(options.mainBkg, ";\n  stroke: ").concat(options.nodeBorder, ";\n  stroke-width: 1px;\n}\n\n.cluster-label, .nodeLabel {\n  color: ").concat(options.textColor, ";\n}\n\n.statediagram-cluster rect.outer {\n  rx: 5px;\n  ry: 5px;\n}\n.statediagram-state .divider {\n  stroke: ").concat(options.nodeBorder, ";\n}\n\n.statediagram-state .title-state {\n  rx: 5px;\n  ry: 5px;\n}\n.statediagram-cluster.statediagram-cluster .inner {\n  fill: ").concat(options.background, ";\n}\n.statediagram-cluster.statediagram-cluster-alt .inner {\n  fill: #e0e0e0;\n}\n\n.statediagram-cluster .inner {\n  rx:0;\n  ry:0;\n}\n\n.statediagram-state rect.basic {\n  rx: 5px;\n  ry: 5px;\n}\n.statediagram-state rect.divider {\n  stroke-dasharray: 10,10;\n  fill: ").concat(options.altBackground ? options.altBackground : '#efefef', ";\n}\n\n.note-edge {\n  stroke-dasharray: 5;\n}\n\n.statediagram-note rect {\n  fill: ").concat(options.noteBkgColor, ";\n  stroke: ").concat(options.noteBorderColor, ";\n  stroke-width: 1px;\n  rx: 0;\n  ry: 0;\n}\n.statediagram-note rect {\n  fill: ").concat(options.noteBkgColor, ";\n  stroke: ").concat(options.noteBorderColor, ";\n  stroke-width: 1px;\n  rx: 0;\n  ry: 0;\n}\n\n.statediagram-note text {\n  fill: ").concat(options.noteTextColor, ";\n}\n\n.statediagram-note .nodeLabel {\n  color: ").concat(options.noteTextColor, ";\n}\n\n#dependencyStart, #dependencyEnd {\n  fill: ").concat(options.lineColor, ";\n  stroke: ").concat(options.lineColor, ";\n  stroke-width: 1;\n}\n");
+  return "\ndefs #statediagram-barbEnd {\n    fill: ".concat(options.transitionColor, ";\n    stroke: ").concat(options.transitionColor, ";\n  }\ng.stateGroup text {\n  fill: ").concat(options.nodeBorder, ";\n  stroke: none;\n  font-size: 10px;\n}\ng.stateGroup text {\n  fill: ").concat(options.textColor, ";\n  stroke: none;\n  font-size: 10px;\n\n}\ng.stateGroup .state-title {\n  font-weight: bolder;\n  fill: ").concat(options.stateLabelColor, ";\n}\n\ng.stateGroup rect {\n  fill: ").concat(options.mainBkg, ";\n  stroke: ").concat(options.nodeBorder, ";\n}\n\ng.stateGroup line {\n  stroke: ").concat(options.lineColor, ";\n  stroke-width: 1;\n}\n\n.transition {\n  stroke: ").concat(options.transitionColor, ";\n  stroke-width: 1;\n  fill: none;\n}\n\n.stateGroup .composit {\n  fill: ").concat(options.background, ";\n  border-bottom: 1px\n}\n\n.stateGroup .alt-composit {\n  fill: #e0e0e0;\n  border-bottom: 1px\n}\n\n.state-note {\n  stroke: ").concat(options.noteBorderColor, ";\n  fill: ").concat(options.noteBkgColor, ";\n\n  text {\n    fill: ").concat(options.noteTextColor, ";\n    stroke: none;\n    font-size: 10px;\n  }\n}\n\n.stateLabel .box {\n  stroke: none;\n  stroke-width: 0;\n  fill: ").concat(options.mainBkg, ";\n  opacity: 0.5;\n}\n\n.edgeLabel .label rect {\n  fill: ").concat(options.labelBackgroundColor, ";\n  opacity: 0.5;\n}\n.edgeLabel .label text {\n  fill: ").concat(options.transitionLabelColor || options.tertiaryTextColor, ";\n}\n.label div .edgeLabel {\n  color: ").concat(options.transitionLabelColor || options.tertiaryTextColor, ";\n}\n\n.stateLabel text {\n  fill: ").concat(options.stateLabelColor, ";\n  font-size: 10px;\n  font-weight: bold;\n}\n\n.node circle.state-start {\n  fill: ").concat(options.specialStateColor, ";\n  stroke: ").concat(options.specialStateColor, ";\n}\n\n.node .fork-join {\n  fill: ").concat(options.specialStateColor, ";\n  stroke: ").concat(options.specialStateColor, ";\n}\n\n.node circle.state-end {\n  fill: ").concat(options.innerEndBackground, ";\n  stroke: ").concat(options.background, ";\n  stroke-width: 1.5\n}\n.end-state-inner {\n  fill: ").concat(options.compositeBackground || options.background, ";\n  // stroke: ").concat(options.background, ";\n  stroke-width: 1.5\n}\n\n.node rect {\n  fill: ").concat(options.stateBkg || options.mainBkg, ";\n  stroke: ").concat(options.stateBorder || options.nodeBorder, ";\n  stroke-width: 1px;\n}\n.node polygon {\n  fill: ").concat(options.mainBkg, ";\n  stroke: ").concat(options.stateBorder || options.nodeBorder, ";;\n  stroke-width: 1px;\n}\n#statediagram-barbEnd {\n  fill: ").concat(options.lineColor, ";\n}\n\n.statediagram-cluster rect {\n  fill: ").concat(options.compositeTitleBackground, ";\n  stroke: ").concat(options.stateBorder || options.nodeBorder, ";\n  stroke-width: 1px;\n}\n\n.cluster-label, .nodeLabel {\n  color: ").concat(options.stateLabelColor, ";\n}\n\n.statediagram-cluster rect.outer {\n  rx: 5px;\n  ry: 5px;\n}\n.statediagram-state .divider {\n  stroke: ").concat(options.stateBorder || options.nodeBorder, ";\n}\n\n.statediagram-state .title-state {\n  rx: 5px;\n  ry: 5px;\n}\n.statediagram-cluster.statediagram-cluster .inner {\n  fill: ").concat(options.compositeBackground || options.background, ";\n}\n.statediagram-cluster.statediagram-cluster-alt .inner {\n  fill: ").concat(options.altBackground ? options.altBackground : '#efefef', ";\n}\n\n.statediagram-cluster .inner {\n  rx:0;\n  ry:0;\n}\n\n.statediagram-state rect.basic {\n  rx: 5px;\n  ry: 5px;\n}\n.statediagram-state rect.divider {\n  stroke-dasharray: 10,10;\n  fill: ").concat(options.altBackground ? options.altBackground : '#efefef', ";\n}\n\n.note-edge {\n  stroke-dasharray: 5;\n}\n\n.statediagram-note rect {\n  fill: ").concat(options.noteBkgColor, ";\n  stroke: ").concat(options.noteBorderColor, ";\n  stroke-width: 1px;\n  rx: 0;\n  ry: 0;\n}\n.statediagram-note rect {\n  fill: ").concat(options.noteBkgColor, ";\n  stroke: ").concat(options.noteBorderColor, ";\n  stroke-width: 1px;\n  rx: 0;\n  ry: 0;\n}\n\n.statediagram-note text {\n  fill: ").concat(options.noteTextColor, ";\n}\n\n.statediagram-note .nodeLabel {\n  color: ").concat(options.noteTextColor, ";\n}\n.statediagram .edgeLabel {\n  color: red; // ").concat(options.noteTextColor, ";\n}\n\n#dependencyStart, #dependencyEnd {\n  fill: ").concat(options.lineColor, ";\n  stroke: ").concat(options.lineColor, ";\n  stroke-width: 1;\n}\n");
 };
 
 /* harmony default export */ __webpack_exports__["default"] = (getStyles);
@@ -71105,13 +71658,17 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "addTaskOrg", function() { return addTaskOrg; });
 /* harmony import */ var _mermaidAPI__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../mermaidAPI */ "./src/mermaidAPI.js");
 /* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../config */ "./src/config.js");
-function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
 
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 
-function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 
-function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
 
 
@@ -71281,13 +71838,14 @@ function drawActorLegend(diagram) {
 
   var yPos = 60;
   Object.keys(actors).forEach(function (person) {
-    var colour = actors[person];
+    var colour = actors[person].color;
     var circleData = {
       cx: 20,
       cy: yPos,
       r: 7,
       fill: colour,
-      stroke: '#000'
+      stroke: '#000',
+      pos: actors[person].position
     };
     _svgDraw__WEBPACK_IMPORTED_MODULE_3__["default"].drawCircle(diagram, circleData);
     var labelData = {
@@ -71322,7 +71880,10 @@ var draw = function draw(text, id) {
 
   var actorPos = 0;
   actorNames.forEach(function (actorName) {
-    actors[actorName] = conf.actorColours[actorPos % conf.actorColours.length];
+    actors[actorName] = {
+      color: conf.actorColours[actorPos % conf.actorColours.length],
+      position: actorPos
+    };
     actorPos++;
   });
   drawActorLegend(diagram);
@@ -71344,6 +71905,7 @@ var draw = function draw(text, id) {
   var extraVertForTitle = title ? 70 : 0;
   diagram.attr('viewBox', "".concat(box.startx, " -25 ").concat(width, " ").concat(height + extraVertForTitle));
   diagram.attr('preserveAspectRatio', 'xMinYMin meet');
+  diagram.attr('height', height + extraVertForTitle + 25);
 };
 var bounds = {
   data: {
@@ -72185,7 +72747,7 @@ if ( true && __webpack_require__.c[__webpack_require__.s] === module) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 var getStyles = function getStyles(options) {
-  return ".label {\n    font-family: 'trebuchet ms', verdana, arial, sans-serif;\n    font-family: var(--mermaid-font-family);\n    color: ".concat(options.textColor, ";\n  }\n  .mouth {\n    stroke: #666;\n  }\n\n  line {\n    stroke: ").concat(options.textColor, "\n  }\n\n  .legend {\n    fill: ").concat(options.textColor, ";\n  }\n\n  .label text {\n    fill: #333;\n  }\n  .label {\n    color: ").concat(options.textColor, "\n  }\n\n  .face {\n    fill: #FFF8DC;\n    stroke: #999;\n  }\n\n  .node rect,\n  .node circle,\n  .node ellipse,\n  .node polygon,\n  .node path {\n    fill: ").concat(options.mainBkg, ";\n    stroke: ").concat(options.nodeBorder, ";\n    stroke-width: 1px;\n  }\n\n  .node .label {\n    text-align: center;\n  }\n  .node.clickable {\n    cursor: pointer;\n  }\n\n  .arrowheadPath {\n    fill: ").concat(options.arrowheadColor, ";\n  }\n\n  .edgePath .path {\n    stroke: ").concat(options.lineColor, ";\n    stroke-width: 1.5px;\n  }\n\n  .flowchart-link {\n    stroke: ").concat(options.lineColor, ";\n    fill: none;\n  }\n\n  .edgeLabel {\n    background-color: ").concat(options.edgeLabelBackground, ";\n    rect {\n      opacity: 0.5;\n    }\n    text-align: center;\n  }\n\n  .cluster rect {\n  }\n\n  .cluster text {\n    fill: ").concat(options.titleColor, ";\n  }\n\n  div.mermaidTooltip {\n    position: absolute;\n    text-align: center;\n    max-width: 200px;\n    padding: 2px;\n    font-family: 'trebuchet ms', verdana, arial, sans-serif;\n    font-family: var(--mermaid-font-family);\n    font-size: 12px;\n    background: ").concat(options.tertiaryColor, ";\n    border: 1px solid ").concat(options.border2, ";\n    border-radius: 2px;\n    pointer-events: none;\n    z-index: 100;\n  }\n\n  .task-type-0, .section-type-0  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType0) : '', ";\n  }\n  .task-type-1, .section-type-1  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType1) : '', ";\n  }\n  .task-type-2, .section-type-2  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType2) : '', ";\n  }\n  .task-type-3, .section-type-3  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType3) : '', ";\n  }\n  .task-type-4, .section-type-4  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType4) : '', ";\n  }\n  .task-type-5, .section-type-5  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType5) : '', ";\n  }\n  .task-type-6, .section-type-6  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType6) : '', ";\n  }\n  .task-type-7, .section-type-7  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType7) : '', ";\n  }\n");
+  return ".label {\n    font-family: 'trebuchet ms', verdana, arial, sans-serif;\n    font-family: var(--mermaid-font-family);\n    color: ".concat(options.textColor, ";\n  }\n  .mouth {\n    stroke: #666;\n  }\n\n  line {\n    stroke: ").concat(options.textColor, "\n  }\n\n  .legend {\n    fill: ").concat(options.textColor, ";\n  }\n\n  .label text {\n    fill: #333;\n  }\n  .label {\n    color: ").concat(options.textColor, "\n  }\n\n  .face {\n    ").concat(options.faceColor ? "fill: ".concat(options.faceColor) : 'fill: #FFF8DC', ";\n    stroke: #999;\n  }\n\n  .node rect,\n  .node circle,\n  .node ellipse,\n  .node polygon,\n  .node path {\n    fill: ").concat(options.mainBkg, ";\n    stroke: ").concat(options.nodeBorder, ";\n    stroke-width: 1px;\n  }\n\n  .node .label {\n    text-align: center;\n  }\n  .node.clickable {\n    cursor: pointer;\n  }\n\n  .arrowheadPath {\n    fill: ").concat(options.arrowheadColor, ";\n  }\n\n  .edgePath .path {\n    stroke: ").concat(options.lineColor, ";\n    stroke-width: 1.5px;\n  }\n\n  .flowchart-link {\n    stroke: ").concat(options.lineColor, ";\n    fill: none;\n  }\n\n  .edgeLabel {\n    background-color: ").concat(options.edgeLabelBackground, ";\n    rect {\n      opacity: 0.5;\n    }\n    text-align: center;\n  }\n\n  .cluster rect {\n  }\n\n  .cluster text {\n    fill: ").concat(options.titleColor, ";\n  }\n\n  div.mermaidTooltip {\n    position: absolute;\n    text-align: center;\n    max-width: 200px;\n    padding: 2px;\n    font-family: 'trebuchet ms', verdana, arial, sans-serif;\n    font-family: var(--mermaid-font-family);\n    font-size: 12px;\n    background: ").concat(options.tertiaryColor, ";\n    border: 1px solid ").concat(options.border2, ";\n    border-radius: 2px;\n    pointer-events: none;\n    z-index: 100;\n  }\n\n  .task-type-0, .section-type-0  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType0) : '', ";\n  }\n  .task-type-1, .section-type-1  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType1) : '', ";\n  }\n  .task-type-2, .section-type-2  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType2) : '', ";\n  }\n  .task-type-3, .section-type-3  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType3) : '', ";\n  }\n  .task-type-4, .section-type-4  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType4) : '', ";\n  }\n  .task-type-5, .section-type-5  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType5) : '', ";\n  }\n  .task-type-6, .section-type-6  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType6) : '', ";\n  }\n  .task-type-7, .section-type-7  {\n    ").concat(options.fillType0 ? "fill: ".concat(options.fillType7) : '', ";\n  }\n\n  .actor-0 {\n    ").concat(options.actor0 ? "fill: ".concat(options.actor0) : '', ";\n  }\n  .actor-1 {\n    ").concat(options.actor1 ? "fill: ".concat(options.actor1) : '', ";\n  }\n  .actor-2 {\n    ").concat(options.actor2 ? "fill: ".concat(options.actor2) : '', ";\n  }\n  .actor-3 {\n    ").concat(options.actor3 ? "fill: ".concat(options.actor3) : '', ";\n  }\n  .actor-4 {\n    ").concat(options.actor4 ? "fill: ".concat(options.actor4) : '', ";\n  }\n  .actor-5 {\n    ").concat(options.actor5 ? "fill: ".concat(options.actor5) : '', ";\n  }\n\n  }\n");
 };
 
 /* harmony default export */ __webpack_exports__["default"] = (getStyles);
@@ -72269,6 +72831,7 @@ var drawCircle = function drawCircle(element, circleData) {
   var circleElement = element.append('circle');
   circleElement.attr('cx', circleData.cx);
   circleElement.attr('cy', circleData.cy);
+  circleElement.attr('class', 'actor-' + circleData.pos);
   circleElement.attr('fill', circleData.fill);
   circleElement.attr('stroke', circleData.stroke);
   circleElement.attr('r', circleData.r);
@@ -72361,14 +72924,15 @@ var drawTask = function drawTask(elem, task, conf) {
   drawRect(g, rect);
   var xPos = task.x + 14;
   task.people.forEach(function (person) {
-    var colour = task.actors[person];
+    var colour = task.actors[person].color;
     var circle = {
       cx: xPos,
       cy: task.y,
       r: 7,
       fill: colour,
       stroke: '#000',
-      title: person
+      title: person,
+      pos: task.actors[person].position
     };
     drawCircle(g, circle);
     xPos += 10;
@@ -72445,7 +73009,7 @@ var _drawTextCandidateFunc = function () {
   function byFo(content, g, x, y, width, height, textAttrs, conf) {
     var body = g.append('switch');
     var f = body.append('foreignObject').attr('x', x).attr('y', y).attr('width', width).attr('height', height).attr('position', 'fixed');
-    var text = f.append('div').style('display', 'table').style('height', '100%').style('width', '100%');
+    var text = f.append('xhtml:div').style('display', 'table').style('height', '100%').style('width', '100%');
     text.append('div').attr('class', 'label').style('display', 'table-cell').style('text-align', 'center').style('vertical-align', 'middle') // .style('color', colour)
     .text(content);
     byTspan(content, body, x, y, width, height, textAttrs, conf);
@@ -72638,16 +73202,13 @@ var format = function format(level) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var entity_decode_browser__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! entity-decode/browser */ "./node_modules/entity-decode/browser.js");
-/* harmony import */ var _logger__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./logger */ "./src/logger.js");
-/* harmony import */ var _mermaidAPI__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./mermaidAPI */ "./src/mermaidAPI.js");
-/* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./utils */ "./src/utils.js");
+/* harmony import */ var _logger__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./logger */ "./src/logger.js");
+/* harmony import */ var _mermaidAPI__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./mermaidAPI */ "./src/mermaidAPI.js");
+/* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./utils */ "./src/utils.js");
 /**
  * Web page integration module for the mermaid framework. It uses the mermaidAPI for mermaid functionality and to render
  * the diagrams to svg code.
  */
-// import { decode } from 'he';
-
 
 
 
@@ -72676,7 +73237,7 @@ __webpack_require__.r(__webpack_exports__);
 var init = function init() {
   var _this = this;
 
-  var conf = _mermaidAPI__WEBPACK_IMPORTED_MODULE_2__["default"].getConfig(); // console.log('Starting rendering diagrams (init) - mermaid.init', conf);
+  var conf = _mermaidAPI__WEBPACK_IMPORTED_MODULE_1__["default"].getConfig(); // console.log('Starting rendering diagrams (init) - mermaid.init', conf);
 
   var nodes;
 
@@ -72696,36 +73257,36 @@ var init = function init() {
 
   if (typeof arguments[arguments.length - 1] === 'function') {
     callback = arguments[arguments.length - 1];
-    _logger__WEBPACK_IMPORTED_MODULE_1__["log"].debug('Callback function found');
+    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].debug('Callback function found');
   } else {
     if (typeof conf.mermaid !== 'undefined') {
       if (typeof conf.mermaid.callback === 'function') {
         callback = conf.mermaid.callback;
-        _logger__WEBPACK_IMPORTED_MODULE_1__["log"].debug('Callback function found');
+        _logger__WEBPACK_IMPORTED_MODULE_0__["log"].debug('Callback function found');
       } else {
-        _logger__WEBPACK_IMPORTED_MODULE_1__["log"].debug('No Callback function found');
+        _logger__WEBPACK_IMPORTED_MODULE_0__["log"].debug('No Callback function found');
       }
     }
   }
 
   nodes = nodes === undefined ? document.querySelectorAll('.mermaid') : typeof nodes === 'string' ? document.querySelectorAll(nodes) : nodes instanceof window.Node ? [nodes] : nodes; // Last case  - sequence config was passed pick next
 
-  _logger__WEBPACK_IMPORTED_MODULE_1__["log"].debug('Start On Load before: ' + mermaid.startOnLoad);
+  _logger__WEBPACK_IMPORTED_MODULE_0__["log"].debug('Start On Load before: ' + mermaid.startOnLoad);
 
   if (typeof mermaid.startOnLoad !== 'undefined') {
-    _logger__WEBPACK_IMPORTED_MODULE_1__["log"].debug('Start On Load inner: ' + mermaid.startOnLoad);
-    _mermaidAPI__WEBPACK_IMPORTED_MODULE_2__["default"].updateSiteConfig({
+    _logger__WEBPACK_IMPORTED_MODULE_0__["log"].debug('Start On Load inner: ' + mermaid.startOnLoad);
+    _mermaidAPI__WEBPACK_IMPORTED_MODULE_1__["default"].updateSiteConfig({
       startOnLoad: mermaid.startOnLoad
     });
   }
 
   if (typeof mermaid.ganttConfig !== 'undefined') {
-    _mermaidAPI__WEBPACK_IMPORTED_MODULE_2__["default"].updateSiteConfig({
+    _mermaidAPI__WEBPACK_IMPORTED_MODULE_1__["default"].updateSiteConfig({
       gantt: mermaid.ganttConfig
     });
   }
 
-  var nextId = _utils__WEBPACK_IMPORTED_MODULE_3__["default"].initIdGeneratior(conf.deterministicIds, conf.deterministicIDSeed).next;
+  var idGeneratior = new _utils__WEBPACK_IMPORTED_MODULE_2__["default"].initIdGeneratior(conf.deterministicIds, conf.deterministicIDSeed);
   var txt;
 
   var _loop = function _loop(i) {
@@ -72738,19 +73299,19 @@ var init = function init() {
       return "continue";
     }
 
-    var id = "mermaid-".concat(nextId()); // Fetch the graph definition including tags
+    var id = "mermaid-".concat(idGeneratior.next()); // Fetch the graph definition including tags
 
     txt = element.innerHTML; // transforms the html to pure text
 
-    txt = Object(entity_decode_browser__WEBPACK_IMPORTED_MODULE_0__["default"])(txt).trim().replace(/<br\s*\/?>/gi, '<br/>');
-    var init = _utils__WEBPACK_IMPORTED_MODULE_3__["default"].detectInit(txt);
+    txt = _utils__WEBPACK_IMPORTED_MODULE_2__["default"].entityDecode(txt).trim().replace(/<br\s*\/?>/gi, '<br/>');
+    var init = _utils__WEBPACK_IMPORTED_MODULE_2__["default"].detectInit(txt);
 
     if (init) {
-      _logger__WEBPACK_IMPORTED_MODULE_1__["log"].debug('Detected early reinit: ', init);
+      _logger__WEBPACK_IMPORTED_MODULE_0__["log"].debug('Detected early reinit: ', init);
     }
 
     try {
-      _mermaidAPI__WEBPACK_IMPORTED_MODULE_2__["default"].render(id, txt, function (svgCode, bindFunctions) {
+      _mermaidAPI__WEBPACK_IMPORTED_MODULE_1__["default"].render(id, txt, function (svgCode, bindFunctions) {
         element.innerHTML = svgCode;
 
         if (typeof callback !== 'undefined') {
@@ -72760,8 +73321,8 @@ var init = function init() {
         if (bindFunctions) bindFunctions(element);
       }, element);
     } catch (e) {
-      _logger__WEBPACK_IMPORTED_MODULE_1__["log"].warn('Syntax Error rendering');
-      _logger__WEBPACK_IMPORTED_MODULE_1__["log"].warn(e);
+      _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn('Syntax Error rendering');
+      _logger__WEBPACK_IMPORTED_MODULE_0__["log"].warn(e);
 
       if (_this.parseError) {
         _this.parseError(e);
@@ -72784,11 +73345,11 @@ var initialize = function initialize(config) {
     }
 
     if (typeof config.mermaid.htmlLabels !== 'undefined') {
-      mermaid.htmlLabels = config.mermaid.htmlLabels;
+      mermaid.htmlLabels = config.mermaid.htmlLabels === 'false' || config.mermaid.htmlLabels === false ? false : true;
     }
   }
 
-  _mermaidAPI__WEBPACK_IMPORTED_MODULE_2__["default"].initialize(config); // mermaidAPI.reset();
+  _mermaidAPI__WEBPACK_IMPORTED_MODULE_1__["default"].initialize(config); // mermaidAPI.reset();
 };
 /**
  * ##contentLoaded
@@ -72802,15 +73363,15 @@ var contentLoaded = function contentLoaded() {
 
   if (mermaid.startOnLoad) {
     // No config found, do check API config
-    config = _mermaidAPI__WEBPACK_IMPORTED_MODULE_2__["default"].getConfig();
+    config = _mermaidAPI__WEBPACK_IMPORTED_MODULE_1__["default"].getConfig();
 
     if (config.startOnLoad) {
       mermaid.init();
     }
   } else {
     if (typeof mermaid.startOnLoad === 'undefined') {
-      _logger__WEBPACK_IMPORTED_MODULE_1__["log"].debug('In start, no config');
-      config = _mermaidAPI__WEBPACK_IMPORTED_MODULE_2__["default"].getConfig();
+      _logger__WEBPACK_IMPORTED_MODULE_0__["log"].debug('In start, no config');
+      config = _mermaidAPI__WEBPACK_IMPORTED_MODULE_1__["default"].getConfig();
 
       if (config.startOnLoad) {
         mermaid.init();
@@ -72831,9 +73392,9 @@ if (typeof document !== 'undefined') {
 var mermaid = {
   startOnLoad: true,
   htmlLabels: true,
-  mermaidAPI: _mermaidAPI__WEBPACK_IMPORTED_MODULE_2__["default"],
-  parse: _mermaidAPI__WEBPACK_IMPORTED_MODULE_2__["default"].parse,
-  render: _mermaidAPI__WEBPACK_IMPORTED_MODULE_2__["default"].render,
+  mermaidAPI: _mermaidAPI__WEBPACK_IMPORTED_MODULE_1__["default"],
+  parse: _mermaidAPI__WEBPACK_IMPORTED_MODULE_1__["default"].parse,
+  render: _mermaidAPI__WEBPACK_IMPORTED_MODULE_1__["default"].render,
   init: init,
   initialize: initialize,
   contentLoaded: contentLoaded
@@ -72854,8 +73415,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "encodeEntities", function() { return encodeEntities; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "decodeEntities", function() { return decodeEntities; });
 /* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! d3 */ "./node_modules/d3/index.js");
-/* harmony import */ var stylis__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! stylis */ "./node_modules/stylis/stylis.js");
-/* harmony import */ var stylis__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(stylis__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var stylis__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! stylis */ "./node_modules/stylis/dist/stylis.mjs");
 /* harmony import */ var _package_json__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../package.json */ "./package.json");
 var _package_json__WEBPACK_IMPORTED_MODULE_2___namespace = /*#__PURE__*/__webpack_require__.t(/*! ../package.json */ "./package.json", 1);
 /* harmony import */ var _config__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./config */ "./src/config.js");
@@ -72984,14 +73544,15 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
 
 function parse(text) {
-  var graphInit = _utils__WEBPACK_IMPORTED_MODULE_44__["default"].detectInit(text);
+  var cnf = _config__WEBPACK_IMPORTED_MODULE_3__["getConfig"]();
+  var graphInit = _utils__WEBPACK_IMPORTED_MODULE_44__["default"].detectInit(text, cnf);
 
   if (graphInit) {
     reinitialize(graphInit);
     _logger__WEBPACK_IMPORTED_MODULE_41__["log"].debug('reinit ', graphInit);
   }
 
-  var graphType = _utils__WEBPACK_IMPORTED_MODULE_44__["default"].detectType(text);
+  var graphType = _utils__WEBPACK_IMPORTED_MODULE_44__["default"].detectType(text, cnf);
   var parser;
   _logger__WEBPACK_IMPORTED_MODULE_41__["log"].debug('Type ' + graphType);
 
@@ -73069,7 +73630,6 @@ function parse(text) {
 
     case 'requirement':
     case 'requirementDiagram':
-      console.log('RequirementDiagram');
       _logger__WEBPACK_IMPORTED_MODULE_41__["log"].debug('RequirementDiagram');
       parser = _diagrams_requirement_parser_requirementDiagram__WEBPACK_IMPORTED_MODULE_27___default.a;
       parser.parser.yy = _diagrams_requirement_requirementDb__WEBPACK_IMPORTED_MODULE_28__["default"];
@@ -73191,7 +73751,7 @@ var render = function render(id, _txt, cb, container) {
   window.txt = txt;
   txt = encodeEntities(txt);
   var element = Object(d3__WEBPACK_IMPORTED_MODULE_0__["select"])('#d' + id).node();
-  var graphType = _utils__WEBPACK_IMPORTED_MODULE_44__["default"].detectType(txt); // insert inline style into svg
+  var graphType = _utils__WEBPACK_IMPORTED_MODULE_44__["default"].detectType(txt, cnf); // insert inline style into svg
 
   var svg = element.firstChild;
   var firstChild = svg.firstChild;
@@ -73214,21 +73774,34 @@ var render = function render(id, _txt, cb, container) {
 
   if (graphType === 'flowchart' || graphType === 'flowchart-v2' || graphType === 'graph') {
     var classes = _diagrams_flowchart_flowRenderer__WEBPACK_IMPORTED_MODULE_12__["default"].getClasses(txt);
+    var htmlLabels = cnf.htmlLabels || cnf.flowchart.htmlLabels;
 
     for (var className in classes) {
-      userStyles += "\n.".concat(className, " > * { ").concat(classes[className].styles.join(' !important; '), " !important; }");
+      if (htmlLabels) {
+        userStyles += "\n.".concat(className, " > * { ").concat(classes[className].styles.join(' !important; '), " !important; }");
+        userStyles += "\n.".concat(className, " span { ").concat(classes[className].styles.join(' !important; '), " !important; }");
+      } else {
+        userStyles += "\n.".concat(className, " path { ").concat(classes[className].styles.join(' !important; '), " !important; }");
+        userStyles += "\n.".concat(className, " rect { ").concat(classes[className].styles.join(' !important; '), " !important; }");
+        userStyles += "\n.".concat(className, " polygon { ").concat(classes[className].styles.join(' !important; '), " !important; }");
+        userStyles += "\n.".concat(className, " ellipse { ").concat(classes[className].styles.join(' !important; '), " !important; }");
+        userStyles += "\n.".concat(className, " circle { ").concat(classes[className].styles.join(' !important; '), " !important; }");
 
-      if (classes[className].textStyles) {
-        userStyles += "\n.".concat(className, " tspan { ").concat(classes[className].textStyles.join(' !important; '), " !important; }");
+        if (classes[className].textStyles) {
+          userStyles += "\n.".concat(className, " tspan { ").concat(classes[className].textStyles.join(' !important; '), " !important; }");
+        }
       }
     }
   } // log.warn(cnf.themeVariables);
 
 
-  var stylis = new stylis__WEBPACK_IMPORTED_MODULE_1___default.a();
+  var stylis = function stylis(selector, styles) {
+    return Object(stylis__WEBPACK_IMPORTED_MODULE_1__["serialize"])(Object(stylis__WEBPACK_IMPORTED_MODULE_1__["compile"])("".concat(selector, "{").concat(styles, "}")), stylis__WEBPACK_IMPORTED_MODULE_1__["stringify"]);
+  };
+
   var rules = stylis("#".concat(id), Object(_styles__WEBPACK_IMPORTED_MODULE_42__["default"])(graphType, userStyles, cnf.themeVariables));
   var style1 = document.createElement('style');
-  style1.innerHTML = rules;
+  style1.innerHTML = "#".concat(id, " ") + rules;
   svg.insertBefore(style1, firstChild); // Verify that the generated svgs are ok before removing this
   // const style2 = document.createElement('style');
   // const cs = window.getComputedStyle(svg);
@@ -73311,8 +73884,8 @@ var render = function render(id, _txt, cb, container) {
         break;
 
       case 'pie':
-        cnf.class.arrowMarkerAbsolute = cnf.arrowMarkerAbsolute;
-        _diagrams_pie_pieRenderer__WEBPACK_IMPORTED_MODULE_26__["default"].setConf(cnf.pie);
+        //cnf.class.arrowMarkerAbsolute = cnf.arrowMarkerAbsolute;
+        //pieRenderer.setConf(cnf.pie);
         _diagrams_pie_pieRenderer__WEBPACK_IMPORTED_MODULE_26__["default"].draw(txt, id, _package_json__WEBPACK_IMPORTED_MODULE_2__.version);
         break;
 
@@ -73461,6 +74034,7 @@ var handleDirective = function handleDirective(p, directive, type) {
 };
 
 function updateRendererConfigs(conf) {
+  // Todo remove, all diagrams should get config on demoand from the config object, no need for this
   _diagrams_git_gitGraphRenderer__WEBPACK_IMPORTED_MODULE_19__["default"].setConf(conf.git);
   _diagrams_flowchart_flowRenderer__WEBPACK_IMPORTED_MODULE_12__["default"].setConf(conf.flowchart);
   _diagrams_flowchart_flowRenderer_v2__WEBPACK_IMPORTED_MODULE_13__["default"].setConf(conf.flowchart);
@@ -73474,8 +74048,8 @@ function updateRendererConfigs(conf) {
   _diagrams_class_classRenderer__WEBPACK_IMPORTED_MODULE_5__["default"].setConf(conf.class);
   _diagrams_state_stateRenderer__WEBPACK_IMPORTED_MODULE_35__["default"].setConf(conf.state);
   _diagrams_state_stateRenderer_v2__WEBPACK_IMPORTED_MODULE_36__["default"].setConf(conf.state);
-  _diagrams_info_infoRenderer__WEBPACK_IMPORTED_MODULE_22__["default"].setConf(conf.class);
-  _diagrams_pie_pieRenderer__WEBPACK_IMPORTED_MODULE_26__["default"].setConf(conf.class);
+  _diagrams_info_infoRenderer__WEBPACK_IMPORTED_MODULE_22__["default"].setConf(conf.class); // pieRenderer.setConf(conf.class);
+
   _diagrams_er_erRenderer__WEBPACK_IMPORTED_MODULE_9__["default"].setConf(conf.er);
   _diagrams_user_journey_journeyRenderer__WEBPACK_IMPORTED_MODULE_38__["default"].setConf(conf.journey);
   _diagrams_requirement_requirementRenderer__WEBPACK_IMPORTED_MODULE_29__["default"].setConf(conf.requirement);
@@ -73578,7 +74152,7 @@ _config__WEBPACK_IMPORTED_MODULE_3__["reset"](_config__WEBPACK_IMPORTED_MODULE_3
  *     flowchart:{
  *       diagramPadding:8,
  *       htmlLabels:true,
- *       curve:'linear',
+ *       curve:'basis',
  *     },
  *     sequence:{
  *       diagramMarginX:50,
@@ -73608,6 +74182,7 @@ _config__WEBPACK_IMPORTED_MODULE_3__["reset"](_config__WEBPACK_IMPORTED_MODULE_3
  *       fontFamily:'"Open-Sans", "sans-serif"',
  *       numberSectionStyles:4,
  *       axisFormat:'%Y-%m-%d',
+ *       topAxis:false,
  *     }
  *   };
  *   mermaid.initialize(config);
@@ -73672,7 +74247,7 @@ var calcThemeVariables = function calcThemeVariables(theme, userOverRides) {
 
 var getStyles = function getStyles(type, userStyles, options) {
   //console.warn('options in styles: ', options);
-  return " {\n    font-family: ".concat(options.fontFamily, ";\n    font-size: ").concat(options.fontSize, ";\n    fill: ").concat(options.textColor, "\n  }\n\n  /* Classes common for multiple diagrams */\n\n  .error-icon {\n    fill: ").concat(options.errorBkgColor, ";\n  }\n  .error-text {\n    fill: ").concat(options.errorTextColor, ";\n    stroke: ").concat(options.errorTextColor, ";\n  }\n\n  .edge-thickness-normal {\n    stroke-width: 2px;\n  }\n  .edge-thickness-thick {\n    stroke-width: 3.5px\n  }\n  .edge-pattern-solid {\n    stroke-dasharray: 0;\n  }\n\n  .edge-pattern-dashed{\n    stroke-dasharray: 3;\n  }\n  .edge-pattern-dotted {\n    stroke-dasharray: 2;\n  }\n\n  .marker {\n    fill: ").concat(options.lineColor, ";\n    stroke: ").concat(options.lineColor, ";\n  }\n  .marker.cross {\n    stroke: ").concat(options.lineColor, ";\n  }\n\n  svg {\n    font-family: ").concat(options.fontFamily, ";\n    font-size: ").concat(options.fontSize, ";\n  }\n\n  ").concat(themes[type](options), "\n\n  ").concat(userStyles, "\n\n  ").concat(type, " { fill: apa;}\n");
+  return " {\n    font-family: ".concat(options.fontFamily, ";\n    font-size: ").concat(options.fontSize, ";\n    fill: ").concat(options.textColor, "\n  }\n\n  /* Classes common for multiple diagrams */\n\n  .error-icon {\n    fill: ").concat(options.errorBkgColor, ";\n  }\n  .error-text {\n    fill: ").concat(options.errorTextColor, ";\n    stroke: ").concat(options.errorTextColor, ";\n  }\n\n  .edge-thickness-normal {\n    stroke-width: 2px;\n  }\n  .edge-thickness-thick {\n    stroke-width: 3.5px\n  }\n  .edge-pattern-solid {\n    stroke-dasharray: 0;\n  }\n\n  .edge-pattern-dashed{\n    stroke-dasharray: 3;\n  }\n  .edge-pattern-dotted {\n    stroke-dasharray: 2;\n  }\n\n  .marker {\n    fill: ").concat(options.lineColor, ";\n    stroke: ").concat(options.lineColor, ";\n  }\n  .marker.cross {\n    stroke: ").concat(options.lineColor, ";\n  }\n\n  svg {\n    font-family: ").concat(options.fontFamily, ";\n    font-size: ").concat(options.fontSize, ";\n  }\n\n  ").concat(themes[type](options), "\n\n  ").concat(userStyles, "\n");
 };
 
 /* harmony default export */ __webpack_exports__["default"] = (getStyles);
@@ -73742,9 +74317,7 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 
 
 
-var Theme =
-/*#__PURE__*/
-function () {
+var Theme = /*#__PURE__*/function () {
   function Theme() {
     _classCallCheck(this, Theme);
 
@@ -73794,6 +74367,8 @@ function () {
       this.secondaryBorderColor = this.secondaryBorderColor || Object(_theme_helpers__WEBPACK_IMPORTED_MODULE_1__["mkBorder"])(this.secondaryColor, this.darkMode);
       this.tertiaryBorderColor = this.tertiaryBorderColor || Object(_theme_helpers__WEBPACK_IMPORTED_MODULE_1__["mkBorder"])(this.tertiaryColor, this.darkMode);
       this.noteBorderColor = this.noteBorderColor || Object(_theme_helpers__WEBPACK_IMPORTED_MODULE_1__["mkBorder"])(this.noteBkgColor, this.darkMode);
+      this.noteBkgColor = this.noteBkgColor || '#fff5ad';
+      this.noteTextColor = this.noteTextColor || '#333';
       this.secondaryTextColor = this.secondaryTextColor || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["invert"])(this.secondaryColor);
       this.tertiaryTextColor = this.tertiaryTextColor || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["invert"])(this.tertiaryColor);
       this.lineColor = this.lineColor || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["invert"])(this.background);
@@ -73849,10 +74424,22 @@ function () {
       this.taskTextClickableColor = this.taskTextClickableColor || '#003163';
       /* state colors */
 
-      this.labelColor = this.labelColor || this.primaryTextColor;
+      this.transitionColor = this.transitionColor || this.lineColor;
+      this.transitionLabelColor = this.transitionLabelColor || this.textColor;
+      /* The color of the text tables of the tstates*/
+
+      this.stateLabelColor = this.stateLabelColor || this.stateBkg || this.primaryTextColor;
+      this.stateBkg = this.stateBkg || this.mainBkg;
+      this.labelBackgroundColor = this.labelBackgroundColor || this.stateBkg;
+      this.compositeBackground = this.compositeBackground || this.background || this.tertiaryColor;
       this.altBackground = this.altBackground || this.tertiaryColor;
+      this.compositeTitleBackground = this.compositeTitleBackground || this.mainBkg;
+      this.compositeBorder = this.compositeBorder || this.nodeBorder;
+      this.innerEndBackground = this.nodeBorder;
       this.errorBkgColor = this.errorBkgColor || this.tertiaryColor;
       this.errorTextColor = this.errorTextColor || this.tertiaryTextColor;
+      this.transitionColor = this.transitionColor || this.lineColor;
+      this.specialStateColor = this.lineColor;
       /* class */
 
       this.classText = this.classText || this.textColor;
@@ -73878,6 +74465,62 @@ function () {
       this.fillType7 = this.fillType7 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.secondaryColor, {
         h: 128
       });
+      /* pie */
+
+      this.pie1 = this.pie1 || this.primaryColor;
+      this.pie2 = this.pie2 || this.secondaryColor;
+      this.pie3 = this.pie3 || this.tertiaryColor;
+      this.pie4 = this.pie4 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        l: -10
+      });
+      this.pie5 = this.pie5 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.secondaryColor, {
+        l: -10
+      });
+      this.pie6 = this.pie6 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.tertiaryColor, {
+        l: -10
+      });
+      this.pie7 = this.pie7 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: +60,
+        l: -10
+      });
+      this.pie8 = this.pie8 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: -60,
+        l: -10
+      });
+      this.pie9 = this.pie9 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: 120,
+        l: 0
+      });
+      this.pie10 = this.pie10 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: +60,
+        l: -20
+      });
+      this.pie11 = this.pie11 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: -60,
+        l: -20
+      });
+      this.pie12 = this.pie12 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: 120,
+        l: -10
+      });
+      this.pieTitleTextSize = this.pieTitleTextSize || '25px';
+      this.pieTitleTextColor = this.pieTitleTextColor || this.taskTextDarkColor;
+      this.pieSectionTextSize = this.pieSectionTextSize || '17px';
+      this.pieSectionTextColor = this.pieSectionTextColor || this.textColor;
+      this.pieLegendTextSize = this.pieLegendTextSize || '17px';
+      this.pieLegendTextColor = this.pieLegendTextColor || this.taskTextDarkColor;
+      this.pieStrokeColor = this.pieStrokeColor || 'black';
+      this.pieStrokeWidth = this.pieStrokeWidth || '2px';
+      this.pieOpacity = this.pieOpacity || '0.7';
+      /* requirement-diagram */
+
+      this.requirementBackground = this.requirementBackground || this.primaryColor;
+      this.requirementBorderColor = this.requirementBorderColor || this.primaryBorderColor;
+      this.requirementBorderSize = this.requirementBorderSize || this.primaryBorderColor;
+      this.requirementTextColor = this.requirementTextColor || this.primaryTextColor;
+      this.relationColor = this.relationColor || this.lineColor;
+      this.relationLabelBackground = this.relationLabelBackground || (this.darkMode ? Object(khroma__WEBPACK_IMPORTED_MODULE_0__["darken"])(this.secondaryColor, 30) : this.secondaryColor);
+      this.relationLabelColor = this.relationLabelColor || this.actorTextColor;
     }
   }, {
     key: "calculate",
@@ -73939,9 +74582,7 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 
 
 
-var Theme =
-/*#__PURE__*/
-function () {
+var Theme = /*#__PURE__*/function () {
   function Theme() {
     _classCallCheck(this, Theme);
 
@@ -74051,8 +74692,9 @@ function () {
       this.labelBoxBorderColor = this.actorBorder;
       this.labelTextColor = this.mainContrastColor;
       this.loopTextColor = this.mainContrastColor;
-      this.noteBorderColor = this.border2;
-      this.noteTextColor = this.mainBkg;
+      this.noteBorderColor = this.secondaryBorderColor;
+      this.noteBkgColor = this.secondBkg;
+      this.noteTextColor = this.secondaryTextColor;
       this.activationBorderColor = this.border1;
       this.activationBkgColor = this.secondBkg;
       /* Gantt chart variables */
@@ -74067,8 +74709,20 @@ function () {
       this.taskTextDarkColor = this.darkTextColor;
       /* state colors */
 
-      this.labelColor = this.textColor;
-      this.altBackground = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["lighten"])(this.background, 20);
+      this.transitionColor = this.transitionColor || this.lineColor;
+      this.transitionLabelColor = this.transitionLabelColor || this.textColor;
+      this.stateLabelColor = this.stateLabelColor || this.stateBkg || this.primaryTextColor;
+      this.stateBkg = this.stateBkg || this.mainBkg;
+      this.labelBackgroundColor = this.labelBackgroundColor || this.stateBkg;
+      this.compositeBackground = this.compositeBackground || this.background || this.tertiaryColor;
+      this.altBackground = this.altBackground || '#555';
+      this.compositeTitleBackground = this.compositeTitleBackground || this.mainBkg;
+      this.compositeBorder = this.compositeBorder || this.nodeBorder;
+      this.innerEndBackground = this.primaryBorderColor;
+      this.specialStateColor = '#f4f4f4'; // this.lineColor;
+
+      this.errorBkgColor = this.errorBkgColor || this.tertiaryColor;
+      this.errorTextColor = this.errorTextColor || this.tertiaryTextColor;
       this.fillType0 = this.primaryColor;
       this.fillType1 = this.secondaryColor;
       this.fillType2 = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
@@ -74089,9 +74743,41 @@ function () {
       this.fillType7 = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.secondaryColor, {
         h: 128
       });
+      /* pie */
+
+      this.pie1 = this.pie1 || '#0b0000';
+      this.pie2 = this.pie2 || '#4d1037';
+      this.pie3 = this.pie3 || '#3f5258';
+      this.pie4 = this.pie4 || '#4f2f1b';
+      this.pie5 = this.pie5 || '#6e0a0a';
+      this.pie6 = this.pie6 || '#3b0048';
+      this.pie7 = this.pie7 || '#995a01';
+      this.pie8 = this.pie8 || '#154706';
+      this.pie9 = this.pie9 || '#161722';
+      this.pie10 = this.pie10 || '#00296f';
+      this.pie11 = this.pie11 || '#01629c';
+      this.pie12 = this.pie12 || '#010029';
+      this.pieTitleTextSize = this.pieTitleTextSize || '25px';
+      this.pieTitleTextColor = this.pieTitleTextColor || this.taskTextDarkColor;
+      this.pieSectionTextSize = this.pieSectionTextSize || '17px';
+      this.pieSectionTextColor = this.pieSectionTextColor || this.textColor;
+      this.pieLegendTextSize = this.pieLegendTextSize || '17px';
+      this.pieLegendTextColor = this.pieLegendTextColor || this.taskTextDarkColor;
+      this.pieStrokeColor = this.pieStrokeColor || 'black';
+      this.pieStrokeWidth = this.pieStrokeWidth || '2px';
+      this.pieOpacity = this.pieOpacity || '0.7';
       /* class */
 
       this.classText = this.primaryTextColor;
+      /* requirement-diagram */
+
+      this.requirementBackground = this.requirementBackground || this.primaryColor;
+      this.requirementBorderColor = this.requirementBorderColor || this.primaryBorderColor;
+      this.requirementBorderSize = this.requirementBorderSize || this.primaryBorderColor;
+      this.requirementTextColor = this.requirementTextColor || this.primaryTextColor;
+      this.relationColor = this.relationColor || this.lineColor;
+      this.relationLabelBackground = this.relationLabelBackground || (this.darkMode ? Object(khroma__WEBPACK_IMPORTED_MODULE_0__["darken"])(this.secondaryColor, 30) : this.secondaryColor);
+      this.relationLabelColor = this.relationLabelColor || this.actorTextColor;
     }
   }, {
     key: "calculate",
@@ -74153,9 +74839,7 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 
 
 
-var Theme =
-/*#__PURE__*/
-function () {
+var Theme = /*#__PURE__*/function () {
   function Theme() {
     _classCallCheck(this, Theme);
 
@@ -74293,6 +74977,20 @@ function () {
       this.taskTextOutsideColor = this.taskTextDarkColor;
       /* state colors */
 
+      this.transitionColor = this.transitionColor || this.lineColor;
+      this.transitionLabelColor = this.transitionLabelColor || this.textColor;
+      this.stateLabelColor = this.stateLabelColor || this.stateBkg || this.primaryTextColor;
+      this.stateBkg = this.stateBkg || this.mainBkg;
+      this.labelBackgroundColor = this.labelBackgroundColor || this.stateBkg;
+      this.compositeBackground = this.compositeBackground || this.background || this.tertiaryColor;
+      this.altBackground = this.altBackground || '#f0f0f0';
+      this.compositeTitleBackground = this.compositeTitleBackground || this.mainBkg;
+      this.compositeBorder = this.compositeBorder || this.nodeBorder;
+      this.innerEndBackground = this.nodeBorder;
+      this.specialStateColor = this.lineColor;
+      this.errorBkgColor = this.errorBkgColor || this.tertiaryColor;
+      this.errorTextColor = this.errorTextColor || this.tertiaryTextColor;
+      this.transitionColor = this.transitionColor || this.lineColor;
       /* class */
 
       this.classText = this.primaryTextColor;
@@ -74318,6 +75016,64 @@ function () {
       this.fillType7 = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.secondaryColor, {
         h: 128
       });
+      /* pie */
+
+      this.pie1 = this.pie1 || this.primaryColor;
+      this.pie2 = this.pie2 || this.secondaryColor;
+      this.pie3 = this.pie3 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.tertiaryColor, {
+        l: -40
+      });
+      this.pie4 = this.pie4 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        l: -10
+      });
+      this.pie5 = this.pie5 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.secondaryColor, {
+        l: -30
+      });
+      this.pie6 = this.pie6 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.tertiaryColor, {
+        l: -20
+      });
+      this.pie7 = this.pie7 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: +60,
+        l: -20
+      });
+      this.pie8 = this.pie8 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: -60,
+        l: -40
+      });
+      this.pie9 = this.pie9 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: 120,
+        l: -40
+      });
+      this.pie10 = this.pie10 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: +60,
+        l: -40
+      });
+      this.pie11 = this.pie11 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: -90,
+        l: -40
+      });
+      this.pie12 = this.pie12 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: 120,
+        l: -30
+      });
+      this.pieTitleTextSize = this.pieTitleTextSize || '25px';
+      this.pieTitleTextColor = this.pieTitleTextColor || this.taskTextDarkColor;
+      this.pieSectionTextSize = this.pieSectionTextSize || '17px';
+      this.pieSectionTextColor = this.pieSectionTextColor || this.textColor;
+      this.pieLegendTextSize = this.pieLegendTextSize || '17px';
+      this.pieLegendTextColor = this.pieLegendTextColor || this.taskTextDarkColor;
+      this.pieStrokeColor = this.pieStrokeColor || 'black';
+      this.pieStrokeWidth = this.pieStrokeWidth || '2px';
+      this.pieOpacity = this.pieOpacity || '0.7';
+      /* requirement-diagram */
+
+      this.requirementBackground = this.requirementBackground || this.primaryColor;
+      this.requirementBorderColor = this.requirementBorderColor || this.primaryBorderColor;
+      this.requirementBorderSize = this.requirementBorderSize || this.primaryBorderColor;
+      this.requirementTextColor = this.requirementTextColor || this.primaryTextColor;
+      this.relationColor = this.relationColor || this.lineColor;
+      this.relationLabelBackground = this.relationLabelBackground || this.labelBackground;
+      this.relationLabelColor = this.relationLabelColor || this.actorTextColor;
     }
   }, {
     key: "calculate",
@@ -74379,9 +75135,7 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 
 
 
-var Theme =
-/*#__PURE__*/
-function () {
+var Theme = /*#__PURE__*/function () {
   function Theme() {
     _classCallCheck(this, Theme);
 
@@ -74488,6 +75242,20 @@ function () {
       this.activeTaskBkgColor = this.mainBkg;
       /* state colors */
 
+      this.transitionColor = this.transitionColor || this.lineColor;
+      this.transitionLabelColor = this.transitionLabelColor || this.textColor;
+      this.stateLabelColor = this.stateLabelColor || this.stateBkg || this.primaryTextColor;
+      this.stateBkg = this.stateBkg || this.mainBkg;
+      this.labelBackgroundColor = this.labelBackgroundColor || this.stateBkg;
+      this.compositeBackground = this.compositeBackground || this.background || this.tertiaryColor;
+      this.altBackground = this.altBackground || '#f0f0f0';
+      this.compositeTitleBackground = this.compositeTitleBackground || this.mainBkg;
+      this.compositeBorder = this.compositeBorder || this.nodeBorder;
+      this.innerEndBackground = this.primaryBorderColor;
+      this.specialStateColor = this.lineColor;
+      this.errorBkgColor = this.errorBkgColor || this.tertiaryColor;
+      this.errorTextColor = this.errorTextColor || this.tertiaryTextColor;
+      this.transitionColor = this.transitionColor || this.lineColor;
       /* class */
 
       this.classText = this.primaryTextColor;
@@ -74513,6 +75281,63 @@ function () {
       this.fillType7 = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.secondaryColor, {
         h: 128
       });
+      /* pie */
+
+      this.pie1 = this.pie1 || this.primaryColor;
+      this.pie2 = this.pie2 || this.secondaryColor;
+      this.pie3 = this.pie3 || this.tertiaryColor;
+      this.pie4 = this.pie4 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        l: -30
+      });
+      this.pie5 = this.pie5 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.secondaryColor, {
+        l: -30
+      });
+      this.pie6 = this.pie6 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.tertiaryColor, {
+        h: +40,
+        l: -40
+      });
+      this.pie7 = this.pie7 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: +60,
+        l: -10
+      });
+      this.pie8 = this.pie8 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: -60,
+        l: -10
+      });
+      this.pie9 = this.pie9 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: 120,
+        l: 0
+      });
+      this.pie10 = this.pie10 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: +60,
+        l: -50
+      });
+      this.pie11 = this.pie11 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: -60,
+        l: -50
+      });
+      this.pie12 = this.pie12 || Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.primaryColor, {
+        h: 120,
+        l: -50
+      });
+      this.pieTitleTextSize = this.pieTitleTextSize || '25px';
+      this.pieTitleTextColor = this.pieTitleTextColor || this.taskTextDarkColor;
+      this.pieSectionTextSize = this.pieSectionTextSize || '17px';
+      this.pieSectionTextColor = this.pieSectionTextColor || this.textColor;
+      this.pieLegendTextSize = this.pieLegendTextSize || '17px';
+      this.pieLegendTextColor = this.pieLegendTextColor || this.taskTextDarkColor;
+      this.pieStrokeColor = this.pieStrokeColor || 'black';
+      this.pieStrokeWidth = this.pieStrokeWidth || '2px';
+      this.pieOpacity = this.pieOpacity || '0.7';
+      /* requirement-diagram */
+
+      this.requirementBackground = this.requirementBackground || this.primaryColor;
+      this.requirementBorderColor = this.requirementBorderColor || this.primaryBorderColor;
+      this.requirementBorderSize = this.requirementBorderSize || this.primaryBorderColor;
+      this.requirementTextColor = this.requirementTextColor || this.primaryTextColor;
+      this.relationColor = this.relationColor || this.lineColor;
+      this.relationLabelBackground = this.relationLabelBackground || this.edgeLabelBackground;
+      this.relationLabelColor = this.relationLabelColor || this.actorTextColor;
     }
   }, {
     key: "calculate",
@@ -74600,9 +75425,7 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
  // const Color = require ( 'khroma/dist/color' ).default
 // Color.format.hex.stringify(Color.parse('hsl(210, 66.6666666667%, 95%)')); // => "#EAF2FB"
 
-var Theme =
-/*#__PURE__*/
-function () {
+var Theme = /*#__PURE__*/function () {
   function Theme() {
     _classCallCheck(this, Theme);
 
@@ -74622,8 +75445,8 @@ function () {
     this.secondaryTextColor = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["invert"])(this.secondaryColor);
     this.tertiaryTextColor = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["invert"])(this.tertiaryColor);
     this.lineColor = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["invert"])(this.background);
-    this.textColor = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["invert"])(this.background);
-    this.altBackground = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["lighten"])(this.contrast, 55);
+    this.textColor = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["invert"])(this.background); // this.altBackground = lighten(this.contrast, 55);
+
     this.mainBkg = '#eee';
     this.secondBkg = 'calculated';
     this.lineColor = '#666';
@@ -74715,9 +75538,9 @@ function () {
       this.labelBoxBorderColor = this.actorBorder;
       this.labelTextColor = this.text;
       this.loopTextColor = this.text;
-      this.noteBorderColor = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["darken"])(this.note, 60);
-      this.noteBkgColor = this.note;
-      this.noteTextColor = this.actorTextColor;
+      this.noteBorderColor = '#999';
+      this.noteBkgColor = '#666';
+      this.noteTextColor = '#fff';
       /* Gantt chart variables */
 
       this.sectionBkgColor = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["lighten"])(this.contrast, 30);
@@ -74737,6 +75560,19 @@ function () {
       this.todayLineColor = this.critBkgColor;
       /* state colors */
 
+      this.transitionColor = this.transitionColor || '#000';
+      this.transitionLabelColor = this.transitionLabelColor || this.textColor;
+      this.stateLabelColor = this.stateLabelColor || this.stateBkg || this.primaryTextColor;
+      this.stateBkg = this.stateBkg || this.mainBkg;
+      this.labelBackgroundColor = this.labelBackgroundColor || this.stateBkg;
+      this.compositeBackground = this.compositeBackground || this.background || this.tertiaryColor;
+      this.altBackground = this.altBackground || '#f4f4f4';
+      this.compositeTitleBackground = this.compositeTitleBackground || this.mainBkg;
+      this.stateBorder = this.stateBorder || '#000';
+      this.innerEndBackground = this.primaryBorderColor;
+      this.specialStateColor = '#222';
+      this.errorBkgColor = this.errorBkgColor || this.tertiaryColor;
+      this.errorTextColor = this.errorTextColor || this.tertiaryTextColor;
       /* class */
 
       this.classText = this.primaryTextColor;
@@ -74761,7 +75597,50 @@ function () {
       });
       this.fillType7 = Object(khroma__WEBPACK_IMPORTED_MODULE_0__["adjust"])(this.secondaryColor, {
         h: 128
-      });
+      }); // /* pie */
+
+      this.pie1 = this.pie1 || '#F4F4F4';
+      this.pie2 = this.pie2 || '#555';
+      this.pie3 = this.pie3 || '#BBB';
+      this.pie4 = this.pie4 || '#777';
+      this.pie5 = this.pie5 || '#999';
+      this.pie6 = this.pie6 || '#DDD';
+      this.pie7 = this.pie7 || '#FFF';
+      this.pie8 = this.pie8 || '#DDD';
+      this.pie9 = this.pie9 || '#BBB';
+      this.pie10 = this.pie10 || '#999';
+      this.pie11 = this.pie11 || '#777';
+      this.pie12 = this.pie12 || '#555';
+      this.pieTitleTextSize = this.pieTitleTextSize || '25px';
+      this.pieTitleTextColor = this.pieTitleTextColor || this.taskTextDarkColor;
+      this.pieSectionTextSize = this.pieSectionTextSize || '17px';
+      this.pieSectionTextColor = this.pieSectionTextColor || this.textColor;
+      this.pieLegendTextSize = this.pieLegendTextSize || '17px';
+      this.pieLegendTextColor = this.pieLegendTextColor || this.taskTextDarkColor;
+      this.pieStrokeColor = this.pieStrokeColor || 'black';
+      this.pieStrokeWidth = this.pieStrokeWidth || '2px';
+      this.pieOpacity = this.pieOpacity || '0.7'; // this.pie1 = this.pie1 || '#212529';
+      // this.pie2 = this.pie2 || '#343A40';
+      // this.pie3 = this.pie3 || '#495057';
+      // this.pie4 = this.pie4 || '#6C757D';
+      // this.pie5 = this.pie5 || adjust(this.secondaryColor, { l: -10 });
+      // this.pie6 = this.pie6 || adjust(this.tertiaryColor, { l: -10 });
+      // this.pie7 = this.pie7 || adjust(this.primaryColor, { h: +60, l: -10 });
+      // this.pie8 = this.pie8 || adjust(this.primaryColor, { h: -60, l: -10 });
+      // this.pie9 = this.pie9 || adjust(this.primaryColor, { h: 120, l: 0 });
+      // this.pie10 = this.pie10 || adjust(this.primaryColor, { h: +60, l: -20 });
+      // this.pie11 = this.pie11 || adjust(this.primaryColor, { h: -60, l: -20 });
+      // this.pie12 = this.pie12 || adjust(this.primaryColor, { h: 120, l: -10 });
+
+      /* requirement-diagram */
+
+      this.requirementBackground = this.requirementBackground || this.primaryColor;
+      this.requirementBorderColor = this.requirementBorderColor || this.primaryBorderColor;
+      this.requirementBorderSize = this.requirementBorderSize || this.primaryBorderColor;
+      this.requirementTextColor = this.requirementTextColor || this.primaryTextColor;
+      this.relationColor = this.relationColor || this.lineColor;
+      this.relationLabelBackground = this.relationLabelBackground || this.edgeLabelBackground;
+      this.relationLabelColor = this.relationLabelColor || this.actorTextColor;
     }
   }, {
     key: "calculate",
@@ -74803,7 +75682,7 @@ var getThemeVariables = function getThemeVariables(userOverrides) {
 /*!**********************!*\
   !*** ./src/utils.js ***!
   \**********************/
-/*! exports provided: detectInit, detectDirective, detectType, isSubstringInArray, interpolateToCurve, formatUrl, runFunc, getStylesFromArray, generateId, random, assignWithDepth, getTextObj, drawSimpleText, wrapLabel, calculateTextHeight, calculateTextWidth, calculateTextDimensions, calculateSvgSizeAttrs, configureSvgSize, initIdGeneratior, default */
+/*! exports provided: detectInit, detectDirective, detectType, isSubstringInArray, interpolateToCurve, formatUrl, runFunc, getStylesFromArray, generateId, random, assignWithDepth, getTextObj, drawSimpleText, wrapLabel, calculateTextHeight, calculateTextWidth, calculateTextDimensions, calculateSvgSizeAttrs, configureSvgSize, initIdGeneratior, entityDecode, default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -74828,6 +75707,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "calculateSvgSizeAttrs", function() { return calculateSvgSizeAttrs; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "configureSvgSize", function() { return configureSvgSize; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "initIdGeneratior", function() { return initIdGeneratior; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "entityDecode", function() { return entityDecode; });
 /* harmony import */ var _braintree_sanitize_url__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @braintree/sanitize-url */ "./node_modules/@braintree/sanitize-url/index.js");
 /* harmony import */ var _braintree_sanitize_url__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_braintree_sanitize_url__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! d3 */ "./node_modules/d3/index.js");
@@ -74841,21 +75721,26 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
+function _createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it.return != null) it.return(); } finally { if (didErr) throw err; } } }; }
+
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
-function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
 
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 
-function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 
-function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
 
 
 
- // import cryptoRandomString from 'crypto-random-string';
-// Effectively an enum of the supported curve types, accessible by name
+ // Effectively an enum of the supported curve types, accessible by name
 
 var d3CurveTypes = {
   curveBasis: d3__WEBPACK_IMPORTED_MODULE_1__["curveBasis"],
@@ -74904,7 +75789,7 @@ var anyComment = /\s*%%.*\n/gm;
  * @returns {object} the json object representing the init passed to mermaid.initialize()
  */
 
-var detectInit = function detectInit(text) {
+var detectInit = function detectInit(text, cnf) {
   var inits = detectDirective(text, /(?:init\b)|(?:initialize\b)/);
   var results = {};
 
@@ -74918,7 +75803,7 @@ var detectInit = function detectInit(text) {
   }
 
   if (results) {
-    var type = detectType(text);
+    var type = detectType(text, cnf);
     ['config'].forEach(function (prop) {
       if (typeof results[prop] !== 'undefined') {
         if (type === 'flowchart-v2') {
@@ -75018,7 +75903,7 @@ var detectDirective = function detectDirective(text) {
  * @returns {string} A graph definition key
  */
 
-var detectType = function detectType(text) {
+var detectType = function detectType(text, cnf) {
   text = text.replace(directive, '').replace(anyComment, '\n');
   _logger__WEBPACK_IMPORTED_MODULE_3__["log"].debug('Detecting diagram type based on the text ' + text);
 
@@ -75035,6 +75920,7 @@ var detectType = function detectType(text) {
   }
 
   if (text.match(/^\s*classDiagram/)) {
+    if (cnf && cnf.class && cnf.class.defaultRenderer === 'dagre-wrapper') return 'classDiagram';
     return 'class';
   }
 
@@ -75043,6 +75929,7 @@ var detectType = function detectType(text) {
   }
 
   if (text.match(/^\s*stateDiagram/)) {
+    if (cnf && cnf.class && cnf.state.defaultRenderer === 'dagre-wrapper') return 'stateDiagram';
     return 'state';
   }
 
@@ -75074,6 +75961,7 @@ var detectType = function detectType(text) {
     return 'requirement';
   }
 
+  if (cnf && cnf.flowchart && cnf.flowchart.defaultRenderer === 'dagre-wrapper') return 'flowchart-v2';
   return 'flowchart';
 };
 
@@ -75670,12 +76558,12 @@ var calculateTextDimensions = memoize(function (text, config) {
       height: 0,
       lineHeight: 0
     };
-    var _iteratorNormalCompletion = true;
-    var _didIteratorError = false;
-    var _iteratorError = undefined;
+
+    var _iterator = _createForOfIteratorHelper(lines),
+        _step;
 
     try {
-      for (var _iterator = lines[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+      for (_iterator.s(); !(_step = _iterator.n()).done;) {
         var line = _step.value;
         var textObj = getTextObj();
         textObj.text = line;
@@ -75687,18 +76575,9 @@ var calculateTextDimensions = memoize(function (text, config) {
         dim.lineHeight = Math.round(Math.max(dim.lineHeight, cheight));
       }
     } catch (err) {
-      _didIteratorError = true;
-      _iteratorError = err;
+      _iterator.e(err);
     } finally {
-      try {
-        if (!_iteratorNormalCompletion && _iterator.return != null) {
-          _iterator.return();
-        }
-      } finally {
-        if (_didIteratorError) {
-          throw _iteratorError;
-        }
-      }
+      _iterator.f();
     }
 
     dims.push(dim);
@@ -75712,28 +76591,18 @@ var calculateTextDimensions = memoize(function (text, config) {
 });
 
 var d3Attrs = function d3Attrs(d3Elem, attrs) {
-  var _iteratorNormalCompletion2 = true;
-  var _didIteratorError2 = false;
-  var _iteratorError2 = undefined;
+  var _iterator2 = _createForOfIteratorHelper(attrs),
+      _step2;
 
   try {
-    for (var _iterator2 = attrs[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+    for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
       var attr = _step2.value;
       d3Elem.attr(attr[0], attr[1]);
     }
   } catch (err) {
-    _didIteratorError2 = true;
-    _iteratorError2 = err;
+    _iterator2.e(err);
   } finally {
-    try {
-      if (!_iteratorNormalCompletion2 && _iterator2.return != null) {
-        _iterator2.return();
-      }
-    } finally {
-      if (_didIteratorError2) {
-        throw _iteratorError2;
-      }
-    }
+    _iterator2.f();
   }
 };
 
@@ -75754,33 +76623,34 @@ var configureSvgSize = function configureSvgSize(svgElem, height, width, useMaxW
   var attrs = calculateSvgSizeAttrs(height, width, useMaxWidth);
   d3Attrs(svgElem, attrs);
 };
-var initIdGeneratior = function initIdGeneratior(deterministic, seed) {
-  if (!deterministic) return {
-    next: function next() {
-      return Date.now();
+var initIdGeneratior = /*#__PURE__*/function () {
+  function iterator(deterministic, seed) {
+    _classCallCheck(this, iterator);
+
+    this.deterministic = deterministic;
+    this.seed = seed;
+    this.count = seed ? seed.length : 0;
+  }
+
+  _createClass(iterator, [{
+    key: "next",
+    value: function next() {
+      if (!this.deterministic) return Date.now();
+      return this.count++;
     }
-  };
+  }]);
 
-  var iterator =
-  /*#__PURE__*/
-  function () {
-    function iterator() {
-      _classCallCheck(this, iterator);
+  return iterator;
+}(); // Source https://github.com/shrpne/entity-decode/blob/master/browser.js
 
-      return this.count = seed ? seed.length : 0;
-    }
+var decoder;
+var entityDecode = function entityDecode(html) {
+  decoder = decoder || document.createElement('div'); // Escape HTML before decoding for HTML Entities
 
-    _createClass(iterator, [{
-      key: "next",
-      value: function next() {
-        return this.count++;
-      }
-    }]);
+  html = escape(html).replace(/%26/g, '&').replace(/%23/g, '#').replace(/%3B/g, ';'); // decoding
 
-    return iterator;
-  }();
-
-  return new iterator();
+  decoder.innerHTML = html;
+  return unescape(decoder.textContent);
 };
 /* harmony default export */ __webpack_exports__["default"] = ({
   assignWithDepth: assignWithDepth,
@@ -75804,6 +76674,7 @@ var initIdGeneratior = function initIdGeneratior(deterministic, seed) {
   random: random,
   memoize: memoize,
   runFunc: runFunc,
+  entityDecode: entityDecode,
   initIdGeneratior: initIdGeneratior
 });
 
