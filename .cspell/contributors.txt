@@ -1,0 +1,13 @@
+# Contributors to mermaidjs, one per line
+Ashish Jain
+cpettitt
+Dong Cai
+fourcube
+kepano
+knsv
+Knut Sveidqvist
+Nikolay Rozhkov
+Peng Xiao
+Per Brolin
+Sidharth Vinod
+subhash-halder

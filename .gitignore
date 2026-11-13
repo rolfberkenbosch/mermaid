@@ -3,9 +3,13 @@
 node_modules/
 coverage/
 .idea/
+.pnpm-store/
+.instructions/
+docs/superpowers/
+.mcp.json
 
-dist/*.js
-dist/*.map
+dist
+v8-compile-cache-0
 
 yarn-error.log
 .npmrc
@@ -13,14 +17,71 @@ token
 
 package-lock.json
 
-dist/classTest.html
+# ignore files in /.vscode/ except for launch.json and extensions.json
+/.vscode/**
+!/.vscode/launch.json
+!/.vscode/extensions.json
 
-dist/sequenceTest.html
-
-.vscode/
-cypress/platform/current.html
-cypress/platform/experimental.html
+e2e/platform/current.html
+e2e/platform/experimental.html
 local/
 
 _site
 Gemfile.lock
+/.vs
+
+e2e/screenshots/
+e2e/__snapshots__/
+e2e/snapshots/
+e2e/sheets/
+
+# eslint --cache file
+.eslintcache
+.tsbuildinfo
+tsconfig.tsbuildinfo
+
+#knsv*.html
+local*.html
+stats/
+
+**/user-avatars/*
+**/contributor-names.json
+.pnpm-store
+.nyc_output
+
+.env
+
+demos/dev/**
+!/demos/dev/example.html
+!/demos/dev/reload.js
+!/demos/dev/architecture-randomize.html
+tsx-0/**
+node-compile-cache/
+vite.config.ts.timestamp-*
+
+# autogenereated by langium-cli
+generated/
+
+
+/CLAUDE.md
+/AGENTS.md
+/assistant/
+/.claude/
+packages/mermaid/src/diagrams/CLAUDE.md
+packages/parser/CLAUDE.md
+AGENTS.mermaid.md
+CLAUDE.mermaid.md
+.envrc
+AGENTS.alana.md
+CLAUDE.alana.md
+mermaid-parser.tar.gz
+.gitnexus
+.agents/
+.ralph/
+.tmp
+.fallow/
+test-results/
+.playwright-mcp/
+
+# Copied from packages/mermaid by the build (.esbuild/build.ts); packed into the tiny tarball.
+packages/tiny/THIRD_PARTY_NOTICES

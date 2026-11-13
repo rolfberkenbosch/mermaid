@@ -1,0 +1,13 @@
+BRANDES
+browserlist
+Buzan
+circo
+GHSA
+handDrawn
+KOEPF
+MMLU
+neato
+newbranch
+renovatebot
+validify
+WCAG
